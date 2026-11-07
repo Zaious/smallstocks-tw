@@ -71,6 +71,7 @@ export interface Snapshot {
   events: StockEvent[];
   demo: boolean;
   error: string | null;
+  privacyShortcutError?: string | null;
   lastFetch: number | null;
   nextPoll: number;
   marketOpen: boolean;

@@ -1,4 +1,4 @@
-/* Windows-style view chrome, based on Microsoft's published Notepad / Terminal references. */
+/* Platform-specific document and terminal chrome; the monitoring content is shared. */
 body[data-skin="native"] .shell > header,
 body[data-skin="native"] .shell > nav,
 body[data-skin="native"] #banner,
@@ -210,7 +210,7 @@ body[data-skin="native"] #content {
   border-top: 1px solid #ddd;
   margin: 4px 6px;
 }
-.windows-notepad {
+.text-view {
   background: #fff;
   color: #202020;
 }
@@ -319,7 +319,7 @@ body[data-skin="native"] #content {
 .notepad-status > span:last-child {
   min-width: 55px;
 }
-.windows-terminal {
+.terminal-view {
   background: #0c0c0c;
   color: #ccc;
 }
@@ -471,4 +471,140 @@ body[data-skin="native"] #content {
     gap: 5px;
     padding: 0 6px;
   }
+}
+
+/* macOS: title-only document window, left traffic lights, no Windows tab/menus/status. */
+.mac-terminal,
+.mac-textedit {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  background: #fff;
+  color: #252525;
+}
+.mac-titlebar {
+  position: relative;
+  height: 30px;
+  flex-basis: 30px;
+  padding: 0 8px 0 12px;
+  background: linear-gradient(#efefef, #e5e5e5);
+  border-bottom: 1px solid #c8c8c8;
+  color: #333;
+}
+.mac-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 1;
+  flex: 0 0 62px;
+}
+.mac-controls button {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #0002;
+  position: relative;
+}
+.mac-controls .mac-close {
+  background: #ff5f57;
+}
+.mac-controls .mac-minimize {
+  background: #febc2e;
+}
+.mac-controls .mac-maximize {
+  background: #28c840;
+}
+.mac-controls:hover .mac-close::before,
+.mac-controls:hover .mac-close::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  width: 6px;
+  height: 1px;
+  background: #65302d;
+  transform: rotate(45deg);
+}
+.mac-controls:hover .mac-close::after {
+  transform: rotate(-45deg);
+}
+.mac-controls:hover .mac-minimize::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  width: 6px;
+  height: 1px;
+  background: #72571f;
+}
+.mac-controls:hover .mac-maximize::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid #175b23;
+}
+.mac-document-title {
+  position: absolute;
+  left: 82px;
+  right: 82px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.mac-view-menu {
+  z-index: 2;
+  color: #555;
+}
+.mac-view-menu summary {
+  font-size: 20px;
+  line-height: 20px;
+  padding: 1px 7px;
+}
+.mac-view-menu .native-popup {
+  left: auto;
+  right: 0;
+  max-height: 340px;
+  overflow: auto;
+  background: #f5f5f5f5;
+  font-family: inherit;
+}
+.mac-textedit .notepad-editor {
+  padding: 9px 12px;
+  font:
+    12px/1.5 Menlo,
+    "SFMono-Regular",
+    Consolas,
+    "Microsoft JhengHei UI",
+    monospace;
+}
+.mac-textedit .notepad-status {
+  display: none !important;
+}
+.mac-terminal .terminal-screen {
+  background: #fff;
+  color: #252525;
+  font:
+    11.5px/1.45 Menlo,
+    "SFMono-Regular",
+    Consolas,
+    "Microsoft JhengHei UI",
+    monospace;
+}
+.mac-terminal .console-command input {
+  color: #252525;
+  caret-color: #252525;
+}
+.mac-terminal .minimal-stock,
+.mac-textedit .minimal-stock {
+  color: #252525;
+}
+.mac-terminal .minimal-stock .minimal-mark,
+.mac-textedit .minimal-stock .minimal-mark {
+  color: #555;
+}
+.mac-terminal .minimal-native-demo {
+  color: #666;
 }

@@ -2,6 +2,7 @@ import { esc, number, change, time, latestCloseDate, stale } from "./model.ts";
 import type { Snapshot } from "./model.ts";
 import { minimalMarkup, bindMinimal, updateMinimal } from "./minimal.ts";
 import { stockDetail } from "./stock-view.ts";
+import { isMac, primaryPressed, shellPrompt } from "./platform.ts";
 export type SkinAction =
   | "watch"
   | "daily"
@@ -104,7 +105,7 @@ export function notepadText(s: Snapshot): string {
 }
 function terminalText(s: Snapshot): string {
   const lines = [
-    "PS C:\\Work> npm run sync -- --watch",
+    `${shellPrompt} npm run sync -- --watch`,
     "",
     `> sync-job  monitor`,
     `> refresh=${s.settings.refreshSeconds}s  streams=${s.watchlist.length}  rules=${s.rules.filter((r) => r.enabled).length}`,
@@ -177,13 +178,38 @@ const item = (label: string, action: SkinAction, shortcut = "") =>
   `<button data-skin-action="${action}" role="menuitem"><span>${label}</span><small>${shortcut}</small></button>`;
 const menu = (label: string, body: string) =>
   `<details class="native-menu"><summary>${label}</summary><div class="native-popup" role="menu">${body}</div></details>`;
+function macMarkup(
+  s: Snapshot,
+  mini: string,
+  minimal: boolean,
+  terminal: boolean,
+) {
+  const trafficLights =
+    '<div class="mac-controls"><button class="mac-close" data-skin-action="hide" aria-label="關閉視窗" title="關閉視窗，繼續監看"></button><button class="mac-minimize" data-skin-action="minimize" aria-label="最小化" title="最小化"></button><button class="mac-maximize" data-skin-action="maximize" aria-label="最大化或還原" title="最大化或還原"></button></div>';
+  const actions =
+    item("自選清單…", "manage") +
+    item("提醒設定…", "rules") +
+    item("事件紀錄", "history") +
+    "<hr>" +
+    item("設定", "settings", "⌘,") +
+    item("返回 small", "small") +
+    item("隱藏視窗", "hide");
+  const editing =
+    '<hr><button data-note-edit="select-all" role="menuitem"><span>全選</span><small>⌘A</small></button><button data-note-edit="copy" role="menuitem"><span>複製</span><small>⌘C</small></button><hr><button data-zoom="in" role="menuitem"><span>放大</span><small>⌘+</small></button><button data-zoom="out" role="menuitem"><span>縮小</span><small>⌘−</small></button><button data-zoom="reset" role="menuitem"><span>還原預設縮放</span><small>⌘0</small></button>';
+  const title = terminal ? "work — sync — zsh" : "工作紀錄.txt";
+  const titlebar = `<div class="native-title mac-titlebar" data-tauri-drag-region>${trafficLights}<span class="mac-document-title" data-tauri-drag-region>${title}</span><div class="native-drag" data-tauri-drag-region></div><div class="mac-view-menu">${menu("⋯", actions + (terminal ? "" : editing))}</div></div>`;
+  if (terminal)
+    return `<section class="native-frame terminal-view mac-terminal" data-disguise="terminal" data-row-mode="${s.settings.rowDisplay ?? "numbers"}">${titlebar}<div class="terminal-screen">${minimal ? mini : ""}<pre class="console-output${minimal ? " console-minimal-log" : ""}"></pre><form class="console-command" autocomplete="off"><span>${shellPrompt}</span><input aria-label="終端機模式指令" spellcheck="false" autocomplete="off" autocapitalize="off"></form></div></section>`;
+  return `<section class="native-frame text-view mac-textedit" data-disguise="txt" data-row-mode="${s.settings.rowDisplay ?? "numbers"}">${titlebar}${minimal ? mini : '<textarea class="notepad-editor" aria-label="工作紀錄文字內容" readonly spellcheck="false" wrap="off"></textarea>'}<div class="notepad-status" hidden><span class="caret-status"></span><span class="character-status"></span><span class="zoom-status">100%</span></div></section>`;
+}
 export function disguiseMarkup(s: Snapshot): string {
   const terminal = s.settings.appearance === "terminal";
   const minimal = s.settings.rowDisplay === "minimal";
   const mini = `<div class="minimal-native"><div class="minimal-native-demo" ${!s.demo && !s.settings.paused ? "hidden" : ""}>${s.demo ? "示範資料（非真實行情）" : ""}${s.settings.paused ? " 已暫停監看" : ""}</div>${minimalMarkup(s)}</div>`;
+  if (isMac) return macMarkup(s, mini, minimal, terminal);
   if (terminal)
-    return `<section class="native-frame windows-terminal" data-disguise="terminal" data-row-mode="${s.settings.rowDisplay ?? "numbers"}"><div class="native-title terminal-titlebar" data-tauri-drag-region><div class="terminal-tab"><span class="console-icon" aria-hidden="true">&gt;_</span><span>PowerShell</span><button data-skin-action="hide" aria-label="關閉分頁">×</button></div><button class="native-add" data-skin-action="manage" aria-label="新增監看項目" title="新增監看項目">＋</button>${menu("⌄", item("自選清單…", "manage") + item("提醒設定…", "rules") + item("事件紀錄", "history") + "<hr>" + item("設定", "settings", "Ctrl+,") + item("返回 small", "small") + item("隱藏視窗", "hide"))}<div class="native-drag" data-tauri-drag-region></div>${controls()}</div><div class="terminal-screen">${minimal ? mini : ""}<pre class="console-output${minimal ? " console-minimal-log" : ""}"></pre><form class="console-command" autocomplete="off"><span>PS C:\Work&gt;</span><input aria-label="終端機模式指令" spellcheck="false" autocomplete="off" autocapitalize="off"></form></div></section>`;
-  return `<section class="native-frame windows-notepad" data-disguise="txt" data-row-mode="${s.settings.rowDisplay ?? "numbers"}"><div class="native-title notepad-titlebar" data-tauri-drag-region><span class="notepad-icon" aria-hidden="true"></span><div class="notepad-tab"><span>工作紀錄.txt</span><button data-skin-action="hide" aria-label="關閉分頁">×</button></div><button class="native-add" data-skin-action="manage" aria-label="新增監看項目" title="新增監看項目">＋</button><div class="native-drag" data-tauri-drag-region></div>${controls()}</div><div class="notepad-menubar">${menu("檔案", item("自選清單…", "manage") + item("提醒設定…", "rules") + "<hr>" + item("返回 small", "small") + item("關閉視窗", "hide"))}${menu("編輯", '<button data-note-edit="select-all" role="menuitem"><span>全選</span><small>Ctrl+A</small></button><button data-note-edit="copy" role="menuitem"><span>複製</span><small>Ctrl+C</small></button>')}${menu("檢視", '<button data-zoom="in" role="menuitem"><span>放大</span><small>Ctrl++</small></button><button data-zoom="out" role="menuitem"><span>縮小</span><small>Ctrl+-</small></button><button data-zoom="reset" role="menuitem"><span>還原預設縮放</span><small>Ctrl+0</small></button><hr><button data-note-edit="status" role="menuitemcheckbox" aria-checked="true"><span>狀態列</span></button>' + item("事件紀錄", "history"))}<div class="notepad-menu-space"></div><button class="native-settings" data-skin-action="settings" aria-label="設定" title="設定">⚙︎</button></div>${minimal ? mini : '<textarea class="notepad-editor" aria-label="工作紀錄文字內容" readonly spellcheck="false" wrap="off"></textarea>'}<div class="notepad-status"><span class="caret-status">第 1 行，第 1 欄</span><span class="character-status"></span><span class="zoom-status">100%</span><span>Windows (CRLF)</span><span>UTF-8</span></div></section>`;
+    return `<section class="native-frame terminal-view windows-terminal" data-disguise="terminal" data-row-mode="${s.settings.rowDisplay ?? "numbers"}"><div class="native-title terminal-titlebar" data-tauri-drag-region><div class="terminal-tab"><span class="console-icon" aria-hidden="true">&gt;_</span><span>PowerShell</span><button data-skin-action="hide" aria-label="關閉分頁">×</button></div><button class="native-add" data-skin-action="manage" aria-label="新增監看項目" title="新增監看項目">＋</button>${menu("⌄", item("自選清單…", "manage") + item("提醒設定…", "rules") + item("事件紀錄", "history") + "<hr>" + item("設定", "settings", "Ctrl+,") + item("返回 small", "small") + item("隱藏視窗", "hide"))}<div class="native-drag" data-tauri-drag-region></div>${controls()}</div><div class="terminal-screen">${minimal ? mini : ""}<pre class="console-output${minimal ? " console-minimal-log" : ""}"></pre><form class="console-command" autocomplete="off"><span>PS C:\Work&gt;</span><input aria-label="終端機模式指令" spellcheck="false" autocomplete="off" autocapitalize="off"></form></div></section>`;
+  return `<section class="native-frame text-view windows-notepad" data-disguise="txt" data-row-mode="${s.settings.rowDisplay ?? "numbers"}"><div class="native-title notepad-titlebar" data-tauri-drag-region><span class="notepad-icon" aria-hidden="true"></span><div class="notepad-tab"><span>工作紀錄.txt</span><button data-skin-action="hide" aria-label="關閉分頁">×</button></div><button class="native-add" data-skin-action="manage" aria-label="新增監看項目" title="新增監看項目">＋</button><div class="native-drag" data-tauri-drag-region></div>${controls()}</div><div class="notepad-menubar">${menu("檔案", item("自選清單…", "manage") + item("提醒設定…", "rules") + "<hr>" + item("返回 small", "small") + item("關閉視窗", "hide"))}${menu("編輯", '<button data-note-edit="select-all" role="menuitem"><span>全選</span><small>Ctrl+A</small></button><button data-note-edit="copy" role="menuitem"><span>複製</span><small>Ctrl+C</small></button>')}${menu("檢視", '<button data-zoom="in" role="menuitem"><span>放大</span><small>Ctrl++</small></button><button data-zoom="out" role="menuitem"><span>縮小</span><small>Ctrl+-</small></button><button data-zoom="reset" role="menuitem"><span>還原預設縮放</span><small>Ctrl+0</small></button><hr><button data-note-edit="status" role="menuitemcheckbox" aria-checked="true"><span>狀態列</span></button>' + item("事件紀錄", "history"))}<div class="notepad-menu-space"></div><button class="native-settings" data-skin-action="settings" aria-label="設定" title="設定">⚙︎</button></div>${minimal ? mini : '<textarea class="notepad-editor" aria-label="工作紀錄文字內容" readonly spellcheck="false" wrap="off"></textarea>'}<div class="notepad-status"><span class="caret-status">第 1 行，第 1 欄</span><span class="character-status"></span><span class="zoom-status">100%</span><span>Windows (CRLF)</span><span>UTF-8</span></div></section>`;
 }
 function closeMenus(root: HTMLElement) {
   root
@@ -202,9 +228,7 @@ function caret(root: HTMLElement) {
 function setZoom(root: HTMLElement) {
   const editor = root.querySelector<HTMLTextAreaElement>(".notepad-editor");
   if (editor) editor.style.fontSize = `${(13 * zoom) / 100}px`;
-  const minimal = root.querySelector<HTMLElement>(
-    ".windows-notepad .minimal-native",
-  );
+  const minimal = root.querySelector<HTMLElement>(".text-view .minimal-native");
   if (minimal) minimal.style.fontSize = `${(13 * zoom) / 100}px`;
   const status = root.querySelector(".zoom-status");
   if (status) status.textContent = `${zoom}%`;
@@ -332,7 +356,7 @@ export function bindDisguise(
       if (command === "clear" || command === "cls") commandLog = [];
       else if (command === "help")
         commandLog.push(
-          "PS C:\\Work> help",
+          `${shellPrompt} help`,
           "watch | list | rules | history | settings | small | pause | hide | clear",
         );
       else if (actions[command]) {
@@ -340,21 +364,21 @@ export function bindDisguise(
         return;
       } else
         commandLog.push(
-          `PS C:\\Work> ${command}`,
+          `${shellPrompt} ${command}`,
           "Unknown view command. Type help.",
         );
       commandLog = commandLog.slice(-6);
       updateDisguise(root, lastState);
     });
   root.onkeydown = (event) => {
-    if (event.ctrlKey && event.key === ",") {
+    if (primaryPressed(event) && event.key === ",") {
       event.preventDefault();
       handler("settings");
     }
     if (event.key === "Escape") closeMenus(root);
     if (
       s.settings.appearance === "txt" &&
-      event.ctrlKey &&
+      primaryPressed(event) &&
       ["+", "=", "-", "0"].includes(event.key)
     ) {
       event.preventDefault();

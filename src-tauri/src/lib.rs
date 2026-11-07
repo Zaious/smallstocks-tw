@@ -36,6 +36,21 @@ pub fn bridge() {
     mcp::bridge(&data_dir());
 }
 #[tauri::command]
+fn privacy_hide(app: tauri::AppHandle) {
+    app.state::<mcp::Shared>().lock().unwrap().notices_hidden = true;
+    let _ = app.emit("privacy-hide", ());
+    for window in app.webview_windows().values() {
+        let _ = window.hide();
+    }
+}
+fn privacy_shortcut() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "Command+Alt+S"
+    } else {
+        "Ctrl+Alt+S"
+    }
+}
+#[tauri::command]
 fn hide_stock_detail(app: tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("detail") {
         let _ = w.hide();
@@ -257,11 +272,7 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _, event| {
                     if event.state() == ShortcutState::Pressed {
-                        app.state::<mcp::Shared>().lock().unwrap().notices_hidden = true;
-                        let _ = app.emit("privacy-hide", ());
-                        for w in app.webview_windows().values() {
-                            let _ = w.hide();
-                        }
+                        privacy_hide(app.clone());
                     }
                 })
                 .build(),
@@ -269,6 +280,7 @@ pub fn run() {
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             core_request,
+            privacy_hide,
             search_stocks,
             show_stock_detail,
             hide_stock_detail,
@@ -327,7 +339,9 @@ pub fn run() {
                 tray = tray.icon(icon.clone())
             }
             tray.build(app)?;
-            let _ = app.global_shortcut().register("Ctrl+Alt+Shift+S");
+            if let Err(error) = app.global_shortcut().register(privacy_shortcut()) {
+                setup_state.lock().unwrap().privacy_shortcut_error = Some(format!("全域隱藏快捷鍵無法註冊（可能已被占用）：{error}。程式內仍可使用快捷鍵或隱藏按鈕。"));
+            }
             if let Err(e) = mcp::serve(setup_state.clone(), &dir, app.handle().clone()) {
                 setup_state.lock().unwrap().error = Some(format!("MCP 啟動失敗：{e}"));
             }

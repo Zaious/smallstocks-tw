@@ -18,17 +18,17 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 *Synthetic demo quotes, captured from the Windows app.*
 
-> **Status: 0.1.9 local preview, Windows x64.** Portable ZIP and per-user installer. No public release has been published yet. The Windows build is unsigned; code signing and automatic updates are not included. Full-session live-market validation is still pending.
+> **Status: 0.1.10 local preview, Windows x64.** Portable ZIP and per-user installer. No public release has been published yet. The Windows build is unsigned; code signing and automatic updates are not included. Full-session live-market validation is still pending.
 
 ## What it does
 
 - **A small watchlist.** Search by name or code, or paste several codes at once. Follow listed and OTC stocks, ETFs, the TAIEX and the OTC index. Up to 30 watchlist entries.
 - **Three ways to glance.** Numbers, a single-row trend, or just direction and name. The minimal small view becomes a roughly 30 px bar, wraps when narrowed, and reveals price, change and source time on hover. Stock codes are optional.
-- **Four appearances.** Small in colour, small in greyscale, a Windows Terminal-style view, and a Windows Notepad-style view. The latter two are appearances inside this app; they do not run a shell or edit your documents.
+- **Four appearances.** Small in colour, small in greyscale, terminal and plain text. On Windows the latter two resemble Windows Terminal and Notepad; the macOS UI branch uses a zsh-style Terminal and a plain-text TextEdit window. These are appearances inside this app; they do not run a shell or edit your documents. Mac UI has browser-preview checks, not native Mac validation yet.
 - **Alerts you choose.** Price or percentage crossing a threshold, upwards or downwards; once or once each trading day. Turn a rule off, record it quietly, or show a strip or card in the corner. Notices do not take keyboard focus.
 - **Useful after the close.** The latest available official daily close, clearly dated, plus monthly open/high/low/close and volume history. Opening the app for the first time can fetch earlier daily records. Intraday trend mode can also retrieve the current day's available minute samples; gaps and partial data are labelled.
 - **An optional agent connection.** Ask your agent to summarise the watchlist, inspect recorded events or create an alert. The desktop app keeps monitoring after the agent closes. No model account or API key is needed to use the app itself.
-- **Fits your desktop.** Draggable, with optional always-on-top (on by default, saved across restarts) and a hide-all shortcut: `Ctrl+Alt+Shift+S`. Closing the window hides it to the tray; choose Quit there to stop it.
+- **Fits your desktop.** Draggable, with optional always-on-top (on by default, saved across restarts) and a three-key hide-all shortcut: `Ctrl+Alt+S` on Windows, `⌘⌥S` on Mac. Closing the window hides it to the tray; choose Quit there to stop it.
 
 Red means up and green means down. The little triangular pieces have an equilateral face and a shallow side, carrying the small series' board-piece feel into a stock list. A dash means unchanged; an open circle means the direction is unconfirmed or the data is older.
 
@@ -63,6 +63,21 @@ Small colour and small greyscale share the board-piece styling and single-row ch
 <img src="docs/media/minimal-terminal.png" width="420" alt="Terminal-style minimal watchlist, synthetic demo">
 <img src="docs/media/minimal-notepad.png" width="420" alt="Notepad-style minimal watchlist, synthetic demo">
 
+The Mac UI uses left-side traffic lights, a simple document title, Menlo-style text and a zsh prompt. Its plain-text view omits Windows tabs, the in-window menu bar and CRLF status strip:
+
+<img src="docs/media/mac-terminal-preview.png" width="420" alt="Mac-style terminal UI preview with synthetic data">
+<img src="docs/media/mac-textedit-preview.png" width="420" alt="Mac-style TextEdit UI preview with synthetic data">
+
+*Mac appearances shown above are browser previews of the platform-specific UI, not screenshots from a Mac build. A macOS package, native WebKit behaviour and global shortcut still require Mac validation.*
+
+| Action | Windows | Mac UI |
+| --- | --- | --- |
+| Hide all windows and suppress notices, keep monitoring | Ctrl+Alt+S | ⌘⌥S |
+| Open settings in terminal/text/minimal views | Ctrl+, | ⌘, |
+| Text zoom / reset | Ctrl++ / Ctrl+− / Ctrl+0 | ⌘+ / ⌘− / ⌘0 |
+
+The hide-all shortcut works globally when registration succeeds. If another app occupies it, Settings reports the failure; the focused app's shortcut and hide controls remain available. The previous four-key shortcut has been replaced. Show the app from the tray to restore notices.
+
 In **外觀與設定**, uncheck **視窗保持置頂** if you want other windows to cover the main window normally. The choice takes effect immediately and survives restarts and appearance changes. Hiding or covering the window does not stop monitoring; use Pause to do that. Alert cards and the temporary hover detail keep their independent overlay behaviour.
 
 ## Try it
@@ -71,8 +86,8 @@ Local packages are in `releases/` after building:
 
 | Windows x64 | File | Use |
 | --- | --- | --- |
-| Portable | `SmallStocks-TW-0.1.9-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`. |
-| Installer | `SmallStocks-TW-0.1.9-windows-x64-setup.exe` | Installs for the current user. |
+| Portable | `SmallStocks-TW-0.1.10-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`. |
+| Installer | `SmallStocks-TW-0.1.10-windows-x64-setup.exe` | Installs for the current user. |
 
 The app needs Microsoft WebView2. These are unsigned preview builds; workplace device policies may prevent either package from running.
 

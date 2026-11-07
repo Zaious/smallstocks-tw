@@ -176,3 +176,21 @@ README 依兩個系列專案的介紹結構重寫，主標為 Taiwan stocks, but
 
 使用者原有 0.1.1 執行檔與設定保持原樣；未新增公開 GitHub Releases。
 交付 0.1.9 免安裝包與安裝檔；封裝執行檔 SHA256 與已驗證建置一致：502D7BDE1517EC26DE6B8CF1989623CD438BA4D0D8E0619983EDD72B73917540。
+
+## 0.1.10 — 平台差異外觀與三鍵隱私快捷鍵
+
+Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現，四種外觀仍共用同一監看核心。Windows 保留 Terminal／PowerShell、記事本的分頁、選單與狀態列；Mac UI 分支使用左側交通燈、中央文件標題、zsh 提示與 TextEdit 純文字文件窗，不帶 Windows 分頁或 CRLF 狀態列。設定、文字縮放、選取與輸入保存使用相同邏輯；primary modifier 分別是 Ctrl 與 Command。
+
+原隱藏四鍵 Ctrl+Alt+Shift+S 改為 Windows Ctrl+Alt+S／Mac Command+Option+S。原生全域註冊與前端按鍵處理共用 privacy_hide，隱藏所有視窗並抑制後續通知、不暫停核心。註冊失敗以 privacyShortcutError 回傳並在設定頁顯示，原生視窗內仍有三鍵處理與隱藏控制。Mac Option+S 可能改變輸入字元，前端依實體 KeyS 判定，另有回歸測試。
+
+驗證：
+
+- 14 個前端測試、15 個 Rust 測試、TypeScript／Vite 建置通過。
+- platform-ui-check 通過 Windows 與 Mac UI 平台分支、提示字元、Ctrl／Command 設定與縮放、輸入／文字選取跨輪詢保留、極簡與 hover 明細。Mac 分支使用瀏覽器平台模擬，截圖 docs/media/mac-terminal-preview.png、mac-textedit-preview.png，並非原生 Mac 截圖。
+- disguise-check 通過 Windows 外框、對齊、指令、選單、縮放及狀態列；minimal-check 通過四種外觀與點擊明細。回歸檢查發現瀏覽器 preview 浮窗偶爾攔截股票點擊，已讓該浮窗滑鼠穿透，與原生明細窗一致，重新檢查通過。
+
+尚未產出或驗證 macOS 套件；Mac WebKit、系統選單／系統匣、資料路徑與全域按鍵仍需在 Mac 完整驗證。僅宣稱平台 UI 差異已實作，不宣稱 Mac 已可用。
+
+最終 Windows 0.1.10 release／NSIS 建置成功。window-settings-check 通過：三鍵全域註冊成功、程式內三鍵事件進入原生隱藏操作，主視窗／明細／通知均隱藏，paused 仍為 false；同時通過置頂 UI／MCP 切換、隱藏時套用與重開保存。這不包含 Mac 原生全域按鍵實測。
+
+交付 0.1.10 Windows 免安裝包與安裝檔；封裝執行檔 SHA256 與已驗證建置一致：25A09D5CC1B8912B2572552E5E6BBE57A98F0759323A6DFA01B285191CE4B188。

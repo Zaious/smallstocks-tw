@@ -153,7 +153,7 @@ body[data-skin="small"][data-page="watch"][data-density="minimal"] .shell {
   min-height: 0;
   overflow: auto;
 }
-.windows-notepad .minimal-native {
+.text-view .minimal-native {
   padding: 8px 6px;
   background: #fff;
 }
@@ -175,14 +175,14 @@ body[data-skin="small"][data-page="watch"][data-density="minimal"] .shell {
   color: inherit !important;
   font-size: 10px;
 }
-.windows-notepad .minimal-native {
+.text-view .minimal-native {
   font:
     13px/1.45 "Cascadia Mono",
     Consolas,
     "Microsoft JhengHei UI",
     monospace;
 }
-.windows-terminal .console-minimal-log {
+.terminal-view .console-minimal-log {
   flex: 0 0 auto;
   max-height: 80px;
 }
@@ -203,12 +203,12 @@ body[data-skin="small"][data-page="watch"][data-density="minimal"] .shell {
   color: inherit;
   opacity: 0.65;
 }
-.windows-terminal .minimal-native {
+.terminal-view .minimal-native {
   flex: 0 0 auto;
   max-height: 100%;
   padding-bottom: 4px;
 }
-.windows-terminal .console-minimal-log:empty {
+.terminal-view .console-minimal-log:empty {
   min-height: 0;
 }
 .minimal-native-demo {
@@ -310,6 +310,7 @@ body[data-skin="small"][data-page="watch"][data-density="minimal"] .shell {
   text-overflow: ellipsis;
 }
 .browser-detail {
+  pointer-events: none;
   position: fixed;
   z-index: 1000;
   box-shadow: 0 5px 18px #0004;

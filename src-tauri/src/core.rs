@@ -222,6 +222,7 @@ pub struct Core {
     pub revision: u64,
     pub config_revision: u64,
     pub notices_hidden: bool,
+    pub privacy_shortcut_error: Option<String>,
 }
 impl Core {
     pub fn load(path: PathBuf, demo: bool) -> Result<Self, String> {
@@ -258,6 +259,7 @@ impl Core {
             revision: 0,
             config_revision: 0,
             notices_hidden: false,
+            privacy_shortcut_error: None,
         })
     }
     pub fn persist(&self) -> Result<(), String> {
@@ -283,7 +285,7 @@ impl Core {
             .iter()
             .map(|c| (c.clone(), self.intraday_view(c)))
             .collect();
-        json!({"watchlist":self.saved.watchlist,"settings":self.saved.settings,"rules":self.saved.rules,"events":self.saved.events,"quotes":self.quotes,"demo":self.demo,"error":self.error,"lastFetch":self.last_fetch,"nextPoll":self.next_poll,"marketOpen":trading(now()),"revision":self.revision,"now":now(),"dailySummaries":summaries,"intraday":intraday})
+        json!({"watchlist":self.saved.watchlist,"settings":self.saved.settings,"privacyShortcutError":self.privacy_shortcut_error,"rules":self.saved.rules,"events":self.saved.events,"quotes":self.quotes,"demo":self.demo,"error":self.error,"lastFetch":self.last_fetch,"nextPoll":self.next_poll,"marketOpen":trading(now()),"revision":self.revision,"now":now(),"dailySummaries":summaries,"intraday":intraday})
     }
     pub fn queue_intraday(&mut self, code: &str) {
         let at = now();

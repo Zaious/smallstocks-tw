@@ -176,8 +176,38 @@ try {
       .alwaysOnTop,
     false,
   );
+  assert.equal(
+    (await tool("get_status")).privacyShortcutError,
+    null,
+    "global three-key shortcut registered",
+  );
+  await native("show");
+  await main.locator(".minimal-stock").first().hover();
+  await tip.locator(".detail-heading").waitFor();
+  await main.keyboard.press("Control+Alt+s");
+  await until(
+    () => native("is_visible"),
+    (value) => value === false,
+  );
+  for (const label of ["detail", "notify"]) {
+    assert.equal(
+      await main.evaluate(
+        (label) =>
+          window.__TAURI_INTERNALS__.invoke("plugin:window|is_visible", {
+            label,
+          }),
+        label,
+      ),
+      false,
+    );
+  }
+  assert.equal(
+    (await tool("get_status")).settings.paused,
+    false,
+    "privacy hide keeps monitoring enabled",
+  );
   console.log(
-    "PASS: default topmost, UI toggle, all skins, hidden MCP changes, persistence and native startup restoration; actual small numbers/trend/hover screenshots",
+    "PASS: topmost UI/MCP/native persistence; three-key shortcut registered, key handling hides all windows without pausing; actual small numbers/trend/hover screenshots",
   );
 } finally {
   await stop();
