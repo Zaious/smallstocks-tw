@@ -59,6 +59,7 @@ export interface Snapshot {
   dailySummaries: Record<string, DailyView>;
   watchlist: string[];
   settings: {
+    alwaysOnTop?: boolean;
     appearance: Appearance;
     paused: boolean;
     refreshSeconds: number;

@@ -139,14 +139,32 @@ fn show_stock_detail(
 }
 #[tauri::command]
 fn core_request(
+    app: tauri::AppHandle,
     state: tauri::State<mcp::Shared>,
     tool: String,
     args: Value,
 ) -> Result<Value, String> {
-    state
+    let result = state
         .lock()
         .map_err(|_| "監看核心無法存取".to_string())?
-        .execute(&tool, args)
+        .execute(&tool, args)?;
+    if tool == "set_settings" {
+        sync_main_window(&app)?;
+    }
+    Ok(result)
+}
+fn sync_main_window(app: &tauri::AppHandle) -> Result<(), String> {
+    let enabled = app
+        .state::<mcp::Shared>()
+        .lock()
+        .map_err(|_| "監看核心無法存取".to_string())?
+        .saved
+        .settings
+        .always_on_top;
+    let window = app
+        .get_webview_window("main")
+        .ok_or("main window unavailable")?;
+    window.set_always_on_top(enabled).map_err(|e| e.to_string())
 }
 #[tauri::command]
 async fn search_stocks(query: String) -> Result<Value, String> {
@@ -212,6 +230,15 @@ pub fn run() {
             .expect("cannot read settings; original file preserved"),
     ));
     let setup_state = state.clone();
+    if let Some(window) = context
+        .config_mut()
+        .app
+        .windows
+        .iter_mut()
+        .find(|w| w.label == "main")
+    {
+        window.always_on_top = state.lock().unwrap().saved.settings.always_on_top;
+    }
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             app.state::<mcp::Shared>().lock().unwrap().notices_hidden = false;
@@ -301,7 +328,7 @@ pub fn run() {
             }
             tray.build(app)?;
             let _ = app.global_shortcut().register("Ctrl+Alt+Shift+S");
-            if let Err(e) = mcp::serve(setup_state.clone(), &dir) {
+            if let Err(e) = mcp::serve(setup_state.clone(), &dir, app.handle().clone()) {
                 setup_state.lock().unwrap().error = Some(format!("MCP 啟動失敗：{e}"));
             }
             let handle = app.handle().clone();

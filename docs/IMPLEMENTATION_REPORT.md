@@ -163,3 +163,16 @@ README 依兩個系列專案的介紹結構重寫，主標為 Taiwan stocks, but
 最終 0.1.8 的 desktop-minimal-check 通過四種實際視窗、獨立明細窗、代號選項、寬度／自動高度、Native 選單與設定保存。
 
 交付 0.1.8 免安裝包與安裝檔；免安裝執行檔與已驗證建置 SHA256 相同：BD3D7AE7BE6BBE4927B66B403271CDCDEA041018962DFAF0825B4F005AB79D47。
+
+## 0.1.9 — 主視窗置頂選項與 small 視覺介紹
+
+新增共用 alwaysOnTop 設定，預設 true，舊設定未包含欄位時沿用原行為。介面及 MCP 都由核心驗證／保存；成功後 Rust 更新原生主視窗。啟動時直接從設定恢復，避免前端載入前先強制置頂。通知與暫時明細保留各自浮窗行為。
+
+- 15 個 Rust 測試與 12 個前端測試通過；新增舊設定相容、型別驗證及置頂選擇保存測試。
+- TypeScript／Vite 與 Windows x64 release／NSIS 建置通過。
+- window-settings-check 以獨立測試設定驗證：預設置頂、UI 關閉、四種外觀沿用、隱藏時 MCP 開關且不自行顯示主窗，以及完整重開後原生置頂狀態恢復。檢查的是原生視窗狀態，非僅設定值。
+- minimal-check 通過四種外觀、明細、焦點保存、點擊行情、代號及換行檢查。
+- README 補齊 small 風格、一般數字列、同列高的單行走勢，以及極簡與 hover 明細。數字列及明細為最終 Windows 程式合成資料截圖；走勢圖透過實際瀏覽器預覽呈現明確標示的合成整場示意，沒有把清晨少量點位或 pending 畫面宣稱完整盤中資料。圖片可用 scripts/window-settings-check.mjs 與 scripts/readme-trend-image.mjs 重產。
+
+使用者原有 0.1.1 執行檔與設定保持原樣；未新增公開 GitHub Releases。
+交付 0.1.9 免安裝包與安裝檔；封裝執行檔 SHA256 與已驗證建置一致：502D7BDE1517EC26DE6B8CF1989623CD438BA4D0D8E0619983EDD72B73917540。

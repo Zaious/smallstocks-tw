@@ -14,14 +14,11 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 [繁體中文使用說明](docs/USAGE.zh-TW.md)
 
-![The minimal small view with stock names and thick triangular direction marks](docs/media/minimal-small.png)
+![The small watchlist with names, prices and daily changes](docs/media/small-numbers.png)
 
-*Synthetic demo quotes. The same watchlist can also use a terminal or notepad appearance:*
+*Synthetic demo quotes, captured from the Windows app.*
 
-<img src="docs/media/minimal-terminal.png" width="420" alt="Terminal-style minimal watchlist, synthetic demo">
-<img src="docs/media/minimal-notepad.png" width="420" alt="Notepad-style minimal watchlist, synthetic demo">
-
-> **Status: 0.1.8 local preview, Windows x64.** Portable ZIP and per-user installer. No public release has been published yet. The Windows build is unsigned; code signing and automatic updates are not included. Full-session live-market validation is still pending.
+> **Status: 0.1.9 local preview, Windows x64.** Portable ZIP and per-user installer. No public release has been published yet. The Windows build is unsigned; code signing and automatic updates are not included. Full-session live-market validation is still pending.
 
 ## What it does
 
@@ -31,9 +28,42 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 - **Alerts you choose.** Price or percentage crossing a threshold, upwards or downwards; once or once each trading day. Turn a rule off, record it quietly, or show a strip or card in the corner. Notices do not take keyboard focus.
 - **Useful after the close.** The latest available official daily close, clearly dated, plus monthly open/high/low/close and volume history. Opening the app for the first time can fetch earlier daily records. Intraday trend mode can also retrieve the current day's available minute samples; gaps and partial data are labelled.
 - **An optional agent connection.** Ask your agent to summarise the watchlist, inspect recorded events or create an alert. The desktop app keeps monitoring after the agent closes. No model account or API key is needed to use the app itself.
-- **Lives in the tray.** Always on top, draggable, silent notices, and a hide-all shortcut: `Ctrl+Alt+Shift+S`. Closing the window hides it; choose Quit in the tray to stop it.
+- **Fits your desktop.** Draggable, with optional always-on-top (on by default, saved across restarts) and a hide-all shortcut: `Ctrl+Alt+Shift+S`. Closing the window hides it to the tray; choose Quit there to stop it.
 
 Red means up and green means down. The little triangular pieces have an equilateral face and a shallow side, carrying the small series' board-piece feel into a stock list. A dash means unchanged; an open circle means the direction is unconfirmed or the data is older.
+
+## The small view
+
+The small series uses restrained colours, rounded capsules and compact type to keep a watchlist in the corner of your desktop. Names stay readable, values align, and each normal row is only 22 px high. Small in colour uses Taiwan's red-up, green-down convention; its greyscale companion keeps the same shapes and layout.
+
+| Display | At a glance | Details |
+| --- | --- | --- |
+| Numbers | Name, latest trade or official close, daily percentage change. Stock codes are optional. | Hover a row for its code, date/time and price; click for daily history. |
+| Single-row trend | The middle price slot becomes a tiny line; name and change stay in place, at the same row height. | During trading hours, today's minute samples; outside trading hours, recent daily closes. Hover identifies the chart source, time and partial coverage. |
+| Minimal | Just a triangular direction piece and a name, side by side when space allows. | Hover or keyboard focus opens a separate detail window with price, change, code, source time and data status. Click for daily history. |
+
+**Single-row trend.** The chart uses the existing row rather than adding a chart panel or making the window taller:
+
+![Tiny trend lines inside the normal stock rows](docs/media/small-trend.png)
+
+*A synthetic session illustration. The actual chart shows the available portion of the session and labels partial coverage.*
+
+**Minimal and hover.** The equilateral pieces have a bright face and a shallow, darker side. The bar can shrink to roughly 30 px tall; the detail window appears outside it without enlarging the bar or taking keyboard focus:
+
+![Minimal small view](docs/media/minimal-small.png)
+
+![The separate hover detail window](docs/media/small-hover.png)
+
+*All images above use labelled synthetic demo data. Normal and trend rows use their row tooltip; the separate detail window shown here belongs to minimal mode. Neither hover nor switching modes interrupts monitoring.*
+
+## Four appearances, the same watchlist
+
+Small colour and small greyscale share the board-piece styling and single-row charts. Terminal and notepad use greyscale text and their own window frames. All four support normal and minimal content, and share watchlists, rules and the always-on-top preference.
+
+<img src="docs/media/minimal-terminal.png" width="420" alt="Terminal-style minimal watchlist, synthetic demo">
+<img src="docs/media/minimal-notepad.png" width="420" alt="Notepad-style minimal watchlist, synthetic demo">
+
+In **外觀與設定**, uncheck **視窗保持置頂** if you want other windows to cover the main window normally. The choice takes effect immediately and survives restarts and appearance changes. Hiding or covering the window does not stop monitoring; use Pause to do that. Alert cards and the temporary hover detail keep their independent overlay behaviour.
 
 ## Try it
 
@@ -41,8 +71,8 @@ Local packages are in `releases/` after building:
 
 | Windows x64 | File | Use |
 | --- | --- | --- |
-| Portable | `SmallStocks-TW-0.1.8-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`. |
-| Installer | `SmallStocks-TW-0.1.8-windows-x64-setup.exe` | Installs for the current user. |
+| Portable | `SmallStocks-TW-0.1.9-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`. |
+| Installer | `SmallStocks-TW-0.1.9-windows-x64-setup.exe` | Installs for the current user. |
 
 The app needs Microsoft WebView2. These are unsigned preview builds; workplace device policies may prevent either package from running.
 

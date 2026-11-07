@@ -123,6 +123,8 @@ pub fn parse_mis(v: &Value, received: i64) -> Result<Vec<Quote>, String> {
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Settings {
+    #[serde(default = "default_always_on_top")]
+    pub always_on_top: bool,
     #[serde(default)]
     pub show_codes: bool,
     #[serde(default = "default_row_display")]
@@ -134,9 +136,13 @@ pub struct Settings {
 fn default_row_display() -> String {
     "numbers".into()
 }
+fn default_always_on_top() -> bool {
+    true
+}
 impl Default for Settings {
     fn default() -> Self {
         Self {
+            always_on_top: true,
             show_codes: false,
             row_display: default_row_display(),
             appearance: "small".into(),
@@ -488,6 +494,9 @@ impl Core {
                 next.next_poll = 0;
             }
             "set_settings" => {
+                if let Some(v) = args.get("alwaysOnTop") {
+                    next.saved.settings.always_on_top = v.as_bool().ok_or("置頂格式錯誤")?;
+                }
                 if let Some(v) = args.get("rowDisplay") {
                     let v = v.as_str().ok_or("列顯示格式錯誤")?;
                     if !["numbers", "trend", "minimal"].contains(&v) {
@@ -902,6 +911,37 @@ mod tests {
             .execute("set_watchlist", json!({"symbols":["6488"]}))
             .is_err());
         assert_eq!(c.saved.watchlist, vec!["t00", "2330", "0050"]);
+    }
+    #[test]
+    fn topmost_defaults_migrate_and_changes_persist() {
+        let old: Settings = serde_json::from_value(json!({
+            "appearance":"small", "paused":false, "refreshSeconds":15
+        }))
+        .unwrap();
+        assert!(old.always_on_top);
+        let dir =
+            std::env::temp_dir().join(format!("smallstocks-topmost-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("state.json");
+        let mut core = Core::load(path.clone(), true).unwrap();
+        core.execute("set_settings", json!({"alwaysOnTop":false}))
+            .unwrap();
+        assert!(
+            !Core::load(path.clone(), true)
+                .unwrap()
+                .saved
+                .settings
+                .always_on_top
+        );
+        assert!(core
+            .execute("set_settings", json!({"alwaysOnTop":"false"}))
+            .is_err());
+        assert!(!core.saved.settings.always_on_top);
+        core.execute("set_settings", json!({"appearance":"terminal"}))
+            .unwrap();
+        assert!(!core.saved.settings.always_on_top);
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_dir(dir).unwrap();
     }
     #[test]
     fn old_settings_keep_numbers_by_default() {

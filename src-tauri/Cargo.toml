@@ -1,6 +1,6 @@
 [package]
 name = "smallstocks-tw"
-version = "0.1.8"
+version = "0.1.9"
 description = "A quiet local Taiwan stock monitor"
 edition = "2021"
 

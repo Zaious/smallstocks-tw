@@ -8,6 +8,7 @@
 - `src-tauri/src/mcp.rs` 為 stdio bridge 與經 token 保護的本機 RPC。不要輸出 token、開放外網或把 bridge 啟動成第二個監看核心。
 - `src/main.ts` 為 UI，`src/notify.ts` 為獨立不搶焦點的通知窗。`src/client.ts` 的 browser fallback 只供清楚標示的合成預覽。
 - 四種外觀：small 彩色、small 灰階、terminal 灰階、txt 灰階；後三者通知亦為灰階。純文字版面以文件感為主。
+- 主視窗 alwaysOnTop 預設 true，舊設定沿用，使用者可關閉並保存。UI 與 MCP 寫入同一設定，Rust 套用原生視窗狀態，啟動前從設定恢復；不要因切換外觀重新強制置頂。通知及暫時明細保留獨立浮窗行為。
 - terminal／txt 的監看頁用各自的 Windows 式視窗外框，隱藏共用 small 標題、導覽、來源頁尾及卡片。txt 是記事本分頁／檔案編輯檢視／純文字區／狀態列，不是白底文章；terminal 使用分頁外框及等寬輸出。
 - disguise.ts 管理偽裝模式；輪詢只更新內容，不替換輸入與文字區 DOM，以保留輸入、文字選取、捲動與選單。各模式的 data 屬性須用自己的命名，避免與主頁規則按鈕共用。
 - small 主窗盤中與休市都用緊湊單列清單，預設純數字，不放大卡片。使用者可切換相同列高的單行折線，盤中看當天、休市看近日；點標的才展開詳情。不要因休市或顯示折線擴大主窗。

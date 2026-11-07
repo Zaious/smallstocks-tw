@@ -34,7 +34,7 @@ pub fn tools() -> Value {
         {"name":"list_events","description":"Read up to 500 recent locally detected events, newest first.","inputSchema":{"type":"object","properties":{},"additionalProperties":false}},
         {"name":"list_rules","description":"Read persistent monitoring rules. Rules run without the agent.","inputSchema":{"type":"object","properties":{},"additionalProperties":false}},
         {"name":"set_watchlist","description":"Replace the watchlist (up to 30 Taiwan symbols). Enabled rules must be disabled or deleted before removing their symbol.","inputSchema":{"type":"object","properties":{"symbols":{"type":"array","items":{"type":"string"},"maxItems":30}},"required":["symbols"],"additionalProperties":false}},
-        {"name":"set_settings","description":"Change appearance, pause monitoring or set refresh interval. Hidden windows continue monitoring. Pausing resets crossing baselines.","inputSchema":{"type":"object","properties":{"appearance":{"enum":["small","gray","terminal","txt"]},"rowDisplay":{"enum":["numbers","trend","minimal"]},"showCodes":{"type":"boolean"},"paused":{"type":"boolean"},"refreshSeconds":{"type":"integer","minimum":5,"maximum":300}},"additionalProperties":false}},
+        {"name":"set_settings","description":"Change appearance, main-window always-on-top preference, pause monitoring or set refresh interval. Hidden windows continue monitoring. Pausing resets crossing baselines.","inputSchema":{"type":"object","properties":{"appearance":{"enum":["small","gray","terminal","txt"]},"rowDisplay":{"enum":["numbers","trend","minimal"]},"alwaysOnTop":{"type":"boolean"},"showCodes":{"type":"boolean"},"paused":{"type":"boolean"},"refreshSeconds":{"type":"integer","minimum":5,"maximum":300}},"additionalProperties":false}},
         {"name":"upsert_rule","description":"Create or replace a persistent crossing rule. First valid fresh observation establishes a baseline without alerting; subsequent crossing triggers once daily or once ever. Editing preserves today's fired latch. No volume/big-order rules. Returns current state including rule ID. Omit id to create, supply existing id to replace. Symbol automatically added to watchlist.","inputSchema":{"type":"object","properties":{"id":{"type":"string"},"symbol":{"type":"string"},"metric":{"enum":["price","changePercent"]},"direction":{"enum":["above","below"]},"threshold":{"type":"number"},"channel":{"enum":["off","log","strip","card"]},"repeat":{"enum":["once","daily"]},"enabled":{"type":"boolean"}},"required":["symbol","metric","direction","threshold"],"additionalProperties":false}},
         {"name":"delete_rule","description":"Delete an existing monitoring rule by ID.","inputSchema":{"type":"object","properties":{"id":{"type":"string"}},"required":["id"],"additionalProperties":false}}
     ])
@@ -65,7 +65,7 @@ pub fn rpc(state: &Shared, req: Value) -> Option<Value> {
     };
     Some(json!({"jsonrpc":"2.0","id":id,"result":result}))
 }
-pub fn serve(state: Shared, dir: &Path) -> Result<(), String> {
+pub fn serve(state: Shared, dir: &Path, app: tauri::AppHandle) -> Result<(), String> {
     let server = tiny_http::Server::http("127.0.0.1:0").map_err(|e| e.to_string())?;
     let port = server.server_addr().to_ip().ok_or("no local port")?.port();
     let token = uuid::Uuid::new_v4().to_string();
@@ -98,8 +98,19 @@ pub fn serve(state: Shared, dir: &Path) -> Result<(), String> {
                 let _ = req.respond(tiny_http::Response::empty(400));
                 continue;
             }
-            let response = match serde_json::from_str(&body) {
-                Ok(v) => rpc(&state, v).unwrap_or(json!({})),
+            let response = match serde_json::from_str::<Value>(&body) {
+                Ok(v) => {
+                    let settings_changed =
+                        v["method"] == "tools/call" && v["params"]["name"] == "set_settings";
+                    let mut response = rpc(&state, v).unwrap_or(json!({}));
+                    if settings_changed && response["result"]["isError"] == false {
+                        if let Err(error) = crate::sync_main_window(&app) {
+                            response["result"] =
+                                json!({"content":[{"type":"text","text":error}],"isError":true});
+                        }
+                    }
+                    response
+                }
                 Err(_) => {
                     json!({"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Invalid JSON"}})
                 }

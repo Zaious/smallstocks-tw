@@ -5,7 +5,12 @@ let preview: Snapshot = {
   watchlist: ["t00", "2330", "0050"],
   dailySummaries: {},
   intraday: {},
-  settings: { appearance: "small", paused: false, refreshSeconds: 15 },
+  settings: {
+    appearance: "small",
+    paused: false,
+    refreshSeconds: 15,
+    alwaysOnTop: true,
+  },
   quotes: {},
   rules: [],
   events: [],
