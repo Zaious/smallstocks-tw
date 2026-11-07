@@ -1,0 +1,838 @@
+/* Palette, capsules and type adapted from SmalLoL app.css / Basesmall iso style. */
+:root {
+  --background: #15171c;
+  --panel: #1b1e24;
+  --border: #2a2e37;
+  --text: #e8eaee;
+  --muted: #a0a6b1;
+  --accent: #e8b04a;
+  --up: #e9857b;
+  --down: #7dc6a3;
+  --font: "Segoe UI Variable", "Segoe UI", "Microsoft JhengHei UI", sans-serif;
+  --mono: "Cascadia Mono", Consolas, monospace;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+}
+body {
+  font: 12px/1.5 var(--font);
+  color: var(--text);
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 9px;
+}
+button:hover {
+  background: #ffffff0e;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+#app {
+  height: 100%;
+}
+.shell {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0 6px 0 10px;
+  user-select: none;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.brand i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.brand b {
+  font-size: 13px;
+  letter-spacing: -0.5px;
+}
+.brand > span {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.window-actions button {
+  font-size: 18px;
+  line-height: 18px;
+  color: var(--muted);
+}
+nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px 6px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+nav button {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 4px 9px;
+}
+nav .active {
+  background: var(--panel);
+  color: var(--text);
+}
+nav .gear {
+  margin-left: auto;
+}
+#rule-count {
+  font: 10px var(--mono);
+  color: var(--accent);
+  margin-left: 3px;
+}
+#banner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 10px;
+  padding: 0 12px;
+}
+#banner:not(:empty) {
+  padding-top: 6px;
+  padding-bottom: 4px;
+}
+.demo-label {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+  color: var(--accent);
+}
+#content {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.quotes {
+  padding: 2px 6px;
+}
+.quote {
+  width: 100%;
+  height: 22px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 6px;
+  background: var(--panel);
+  border-radius: 5px;
+  margin: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+.stock-name {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+.stock-name strong {
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.stock-name > span {
+  font: 10px var(--mono);
+  color: var(--muted);
+}
+.price {
+  font: 500 12px var(--mono);
+  min-width: 56px;
+  text-align: right;
+}
+.change {
+  font: 11px var(--mono);
+  min-width: 54px;
+  text-align: right;
+}
+.up .change {
+  color: var(--up);
+}
+.down .change {
+  color: var(--down);
+}
+.quote-time {
+  display: none;
+}
+.stale .stock-name:before {
+  content: "○";
+  color: var(--muted);
+  font-size: 9px;
+}
+.quote:hover .quote-time {
+  display: inline;
+  font: 9px var(--mono);
+  color: var(--muted);
+}
+.latest {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 19px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.latest > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.latest-dot {
+  width: 4px;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.manage {
+  margin: 1px 10px 6px;
+  color: var(--muted);
+  font-size: 10px;
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: 6px 12px;
+  font-size: 9px;
+  color: var(--muted);
+}
+#source {
+  white-space: nowrap;
+  font-family: var(--mono);
+}
+.pane {
+  padding: 20px;
+}
+h1 {
+  font-weight: 550;
+  font-size: 19px;
+  letter-spacing: -0.4px;
+  margin: 0 0 5px;
+}
+.intro {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 0 0 20px;
+}
+.appearance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.appearance {
+  border: 1px solid var(--border);
+  padding: 12px;
+  text-align: left;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 10px;
+}
+.appearance.selected {
+  border-color: var(--accent);
+}
+.appearance strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.appearance small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.look-sample {
+  height: 32px;
+  font: 11px var(--mono);
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+}
+.look-sample.small {
+  color: var(--up);
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0;
+}
+.setting-row strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+small {
+  color: var(--muted);
+}
+.setting-row small,
+.rule small,
+.event small {
+  display: block;
+  font-size: 10px;
+}
+.setting-row input {
+  width: 80px;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted);
+}
+input,
+select,
+textarea {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 9px;
+  min-width: 0;
+  width: 100%;
+}
+textarea {
+  resize: vertical;
+}
+.primary {
+  background: var(--accent);
+  color: var(--background);
+  font-weight: 600;
+  margin-top: 14px;
+  padding: 8px 16px;
+}
+.primary:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+}
+.secondary {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  font-size: 11px;
+}
+.note {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.9;
+  margin-top: 20px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.rule-list {
+  margin-top: 20px;
+}
+.rule {
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.rule strong,
+.event strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.rule button {
+  font-size: 10px;
+  padding: 4px;
+}
+.event {
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+}
+.event time {
+  font: 10px var(--mono);
+  color: var(--muted);
+  padding-top: 2px;
+}
+.empty {
+  padding: 24px 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 2;
+  text-align: center;
+}
+#results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 5px 0 15px;
+}
+#results button {
+  font-size: 11px;
+  background: var(--panel);
+}
+#message {
+  display: none;
+  position: absolute;
+  bottom: 30px;
+  left: 14px;
+  right: 14px;
+  padding: 10px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--panel);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+#message.visible {
+  display: block;
+}
+.terminal {
+  font: 11px/1.8 var(--mono);
+  padding: 12px 16px;
+}
+.terminal-title {
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.terminal pre {
+  font: inherit;
+  margin: 0;
+  white-space: pre;
+  overflow: auto;
+}
+.terminal-line {
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+  padding-top: 5px;
+  color: var(--muted);
+}
+.terminal .logs {
+  white-space: pre-wrap;
+  color: var(--muted);
+  margin: 7px 0;
+}
+.prompt {
+  color: var(--text);
+}
+.document {
+  padding: 14px 22px;
+  font:
+    12px/1.9 "Segoe UI",
+    "Microsoft JhengHei UI",
+    sans-serif;
+}
+.doc-title {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  font-size: 12px;
+}
+.doc-title span {
+  float: right;
+  font-size: 10px;
+  color: var(--muted);
+}
+.document p {
+  margin: 10px 0;
+}
+.document strong {
+  font-weight: 500;
+}
+.document hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.muted {
+  color: var(--muted);
+}
+body[data-appearance="gray"],
+body[data-appearance="terminal"],
+body[data-appearance="txt"] {
+  --accent: #c1c3c7;
+  --up: #e0e1e3;
+  --down: #b5b8bd;
+}
+body[data-appearance="terminal"] .shell {
+  border-radius: 6px;
+}
+body[data-appearance="txt"] {
+  --background: #f5f5f3;
+  --panel: #eeeeec;
+  --border: #d4d4d1;
+  --text: #353535;
+  --muted: #666;
+  --accent: #555;
+  --up: #353535;
+  --down: #555;
+}
+body[data-appearance="txt"] .shell {
+  border-radius: 5px;
+}
+body[data-appearance="terminal"] .brand i,
+body[data-appearance="txt"] .brand i {
+  display: none;
+}
+body[data-appearance="terminal"] .brand b,
+body[data-appearance="txt"] .brand b {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+body[data-appearance="terminal"] .brand > span,
+body[data-appearance="txt"] .brand > span {
+  letter-spacing: 0;
+}
+body[data-appearance="txt"] .demo-label {
+  color: var(--muted);
+}
+.daily-controls {
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  gap: 12px;
+  margin: 15px 0;
+}
+.daily-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 20px 0 8px;
+}
+.daily-summary > span:first-child {
+  color: var(--muted);
+  font-size: 11px;
+}
+.daily-summary strong {
+  font: 600 25px var(--mono);
+}
+.close-price > .up,
+.daily-summary > .up,
+.sparkline.up {
+  color: var(--up);
+}
+.close-price > .down,
+.daily-summary > .down,
+.sparkline.down {
+  color: var(--down);
+}
+.sparkline {
+  width: 100%;
+  display: block;
+  height: 30px;
+  overflow: visible;
+}
+.sparkline polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.sparkline circle {
+  fill: currentColor;
+}
+.daily-chart {
+  background: var(--panel);
+  border-radius: 9px;
+  padding: 15px 12px 8px;
+}
+.daily-chart .sparkline {
+  height: 120px;
+}
+.chart-dates {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font: 9px var(--mono);
+  margin-top: 5px;
+}
+.chart-empty {
+  padding: 10px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.ohlc {
+  display: flex;
+  gap: 22px;
+  margin: 12px 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.ohlc b {
+  color: var(--text);
+  font-weight: 500;
+  margin-left: 5px;
+}
+.daily-table-wrap {
+  overflow: auto;
+}
+.daily-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+.daily-table th {
+  font-weight: 400;
+  color: var(--muted);
+}
+.daily-table td,
+.daily-table th {
+  text-align: right;
+  padding: 8px 5px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.daily-table td:first-child,
+.daily-table th:first-child {
+  text-align: left;
+}
+.close-label {
+  padding: 10px 16px 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.close-list {
+  padding: 4px 10px;
+}
+.close-card {
+  padding: 10px;
+  background: var(--panel);
+  border-radius: 9px;
+  margin: 6px 0;
+}
+.close-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+.close-heading strong {
+  font-weight: 500;
+}
+.close-heading > span,
+.close-card small {
+  color: var(--muted);
+  font-size: 9px;
+}
+.close-card small {
+  display: block;
+}
+.close-price {
+  font: 600 17px var(--mono);
+  margin: 4px 0;
+}
+.close-price > span {
+  font-size: 11px;
+  margin-left: 7px;
+  font-weight: 400;
+}
+.close-range {
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 5px;
+  font-variant-numeric: tabular-nums;
+}
+/* The watch surface stays small in every session; details open on demand. */
+body[data-page="watch"] header {
+  height: 22px;
+}
+body[data-page="watch"] .brand b {
+  font-size: 12px;
+}
+body[data-page="watch"] .brand {
+  gap: 6px;
+}
+body[data-page="watch"] nav {
+  padding: 0 5px 2px;
+  gap: 2px;
+}
+body[data-page="watch"] nav button {
+  padding: 2px 6px;
+  font-size: 10px;
+}
+body[data-page="watch"] footer {
+  padding: 2px 7px;
+  font-size: 9px;
+}
+body[data-page="watch"] .latest {
+  padding: 1px 10px;
+  font-size: 9px;
+}
+.as-of {
+  font: 9px var(--mono);
+  color: var(--muted);
+  width: 29px;
+  flex-shrink: 0;
+  text-align: right;
+}
+.window-actions {
+  display: flex;
+  align-items: center;
+}
+.window-actions button {
+  font-size: 13px;
+  line-height: 16px;
+  padding: 0 5px;
+}
+.pane {
+  padding: 14px;
+}
+h1 {
+  font-size: 16px;
+}
+.intro {
+  margin-bottom: 12px;
+}
+input,
+select,
+textarea {
+  padding: 6px;
+}
+.appearance {
+  padding: 8px;
+  gap: 3px;
+}
+.appearance-grid {
+  gap: 7px;
+}
+.look-sample {
+  height: 23px;
+}
+.setting-row {
+  margin: 12px 0;
+}
+.note {
+  margin-top: 12px;
+  line-height: 1.7;
+}
+.daily-summary {
+  margin: 12px 0 6px;
+}
+.daily-summary strong {
+  font-size: 20px;
+}
+.daily-chart {
+  padding: 10px 8px 6px;
+}
+.daily-chart .sparkline {
+  height: 85px;
+}
+.ohlc {
+  gap: 12px;
+  margin: 8px 0;
+}
+.daily-table td,
+.daily-table th {
+  padding: 5px 4px;
+}
+.terminal {
+  padding: 6px 10px;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.terminal-title {
+  margin-bottom: 4px;
+}
+.terminal-line {
+  margin-top: 6px;
+}
+.document {
+  padding: 8px 12px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.document p {
+  margin: 6px 0;
+}
+.trend-slot {
+  width: 104px;
+  height: 16px;
+  flex: 0 0 104px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+.row-trend {
+  width: 104px;
+  height: 16px;
+  display: block;
+  overflow: visible;
+  color: var(--text);
+}
+.row-trend path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.row-trend circle {
+  fill: currentColor;
+}
+.trend-empty,
+.line-flag {
+  font: 9px var(--font);
+  color: var(--muted);
+}
+.line-slot {
+  display: flex;
+  align-items: center;
+  width: 104px;
+  gap: 3px;
+}
+.line-slot.partial .row-trend {
+  width: 80px;
+  flex: 0 0 80px;
+}
+.line-slot.delayed path {
+  stroke-dasharray: 2 2;
+}
+#row-display {
+  font: 9px var(--font);
+  padding: 1px 5px;
+}

@@ -1,0 +1,319 @@
+.minimal-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: center;
+  gap: 3px 7px;
+  padding: 3px 6px;
+  min-width: 0;
+}
+.minimal-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-width: 0;
+  height: 22px;
+  flex: 0 1 auto;
+  padding: 1px 6px;
+  background: var(--panel);
+  border: 0;
+  border-radius: 5px;
+  color: var(--text);
+  font: 11px/1.4 var(--font);
+  white-space: nowrap;
+  text-align: left;
+}
+.minimal-mark {
+  font: 10px var(--font);
+  flex-shrink: 0;
+}
+.minimal-stock.up .minimal-mark {
+  color: var(--up);
+}
+.minimal-stock.down .minimal-mark {
+  color: var(--down);
+}
+.minimal-stock.unknown .minimal-mark {
+  color: var(--muted);
+}
+body[data-skin="small"] .minimal-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+.direction-piece {
+  --piece-color: var(--up);
+  display: block;
+  width: 14px;
+  height: 14px;
+  overflow: visible;
+}
+.minimal-stock.down .direction-piece {
+  --piece-color: var(--down);
+}
+.direction-piece path {
+  stroke-linejoin: round;
+  stroke-width: 0.45px;
+}
+.direction-piece .piece-shadow {
+  fill: #000;
+  opacity: 0.35;
+}
+.direction-piece .piece-front {
+  fill: color-mix(in srgb, var(--piece-color) 70%, #111);
+  stroke: color-mix(in srgb, var(--piece-color) 60%, #111);
+}
+.direction-piece .piece-right {
+  fill: color-mix(in srgb, var(--piece-color) 48%, #111);
+  stroke: color-mix(in srgb, var(--piece-color) 45%, #111);
+}
+.direction-piece .piece-top {
+  fill: color-mix(in srgb, var(--piece-color) 92%, #fff);
+  stroke: color-mix(in srgb, var(--piece-color) 65%, #fff);
+  stroke-width: 0.65px;
+}
+.minimal-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.minimal-code {
+  font: 9px var(--mono);
+  color: var(--muted);
+}
+.minimal-empty {
+  color: var(--muted);
+  font-size: 10px;
+}
+body[data-skin="small"][data-page="watch"][data-density="minimal"]
+  .shell
+  > header,
+body[data-skin="small"][data-page="watch"][data-density="minimal"] .shell > nav,
+body[data-skin="small"][data-page="watch"][data-density="minimal"] #banner,
+body[data-skin="small"][data-page="watch"][data-density="minimal"]
+  .shell
+  > footer {
+  display: none;
+}
+body[data-skin="small"][data-page="watch"][data-density="minimal"] .shell {
+  border-radius: 7px;
+}
+.minimal-bar {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  width: 100%;
+}
+.minimal-bar > .minimal-list {
+  flex: 1;
+  padding-left: 2px;
+  padding-right: 2px;
+  min-width: 0;
+}
+.minimal-grip {
+  flex: 0 0 10px;
+  width: 10px;
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 28px;
+}
+.minimal-grip i {
+  height: 4px;
+  width: 4px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.minimal-bar-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 3px 3px 0 0;
+}
+.minimal-bar-actions button {
+  width: 18px;
+  height: 22px;
+  padding: 0;
+  font: 13px/22px var(--font);
+  color: var(--muted);
+}
+.minimal-demo-tag {
+  font: 9px var(--font);
+  color: var(--muted);
+  padding-top: 7px;
+  flex: 0 0 auto;
+}
+.minimal-native {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.windows-notepad .minimal-native {
+  padding: 8px 6px;
+  background: #fff;
+}
+.native-frame .minimal-list {
+  gap: 3px 12px;
+  padding: 2px 4px;
+}
+.native-frame .minimal-stock {
+  background: transparent !important;
+  color: inherit;
+  border: 0;
+  border-radius: 0;
+  padding: 0 2px;
+  font: inherit;
+  height: auto;
+  min-height: 22px;
+}
+.native-frame .minimal-mark {
+  color: inherit !important;
+  font-size: 10px;
+}
+.windows-notepad .minimal-native {
+  font:
+    13px/1.45 "Cascadia Mono",
+    Consolas,
+    "Microsoft JhengHei UI",
+    monospace;
+}
+.windows-terminal .console-minimal-log {
+  flex: 0 0 auto;
+  max-height: 80px;
+}
+.setting-check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.setting-check input {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  accent-color: var(--accent);
+}
+.native-frame .minimal-code {
+  color: inherit;
+  opacity: 0.65;
+}
+.windows-terminal .minimal-native {
+  flex: 0 0 auto;
+  max-height: 100%;
+  padding-bottom: 4px;
+}
+.windows-terminal .console-minimal-log:empty {
+  min-height: 0;
+}
+.minimal-native-demo {
+  font-size: 10px;
+  color: inherit;
+  opacity: 0.7;
+  padding: 3px 10px;
+}
+.stock-detail {
+  --detail-bg: #1b1e24;
+  --detail-ink: #e8eaee;
+  --detail-muted: #a0a6b1;
+  --detail-border: #444851;
+  --detail-up: #e9857b;
+  --detail-down: #7dc6a3;
+  box-sizing: border-box;
+  background: var(--detail-bg);
+  color: var(--detail-ink);
+  border: 1px solid var(--detail-border);
+  border-radius: 7px;
+  padding: 12px;
+  width: 280px;
+  font:
+    11px/1.6 "Segoe UI",
+    "Microsoft JhengHei UI",
+    sans-serif;
+  overflow: hidden;
+}
+.stock-detail[data-mode="gray"],
+.stock-detail[data-mode="terminal"] {
+  --detail-up: #dedfe1;
+  --detail-down: #b5b8bd;
+}
+.stock-detail[data-mode="terminal"] {
+  border-radius: 3px;
+  font-family: "Cascadia Mono", Consolas, monospace;
+  background: #0c0c0c;
+}
+.stock-detail[data-mode="txt"] {
+  --detail-bg: #fafafa;
+  --detail-ink: #222;
+  --detail-muted: #626262;
+  --detail-border: #ccc;
+  --detail-up: #222;
+  --detail-down: #555;
+  border-radius: 4px;
+}
+.detail-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+.detail-heading strong {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.detail-heading > span {
+  color: var(--detail-muted);
+  font:
+    10px Consolas,
+    monospace;
+  flex-shrink: 0;
+}
+.detail-values {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  margin: 4px 0;
+}
+.detail-values b {
+  font:
+    500 17px Consolas,
+    monospace;
+}
+.detail-values .up {
+  color: var(--detail-up);
+}
+.detail-values .down {
+  color: var(--detail-down);
+}
+.detail-values .unknown {
+  color: var(--detail-muted);
+}
+.detail-date,
+.detail-status,
+.detail-source {
+  font-size: 10px;
+  color: var(--detail-muted);
+}
+.detail-source {
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.browser-detail {
+  position: fixed;
+  z-index: 1000;
+  box-shadow: 0 5px 18px #0004;
+}
+.browser-detail[hidden] {
+  display: none;
+}

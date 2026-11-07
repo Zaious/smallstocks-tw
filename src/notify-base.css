@@ -1,0 +1,223 @@
+/* The corner notices (docs/UI_SPEC_v1.md §2): cards (300×56, 300×84 for a finished draft) and
+   strips (32 tall, 260 to 300 wide to fit their text), newest at the bottom, right-aligned in a window as tall as its content. */
+:root {
+  --background: #15171c;
+  --panel: #1b1e24;
+  --border: #2a2e37;
+  --text: #e8eaee;
+  --muted: #a0a6b1;
+  --accent: #e8b04a;
+  --blue: #4c93e6;
+  --red: #e0574c;
+  --font:
+    "Segoe UI Variable", "Segoe UI", "Microsoft JhengHei UI", "PingFang TC",
+    system-ui, sans-serif;
+  --mono: "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+/* Pinned to the corner's edge: bottom-right sticks to the bottom, top-right to the top, so items already
+   shown stay put while the window grows or shrinks around them (batch 1 review, item A). */
+body {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+body.tr {
+  justify-content: flex-start;
+}
+body {
+  color: var(--text);
+  font: 12px/1.35 var(--font);
+  user-select: none;
+  -webkit-user-select: none;
+}
+#stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 0 0 0 0;
+}
+
+.item {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, var(--muted));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  cursor: default;
+  --c: var(--accent);
+}
+.item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--c);
+}
+.item.B {
+  --c: var(--blue);
+}
+.item.R {
+  --c: var(--red);
+}
+
+.card {
+  width: 300px;
+  height: 56px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 12px 0 14px;
+  animation: in-card 0.22s ease-out;
+}
+.card.tall {
+  height: 84px;
+}
+.card .head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.card .title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card .time {
+  font: 11px var(--mono);
+  color: var(--muted);
+}
+/* The time box with a stream address: fixed width, the time or (on hover) "▶ 看" in it. */
+.card .tw {
+  flex: 0 0 48px;
+  width: 48px;
+  display: flex;
+  justify-content: flex-end;
+}
+.card .tw .watch {
+  display: none;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--border);
+  color: var(--text);
+  font: 600 11px var(--font);
+  cursor: pointer;
+}
+.card:hover .tw .time {
+  display: none;
+}
+.card:hover .tw .watch {
+  display: block;
+}
+.card .sub {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card.tall .sub {
+  line-height: 17px;
+}
+.card.tall .sub.tight {
+  font-size: 10px;
+}
+
+/* As wide as its text, 260 to 300 (no wider than a card): at 260 a first item's name was cut in 41 of 125 items
+   (111 in English), at 300 in 1 (32 in English; accepted). Measured in Edge. */
+.strip {
+  min-width: 260px;
+  max-width: 300px;
+  height: 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 13px;
+  animation: in-strip 0.18s ease-out;
+}
+.strip .title {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.strip .time {
+  font: 11px var(--mono);
+  color: var(--muted);
+}
+.strip.more {
+  cursor: pointer;
+  color: var(--muted);
+}
+.strip.more .title {
+  color: var(--text);
+}
+
+/* A tower streak counting up: only the text changes, in place. */
+.title.bump {
+  animation: bump 0.12s ease-out;
+}
+.item.out {
+  animation: out 0.16s ease-in forwards;
+}
+/* Held, invisible and not yet animating, until the window has grown to take it: the entrance then starts
+   (and its animationstart fires) only when it can be seen whole. */
+.item.wait {
+  animation: none;
+  opacity: 0;
+}
+
+@keyframes in-card {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+@keyframes in-strip {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+@keyframes bump {
+  from {
+    transform: translateY(4px);
+    opacity: 0.2;
+  }
+}
+@keyframes out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .strip,
+  .title.bump {
+    animation: fade 0.12s ease-out;
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+}

@@ -1,0 +1,115 @@
+<img src="src-tauri/icons/128x128.png" width="88" height="88" alt="SmallStocks TW icon">
+
+# SmallStocks TW
+
+**Taiwan stocks, but small.**
+
+A quiet desktop watchlist for the stocks you want to follow while working.
+
+SmallStocks TW sits in a corner of your screen with a few Taiwan stocks, ETFs or market indices. Keep the numbers, switch to a tiny trend line, or show just a name and a triangular piece. When a price or percentage crosses a threshold you set, a short notice tells you. Choose the familiar small look, go grey, or turn the window into a terminal or a plain text report.
+
+It runs on its own. If you use an agent, an optional local MCP connection lets it read the same watchlist and set the same alerts in natural language.
+
+The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and [SmalLoL](https://github.com/Zaious/smallol), made with the same Tauri 2 desktop approach and visual language.
+
+[繁體中文使用說明](docs/USAGE.zh-TW.md)
+
+![The minimal small view with stock names and thick triangular direction marks](docs/media/minimal-small.png)
+
+*Synthetic demo quotes. The same watchlist can also use a terminal or notepad appearance:*
+
+<img src="docs/media/minimal-terminal.png" width="420" alt="Terminal-style minimal watchlist, synthetic demo">
+<img src="docs/media/minimal-notepad.png" width="420" alt="Notepad-style minimal watchlist, synthetic demo">
+
+> **Status: 0.1.8 local preview, Windows x64.** Portable ZIP and per-user installer. No public release has been published yet. The Windows build is unsigned; code signing and automatic updates are not included. Full-session live-market validation is still pending.
+
+## What it does
+
+- **A small watchlist.** Search by name or code, or paste several codes at once. Follow listed and OTC stocks, ETFs, the TAIEX and the OTC index. Up to 30 watchlist entries.
+- **Three ways to glance.** Numbers, a single-row trend, or just direction and name. The minimal small view becomes a roughly 30 px bar, wraps when narrowed, and reveals price, change and source time on hover. Stock codes are optional.
+- **Four appearances.** Small in colour, small in greyscale, a Windows Terminal-style view, and a Windows Notepad-style view. The latter two are appearances inside this app; they do not run a shell or edit your documents.
+- **Alerts you choose.** Price or percentage crossing a threshold, upwards or downwards; once or once each trading day. Turn a rule off, record it quietly, or show a strip or card in the corner. Notices do not take keyboard focus.
+- **Useful after the close.** The latest available official daily close, clearly dated, plus monthly open/high/low/close and volume history. Opening the app for the first time can fetch earlier daily records. Intraday trend mode can also retrieve the current day's available minute samples; gaps and partial data are labelled.
+- **An optional agent connection.** Ask your agent to summarise the watchlist, inspect recorded events or create an alert. The desktop app keeps monitoring after the agent closes. No model account or API key is needed to use the app itself.
+- **Lives in the tray.** Always on top, draggable, silent notices, and a hide-all shortcut: `Ctrl+Alt+Shift+S`. Closing the window hides it; choose Quit in the tray to stop it.
+
+Red means up and green means down. The little triangular pieces have an equilateral face and a shallow side, carrying the small series' board-piece feel into a stock list. A dash means unchanged; an open circle means the direction is unconfirmed or the data is older.
+
+## Try it
+
+Local packages are in `releases/` after building:
+
+| Windows x64 | File | Use |
+| --- | --- | --- |
+| Portable | `SmallStocks-TW-0.1.8-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`. |
+| Installer | `SmallStocks-TW-0.1.8-windows-x64-setup.exe` | Installs for the current user. |
+
+The app needs Microsoft WebView2. These are unsigned preview builds; workplace device policies may prevent either package from running.
+
+Start with **＋ → 管理自選** to add stocks. Use **數字 / 走勢 / 極簡** to change the display, and **外觀與設定** to pick a skin. Open **提醒** to set a threshold. Click a stock to see its daily history.
+
+Want to look around outside trading hours? Run `Demo.cmd` from the portable package, or `smallstocks-tw.exe --demo`. This uses clearly labelled synthetic quotes and a separate default data folder. Quit the current instance from the tray before switching modes.
+
+See the [Traditional Chinese guide](docs/USAGE.zh-TW.md) for controls, data handling and configuration.
+
+## Agent / MCP, if you want it
+
+Start the desktop app, then add this to a host that supports local stdio MCP:
+
+```json
+{
+  "mcpServers": {
+    "smallstocks-tw": {
+      "command": "C:\\path\\to\\smallstocks-tw.exe",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+For example: “Watch 2330. When its traded price crosses below NT$1,000, show a grey strip, once per day.” Your agent can update the app's settings and create that rule. This is a configuration example, not a suggested trade.
+
+The nine tools read status, daily and intraday history, events and rules, and manage the watchlist, settings and rules. Both the desktop interface and MCP use one local monitoring core. A rule continues without the agent; scheduled agent reports must be arranged in your agent host. The app does not bundle an LLM.
+
+MCP connects over stdio to a token-protected loopback endpoint. Do not share `mcp-connection.json`. If your agent uses a cloud model, the information it reads may be sent to that model service. The [guide](docs/USAGE.zh-TW.md) includes the tool names and example rule fields.
+
+## Data and privacy
+
+Your computer fetches data directly. There is no developer-hosted quote server, account system or analytics. Settings, rules, events and caches are stored locally under `%APPDATA%\SmallStocks-TW`; demo mode uses a separate folder by default.
+
+- **Quotes:** TWSE MIS, batched for the watchlist, every 15 seconds by default during weekday 09:00–13:30 Taiwan time. Errors back off. The app has not yet integrated the official holiday calendar.
+- **Daily history:** official TWSE and TPEx sources, downloaded on demand and cached locally. Prices are unadjusted. The latest completed date depends on publication by the source.
+- **Intraday lines:** Yahoo Finance minute samples where available, or clearly labelled local MIS observations. Chart samples are kept separate from alert evaluation and are never combined into a supposedly complete feed.
+
+Source time and fetch time are separate. Missing, stale or out-of-order quotes cannot trigger alerts, and bid/ask prices are not presented as trades. A crossing rule needs a baseline: starting the app above a threshold does not itself trigger an upward-crossing alert. Gaps between samples can still miss crossings.
+
+This is a companion for keeping an eye on a watchlist. It does not place orders, read brokerage holdings, or provide tick-by-tick, large-order, volume-spike, price-limit-lock or announcement alerts. Market data is subject to its providers' terms; this project's software licence does not grant market-data rights. Local access and open source do not establish permission to redistribute data.
+
+## Build from source
+
+You need Node.js 24, Rust stable, Windows C++ build tools and WebView2.
+
+```powershell
+npm ci
+npm run tauri dev
+npm run tauri dev -- -- --demo
+npm run tauri build -- --bundles nsis
+```
+
+Checks:
+
+```powershell
+npm test
+npm run build
+cargo test --manifest-path src-tauri/Cargo.toml --lib
+```
+
+For browser checks, run `npm run dev`, then `node scripts/minimal-check.mjs` or `npm run check:ui`. After a release build, `node scripts/desktop-minimal-check.mjs` checks the actual Windows app using its own test data folder. Other verification scripts and results are in [the implementation report](docs/IMPLEMENTATION_REPORT.md).
+
+To package a portable build, run `./scripts/package-portable.ps1`. To regenerate the icon, see [the editable brand assets](assets/brand/README.md).
+
+## Licence
+
+Made by [Zaious](https://zaious.dev/) at [ChronicleCore Studio](https://studio.chroniclecore.com), 編年史記工作室.
+
+[Apache License 2.0](LICENSE), with [NOTICE](NOTICE). Reuses our own Basesmall and SmalLoL desktop patterns and visual components. Market data and third-party trademarks are not included in the software licence. SmallStocks TW is an independent project, unaffiliated with TWSE, TPEx, Yahoo or any brokerage.

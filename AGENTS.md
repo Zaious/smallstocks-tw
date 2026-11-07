@@ -1,0 +1,21 @@
+# SmallStocks TW
+
+- 回覆用繁體中文（台灣），識別字與程式碼使用英文。
+- 本體為獨立常駐 Tauri 2 程式；agent/MCP 是選配，不能讓基本監看依賴 LLM 或 host 排程。
+- 沿用我們自己的 Basesmall / SmalLoL 程式、元件與視覺，保留 LICENSE / NOTICE。參考路徑見 INITIAL_PLAN.md。
+- `src-tauri/src/core.rs` 是監看、規則、事件與設定的唯一擁有者；UI 與 MCP 共用其 execute 方法。不要在每個視窗或 agent 再輪詢行情。
+- `src-tauri/src/daily.rs` 為官方每日歷史 adapter。日資料與即時通知完全分開，依來源欄位保留成交量單位，不把日資料灌入 ingest。當日 15:00 前不列入已完成資料，15:00 後仍以來源公布為準。行情為未還原價格，不做使用者用的盤中重播。
+- `src-tauri/src/mcp.rs` 為 stdio bridge 與經 token 保護的本機 RPC。不要輸出 token、開放外網或把 bridge 啟動成第二個監看核心。
+- `src/main.ts` 為 UI，`src/notify.ts` 為獨立不搶焦點的通知窗。`src/client.ts` 的 browser fallback 只供清楚標示的合成預覽。
+- 四種外觀：small 彩色、small 灰階、terminal 灰階、txt 灰階；後三者通知亦為灰階。純文字版面以文件感為主。
+- terminal／txt 的監看頁用各自的 Windows 式視窗外框，隱藏共用 small 標題、導覽、來源頁尾及卡片。txt 是記事本分頁／檔案編輯檢視／純文字區／狀態列，不是白底文章；terminal 使用分頁外框及等寬輸出。
+- disguise.ts 管理偽裝模式；輪詢只更新內容，不替換輸入與文字區 DOM，以保留輸入、文字選取、捲動與選單。各模式的 data 屬性須用自己的命名，避免與主頁規則按鈕共用。
+- small 主窗盤中與休市都用緊湊單列清單，預設純數字，不放大卡片。使用者可切換相同列高的單行折線，盤中看當天、休市看近日；點標的才展開詳情。不要因休市或顯示折線擴大主窗。
+- intraday.rs 的分鐘線僅供顯示，不能流入事件判定。Yahoo 與本機 MIS 觀測分開保存、不拼接；本機片段標「局部」，拒絕舊日期、未來點與缺成交價，缺點不能被連成完整實線。
+- 收盤共同日期只在狀態列顯示一次；只有日期更早的個別標的需要列內日期，不把今天當成預設資料日期。
+- 顯示內容與四種外觀獨立：numbers／trend／minimal；代號 showCodes 預設 false。極簡的 ▲／▼ 表示當日方向，— 平盤，○ 未確認／過期，不能用最近一次更新方向冒充當日漲跌。
+- minimal.ts 管理極簡項目與 hover 控制，stock-view.ts 是四種外觀共用的明細模型。細節在獨立不搶焦點的 detail 視窗，不把主窗撐大。small 極簡會隱藏共用外框成細條；Native 外框保留。寬度由使用者控制，自動調高不得把寬度改回預設。
+- 來源時間與取得時間分開；委託價不能冒充成交價。缺值、過期與亂序資料不可觸發事件。新增事件要先確認所需欄位與語義。
+- 測試使用獨立 SMALLSTOCKS_CONFIG_DIR；不改動使用者實際設定或其他兩個專案。不要在執行檔仍運行時覆寫同一路徑建置。
+- 常用檢查：npm run build、npm test、cargo test --manifest-path src-tauri/Cargo.toml --lib。UI 檢查見 README。
+- Windows 首版可用，未宣稱盤中長時間驗證、逐筆資料或其他平台完成。發布前依實際測試更新 docs/IMPLEMENTATION_REPORT.md。

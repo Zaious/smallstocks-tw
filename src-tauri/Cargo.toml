@@ -1,0 +1,30 @@
+[package]
+name = "smallstocks-tw"
+version = "0.1.8"
+description = "A quiet local Taiwan stock monitor"
+edition = "2021"
+
+[lib]
+name = "smallstocks_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-window-state = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-global-shortcut = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", features = ["blocking", "json", "rustls-tls"], default-features = false }
+chrono = { version = "0.4", features = ["serde"] }
+tiny_http = "0.12"
+uuid = { version = "1", features = ["v4"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true

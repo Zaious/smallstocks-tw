@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SmallStocks TW",
+  "version": "0.1.8",
+  "identifier": "com.chroniclecore.smallstocks-tw",
+  "build": {
+    "devUrl": "http://127.0.0.1:1432",
+    "frontendDist": "../dist",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "SmallStocks TW",
+        "width": 360,
+        "height": 148,
+        "minWidth": 300,
+        "minHeight": 100,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "alwaysOnTop": true,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src ipc: http://ipc.localhost; img-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"],
+    "category": "Finance",
+    "windows": { "nsis": { "installMode": "currentUser" } }
+  }
+}

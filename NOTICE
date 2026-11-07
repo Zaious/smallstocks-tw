@@ -1,0 +1,15 @@
+SmallStocks TW
+Copyright 2026 ChronicleCore Studio (編年史記工作室)
+Created by Zaious.
+
+Based on SmalLoL by Zaious, ChronicleCore Studio
+Based on Basesmall by Zaious, ChronicleCore Studio
+
+Desktop window patterns, notification CSS and visual tokens are reused or adapted
+from our Apache-2.0 licensed SmalLoL and Basesmall projects.
+The products' names and third-party sports assets are not included in this grant.
+Market data is obtained separately and is not licensed under this software licence.
+
+The MIS batch-channel approach was studied in twjackysu/claude-code-stock-ticker.
+No source files from that project are included in this version; this implementation
+uses a separate Rust adapter with explicit price provenance and freshness checks.
