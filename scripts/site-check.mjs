@@ -161,19 +161,19 @@ try {
       json: [
         {
           draft: false,
-          tag_name: "v0.1.10",
+          tag_name: "v0.1.11",
           assets: [
             {
-              name: "SmallStocks-TW-0.1.10-windows-x64.zip",
+              name: "SmallStocks-TW-0.1.11-windows-x64.zip",
               size: 3589319,
               browser_download_url:
-                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.10/SmallStocks-TW-0.1.10-windows-x64.zip",
+                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.11/SmallStocks-TW-0.1.11-windows-x64.zip",
             },
             {
-              name: "SmallStocks-TW-0.1.10-windows-x64-setup.exe",
+              name: "SmallStocks-TW-0.1.11-windows-x64-setup.exe",
               size: 2598055,
               browser_download_url:
-                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.10/SmallStocks-TW-0.1.10-windows-x64-setup.exe",
+                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.11/SmallStocks-TW-0.1.11-windows-x64-setup.exe",
             },
           ],
         },
@@ -186,7 +186,7 @@ try {
     await releasePage.locator("#installer-download").isVisible(),
     true,
   );
-  assert.equal(await releasePage.locator("#version").innerText(), "v0.1.10");
+  assert.equal(await releasePage.locator("#version").innerText(), "v0.1.11");
   const failed = await browser.newPage();
   await failed.route("https://api.github.com/**", (route) =>
     route.fulfill({ status: 503, body: "Unavailable" }),
