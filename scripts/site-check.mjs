@@ -83,7 +83,7 @@ try {
     ),
   );
   assert.ok(
-    (await page.locator("#text-caption").innerText()).includes("尚未原生實測"),
+    (await page.locator("#text-caption").innerText()).includes("原生視窗截圖"),
   );
   await page.locator("[data-platform=windows]").click();
   assert.ok(
@@ -213,7 +213,7 @@ try {
     deviceScaleFactor: 1,
   });
   await share.setContent(
-    `<style>*{box-sizing:border-box}body{margin:0;background:#15171c;color:#e8eaee;font-family:'Segoe UI','Microsoft JhengHei UI',sans-serif;padding:60px}header{display:flex;align-items:center;gap:15px;font-size:22px;color:#a0a6b1}header img{width:45px}h1{font-size:80px;line-height:1.18;letter-spacing:-3px;margin:40px 0 24px}p{color:#a0a6b1;font-size:23px;line-height:1.8;margin:0}.gold{color:#e8b04a}.widget{position:absolute;right:55px;top:190px;width:510px;box-shadow:0 20px 60px #0004;border-radius:10px}.bar{position:absolute;right:55px;top:475px;width:430px}.foot{position:absolute;bottom:45px;font-size:17px;color:#a0a6b1}</style><header><img src="${await embed("site/media/icon.png")}">SmallStocks TW</header><h1>台股，<br><span class="gold">縮小一點。</span></h1><p>做你的事。<br>重要變化，來找你。</p><img class="widget" src="${await embed("site/media/numbers.png")}"><img class="bar" src="${await embed("site/media/minimal.png")}"><div class="foot">桌面自選股 · 安靜提醒 · 免費開源　｜　畫面為合成示範行情</div>`,
+    `<style>*{box-sizing:border-box}body{margin:0;background:#15171c;color:#e8eaee;font-family:'Segoe UI','Microsoft JhengHei UI',sans-serif;padding:60px}header{display:flex;align-items:center;gap:15px;font-size:22px;color:#a0a6b1}header img{width:45px}h1{font-size:80px;line-height:1.18;letter-spacing:-3px;margin:40px 0 24px}p{color:#a0a6b1;font-size:23px;line-height:1.8;margin:0}.gold{color:#e8b04a}.widget{position:absolute;right:55px;top:190px;width:510px;box-shadow:0 20px 60px #0004;border-radius:10px}.bar{position:absolute;right:55px;top:475px;width:430px}.foot{position:absolute;bottom:45px;font-size:17px;color:#a0a6b1}</style><header><img src="${await embed("site/media/icon.png")}">SmallStocks TW</header><h1>台股，<br><span class="gold">縮小著看。</span></h1><p>做你的事。<br>重要變化，來找你。</p><img class="widget" src="${await embed("site/media/numbers.png")}"><img class="bar" src="${await embed("site/media/minimal.png")}"><div class="foot">桌面自選股 · 安靜提醒 · 免費開源　｜　畫面為合成示範行情</div>`,
   );
   await share.screenshot({ path: "site/media/share.png" });
   console.log(

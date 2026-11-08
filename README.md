@@ -65,10 +65,10 @@ Small colour and small greyscale share the board-piece styling and single-row ch
 
 The Mac UI uses left-side traffic lights, a simple document title, Menlo-style text and a zsh prompt. Its plain-text view omits Windows tabs, the in-window menu bar and CRLF status strip:
 
-<img src="docs/media/mac-terminal-preview.png" width="420" alt="Mac-style terminal UI preview with synthetic data">
-<img src="docs/media/mac-textedit-preview.png" width="420" alt="Mac-style TextEdit UI preview with synthetic data">
+<img src="docs/media/mac-terminal.png" width="420" alt="Mac terminal appearance on an Intel Mac, synthetic data">
+<img src="docs/media/mac-textedit.png" width="420" alt="Mac TextEdit-style appearance on an Intel Mac, synthetic data">
 
-*Mac appearances shown above are browser previews of the platform-specific UI, not screenshots from a Mac build. A macOS package, native WebKit behaviour and global shortcut still require Mac validation.*
+*Mac appearances shown above are native window screenshots from an Intel Mac (macOS 26.2) running the demo mode with synthetic data. There is no macOS package yet; signing, real-market data, long-running use and the pressed-shortcut behaviour are not validated.*
 
 | Action | Windows | Mac UI |
 | --- | --- | --- |
@@ -154,6 +154,10 @@ For browser checks, run `npm run dev`, then `node scripts/minimal-check.mjs` or 
 To package a portable build, run `./scripts/package-portable.ps1`. To regenerate the icon, see [the editable brand assets](assets/brand/README.md).
 
 The [Traditional Chinese product website source](site/README.md) lives in `site/`. It reuses the small-series site design and app screenshots, with interactive display/platform previews and release-aware download links. Build it with `node site/build.mjs` and deploy `site/dist` to a static host. Its current Sites review deployment is private; it is not a publicly announced custom-domain website.
+
+## Support
+
+SmallStocks TW is free and stays free: no ads, no paid features, and no donation links inside the app. If it keeps you company at work, you can [buy me a coffee](https://buymeacoffee.com/zaious); it unlocks nothing, every feature is the same for everyone.
 
 ## Licence
 

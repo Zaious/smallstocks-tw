@@ -79,10 +79,10 @@
     const mac = platform === "mac";
     const captions = {
       terminal: mac
-        ? "Mac 終端機／zsh 外觀預覽，尚未原生實測。"
+        ? "Mac 終端機／zsh 外觀，Intel Mac 原生視窗截圖（示範資料）。"
         : "Windows Terminal／PowerShell 外觀，等寬表格清楚對齊。",
       text: mac
-        ? "TextEdit 純文字外觀預覽，尚未原生實測。"
+        ? "TextEdit 純文字外觀，Intel Mac 原生視窗截圖（示範資料）。"
         : "Windows 記事本外觀，像一份隨時更新的文字報表。",
     };
     for (const kind of ["terminal", "text"]) {
