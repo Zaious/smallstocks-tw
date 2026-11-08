@@ -242,4 +242,4 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - 以最終執行檔通過：`check:desktop`（RPC 身分、MCP、規則共用、合成跨門檻、獨立通知窗與事件落盤）、`window-settings-check`（置頂與三鍵隱私快捷鍵）、`desktop-minimal-check`（四種外觀、明細窗、寬度與設定保存）、`daily-check`（官方日資料，2330、0050、t00、6488、o00，上櫃量欄為張）、`live-check`（本體直接取得 2330、0050、t00，來源時間約為 209,763 秒前，即上週五收盤資料，因此沒有觸發事件；這只驗證休市保守處理，不是盤中延遲量測）。
 - 未簽章、無自動更新；NSIS 安裝／解除安裝流程仍未實際操作；盤中長時間穩定性仍未驗證；MIS 欄位 `t` 語意待盤中以 `scripts/mis-time-probe.mjs` 量測。
 - 網站：`site-check` 通過；正式網址 smallstocks.chroniclecore.com，以 Cloudflare Worker 提供。
-
+- 2026-11-09 網站已部署到 https://smallstocks.chroniclecore.com（Cloudflare Worker，只提供 `site/dist` 的 23 個檔）。以瀏覽器載入確認標題、版本顯示與無頁面錯誤；GitHub 版本仍為草稿，網站依實際狀態顯示「公開安裝包尚未發布」，沒有下載按鈕。`README.md`、`build.mjs`、本機託管設定與 `dist/` 路徑皆回 404。草稿版本發布後的下載按鈕尚未以真實發布資料驗證。
