@@ -10,3 +10,4 @@ src-tauri/icons/ios/
 .env
 .env.*
 !.env.example
+.local-notes/
