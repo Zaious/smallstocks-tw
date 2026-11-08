@@ -1,3 +1,4 @@
+mod calendar;
 mod core;
 mod daily;
 mod intraday;
@@ -393,7 +394,7 @@ pub fn run() {
                         {
                             continue;
                         }
-                        if !s.demo && !core::trading(at) && s.last_fetch.is_some() {
+                        if !s.demo && !s.market_open(at) && s.last_fetch.is_some() {
                             s.next_poll = at + 60_000;
                             continue;
                         }
@@ -527,6 +528,43 @@ pub fn run() {
                         }
                     }
                     s.revision += 1;
+                }
+            });
+            let calendar_state = setup_state.clone();
+            supervise(setup_state.clone(), "休市日曆", move || {
+                let client = reqwest::blocking::Client::builder()
+                    .timeout(Duration::from_secs(20))
+                    .user_agent(concat!("SmallStocks-TW/", env!("CARGO_PKG_VERSION")))
+                    .build()
+                    .unwrap();
+                loop {
+                    let due = {
+                        let s = calendar_state.lock().unwrap_or_else(PoisonError::into_inner);
+                        if s.demo {
+                            Vec::new()
+                        } else {
+                            s.calendar_due(now())
+                        }
+                    };
+                    for year in due {
+                        let result = calendar::fetch(&client, year);
+                        let mut s = calendar_state.lock().unwrap_or_else(PoisonError::into_inner);
+                        match result {
+                            Ok(table) => {
+                                s.saved.calendars.insert(year.to_string(), table);
+                                s.calendar_errors.remove(&year);
+                                if let Err(e) = s.persist() {
+                                    s.calendar_errors
+                                        .insert(year, (format!("休市日曆無法儲存：{e}"), now()));
+                                }
+                            }
+                            Err(e) => {
+                                s.calendar_errors.insert(year, (e, now()));
+                            }
+                        }
+                        s.revision += 1;
+                    }
+                    std::thread::sleep(Duration::from_secs(30));
                 }
             });
             Ok(())

@@ -1,3 +1,4 @@
+use crate::calendar;
 use crate::daily;
 use crate::intraday;
 use chrono::{Datelike, FixedOffset, NaiveDateTime, TimeZone, Timelike, Utc};
@@ -193,6 +194,9 @@ pub struct Saved {
     pub local_intraday: HashMap<String, intraday::Series>,
     #[serde(default)]
     pub daily_cache: HashMap<String, daily::Series>,
+    /// Official TWSE open/closed calendar by year, kept so a restart on a holiday knows it.
+    #[serde(default)]
+    pub calendars: HashMap<String, calendar::Calendar>,
     #[serde(default)]
     pub watchlist: Vec<String>,
     #[serde(default)]
@@ -211,6 +215,7 @@ pub struct Core {
     pub daily_queue: std::collections::VecDeque<(String, String)>,
     pub daily_pending: std::collections::HashSet<String>,
     pub daily_errors: HashMap<String, (String, i64)>,
+    pub calendar_errors: HashMap<i32, (String, i64)>,
     pub saved: Saved,
     pub quotes: HashMap<String, Quote>,
     pub path: PathBuf,
@@ -248,6 +253,7 @@ impl Core {
             daily_queue: Default::default(),
             daily_pending: Default::default(),
             daily_errors: Default::default(),
+            calendar_errors: Default::default(),
             saved,
             quotes: HashMap::new(),
             path,
@@ -271,6 +277,67 @@ impl Core {
         .map_err(|e| e.to_string())?;
         std::fs::rename(temp, &self.path).map_err(|e| e.to_string())
     }
+    /// Name of the calendar closure on this Taipei date, if the official calendar lists one.
+    fn closure_on(&self, ms: i64) -> Option<&calendar::Closure> {
+        let day = local(ms);
+        self.saved
+            .calendars
+            .get(&day.year().to_string())?
+            .closures
+            .iter()
+            .find(|c| c.date == day.format("%Y-%m-%d").to_string())
+    }
+    /// Session hours on a weekday that the official calendar does not mark as closed.
+    pub fn market_open(&self, ms: i64) -> bool {
+        trading(ms) && self.closure_on(ms).is_none()
+    }
+    /// Why a weekday session is closed (holiday name), for the status line.
+    pub fn closed_reason(&self, ms: i64) -> Option<String> {
+        let day = local(ms);
+        (day.weekday().number_from_monday() <= 5)
+            .then(|| self.closure_on(ms).map(|c| c.name.clone()))
+            .flatten()
+    }
+    fn calendar_view(&self) -> Value {
+        let year = local(now()).year();
+        json!({
+            "years": self.saved.calendars.keys().collect::<Vec<_>>(),
+            "currentYearLoaded": self.saved.calendars.contains_key(&year.to_string()),
+            "error": self.calendar_errors.get(&year).map(|(e, _)| e),
+        })
+    }
+    /// Years whose calendar should be fetched now: missing (retry after an hour), older than six
+    /// hours, or refreshed once at 08:30-09:00 on a weekday so a same-day announcement is seen.
+    pub fn calendar_due(&self, at: i64) -> Vec<i32> {
+        let day = local(at);
+        let this_year = day.year();
+        let mut years = vec![this_year];
+        if day.month() >= 11 {
+            years.push(this_year + 1);
+        }
+        let minutes = day.hour() * 60 + day.minute();
+        let pre_open = day.weekday().number_from_monday() <= 5 && (510..540).contains(&minutes);
+        let today_pre_open = at - (minutes as i64 - 510) * 60_000 - day.second() as i64 * 1000;
+        years
+            .into_iter()
+            .filter(|y| {
+                if self
+                    .calendar_errors
+                    .get(y)
+                    .is_some_and(|(_, t)| at - t < 3_600_000)
+                {
+                    return false;
+                }
+                match self.saved.calendars.get(&y.to_string()) {
+                    None => true,
+                    Some(c) => {
+                        at - c.fetched_at >= 6 * 3_600_000
+                            || (*y == this_year && pre_open && c.fetched_at < today_pre_open)
+                    }
+                }
+            })
+            .collect()
+    }
     pub fn snapshot(&self) -> Value {
         let months = daily::months(now());
         let summaries: HashMap<String, Value> = self
@@ -285,7 +352,7 @@ impl Core {
             .iter()
             .map(|c| (c.clone(), self.intraday_view(c)))
             .collect();
-        json!({"watchlist":self.saved.watchlist,"settings":self.saved.settings,"privacyShortcutError":self.privacy_shortcut_error,"rules":self.saved.rules,"events":self.saved.events,"quotes":self.quotes,"demo":self.demo,"error":self.error,"lastFetch":self.last_fetch,"nextPoll":self.next_poll,"marketOpen":trading(now()),"revision":self.revision,"now":now(),"dailySummaries":summaries,"intraday":intraday})
+        json!({"watchlist":self.saved.watchlist,"settings":self.saved.settings,"privacyShortcutError":self.privacy_shortcut_error,"rules":self.saved.rules,"events":self.saved.events,"quotes":self.quotes,"demo":self.demo,"error":self.error,"lastFetch":self.last_fetch,"nextPoll":self.next_poll,"marketOpen":self.market_open(now()),"marketClosedReason":self.closed_reason(now()),"calendar":self.calendar_view(),"revision":self.revision,"now":now(),"dailySummaries":summaries,"intraday":intraday})
     }
     pub fn queue_intraday(&mut self, code: &str) {
         let at = now();
@@ -420,12 +487,13 @@ impl Core {
     }
     pub fn execute(&mut self, tool: &str, args: Value) -> Result<Value, String> {
         if tool == "get_status" {
-            if self.saved.settings.row_display == "trend" && (trading(now()) || self.demo) {
+            if self.saved.settings.row_display == "trend" && (self.market_open(now()) || self.demo)
+            {
                 for c in self.saved.watchlist.clone() {
                     self.queue_intraday(&c)
                 }
             }
-            if !trading(now()) || self.demo {
+            if !self.market_open(now()) || self.demo {
                 let months = daily::months(now());
                 for c in self.saved.watchlist.clone() {
                     for m in &months {
@@ -630,6 +698,7 @@ impl Core {
     /// state stays in memory, the failure is surfaced in `error`, and saving is retried next poll.
     pub fn ingest(&mut self, quotes: Vec<Quote>, at: i64) -> Vec<Event> {
         let mut next = self.clone();
+        let open = next.market_open(at);
         let mut emitted = Vec::new();
         for q in quotes {
             if !next.saved.watchlist.contains(&q.symbol) {
@@ -649,7 +718,7 @@ impl Core {
                 .iter_mut()
                 .filter(|r| r.symbol == q.symbol && r.enabled)
             {
-                if let Some(e) = evaluate(rule, &q, at, self.demo) {
+                if let Some(e) = evaluate(rule, &q, at, self.demo, open) {
                     next.saved.events.insert(0, e.clone());
                     emitted.push(e)
                 }
@@ -672,11 +741,12 @@ impl Core {
     }
 }
 
-pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool) -> Option<Event> {
+/// `open` is whether the session is open now (hours and official calendar), decided by the caller.
+pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool, open: bool) -> Option<Event> {
     let fresh = q.source_at <= at + 5000
         && at - q.source_at <= 60_000
         && q.date == local(at).format("%Y%m%d").to_string();
-    if !fresh || (!demo && !trading(at)) || r.channel == "off" {
+    if !fresh || (!demo && !open) || r.channel == "off" {
         r.last_value = None;
         r.last_at = None;
         return None;
@@ -783,6 +853,9 @@ pub fn demo_quotes(codes: &[String], tick: u64) -> Vec<Quote> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn ev(r: &mut Rule, q: &Quote, at: i64, demo: bool) -> Option<Event> {
+        evaluate(r, q, at, demo, trading(at))
+    }
     fn q(p: Option<f64>, t: i64) -> Quote {
         Quote {
             symbol: "2330".into(),
@@ -825,34 +898,34 @@ mod tests {
     fn crossing_and_restart_latch() {
         let t = ts();
         let mut r = rule();
-        assert!(evaluate(&mut r, &q(Some(106.), t), t, false).is_none());
-        assert!(evaluate(&mut r, &q(Some(100.), t + 5000), t + 5000, false).is_none());
-        assert!(evaluate(&mut r, &q(Some(106.), t + 10000), t + 10000, false).is_some());
+        assert!(ev(&mut r, &q(Some(106.), t), t, false).is_none());
+        assert!(ev(&mut r, &q(Some(100.), t + 5000), t + 5000, false).is_none());
+        assert!(ev(&mut r, &q(Some(106.), t + 10000), t + 10000, false).is_some());
         let saved = serde_json::to_string(&r).unwrap();
         let mut restored: Rule = serde_json::from_str(&saved).unwrap();
-        evaluate(&mut restored, &q(Some(100.), t + 15000), t + 15000, false);
-        assert!(evaluate(&mut restored, &q(Some(106.), t + 20000), t + 20000, false).is_none());
+        ev(&mut restored, &q(Some(100.), t + 15000), t + 15000, false);
+        assert!(ev(&mut restored, &q(Some(106.), t + 20000), t + 20000, false).is_none());
     }
     #[test]
     fn stale_missing_and_out_of_order_never_cross() {
         let t = ts();
         let mut r = rule();
-        evaluate(&mut r, &q(Some(100.), t), t, false);
-        assert!(evaluate(&mut r, &q(Some(106.), t - 5000), t, false).is_none());
-        assert!(evaluate(&mut r, &q(Some(106.), t + 5000), t + 120000, false).is_none());
-        assert!(evaluate(&mut r, &q(Some(106.), t + 125000), t + 125000, false).is_none());
-        evaluate(&mut r, &q(None, t + 130000), t + 130000, false);
-        assert!(evaluate(&mut r, &q(Some(106.), t + 135000), t + 135000, false).is_none());
+        ev(&mut r, &q(Some(100.), t), t, false);
+        assert!(ev(&mut r, &q(Some(106.), t - 5000), t, false).is_none());
+        assert!(ev(&mut r, &q(Some(106.), t + 5000), t + 120000, false).is_none());
+        assert!(ev(&mut r, &q(Some(106.), t + 125000), t + 125000, false).is_none());
+        ev(&mut r, &q(None, t + 130000), t + 130000, false);
+        assert!(ev(&mut r, &q(Some(106.), t + 135000), t + 135000, false).is_none());
     }
     #[test]
     fn day_reset_and_off_session() {
         let t = ts();
         let mut r = rule();
-        evaluate(&mut r, &q(Some(100.), t), t, false);
+        ev(&mut r, &q(Some(100.), t), t, false);
         let tomorrow = t + 86400000;
-        assert!(evaluate(&mut r, &q(Some(106.), tomorrow), tomorrow, false).is_none());
+        assert!(ev(&mut r, &q(Some(106.), tomorrow), tomorrow, false).is_none());
         let close = t + 4 * 3600000;
-        assert!(evaluate(&mut r, &q(Some(110.), close), close, false).is_none());
+        assert!(ev(&mut r, &q(Some(110.), close), close, false).is_none());
     }
     #[test]
     fn missing_trade_not_book() {
@@ -978,6 +1051,86 @@ mod tests {
             "daily latch survives edits"
         );
         std::fs::remove_dir_all(dir).unwrap();
+    }
+    fn calendar_with(closures: &[(&str, &str)], fetched_at: i64) -> calendar::Calendar {
+        calendar::Calendar {
+            year: 2026,
+            fetched_at,
+            closures: closures
+                .iter()
+                .map(|(date, name)| calendar::Closure {
+                    date: (*date).into(),
+                    name: (*name).into(),
+                })
+                .collect(),
+        }
+    }
+    #[test]
+    fn official_closure_closes_a_weekday_session_and_silences_alerts() {
+        let t = ts();
+        let mut c = Core::load(
+            std::env::temp_dir()
+                .join(format!("cal-test-{}", uuid::Uuid::new_v4()))
+                .join("state.json"),
+            false,
+        )
+        .unwrap();
+        // 2026-11-06 is a Friday and normally open.
+        assert!(c.market_open(t));
+        assert_eq!(c.closed_reason(t), None);
+        c.saved.calendars.insert(
+            "2026".into(),
+            calendar_with(&[("2026-11-06", "測試休市日")], t),
+        );
+        assert!(!c.market_open(t));
+        assert_eq!(c.closed_reason(t).as_deref(), Some("測試休市日"));
+        // A weekend is closed without needing a reason, and other days stay open.
+        assert!(!c.market_open(t + 86_400_000));
+        assert_eq!(c.closed_reason(t + 86_400_000), None);
+        assert!(c.market_open(t - 86_400_000));
+        let mut r = rule();
+        assert!(evaluate(&mut r, &q(Some(100.), t), t, false, c.market_open(t)).is_none());
+        assert!(evaluate(
+            &mut r,
+            &q(Some(106.), t + 5000),
+            t + 5000,
+            false,
+            c.market_open(t)
+        )
+        .is_none());
+        let snap = c.snapshot();
+        assert_eq!(snap["calendar"]["years"][0], "2026");
+    }
+    #[test]
+    fn calendar_is_fetched_when_missing_stale_or_before_open_and_retried_slowly() {
+        let t = ts(); // Friday 2026-11-06 10:00 Taipei
+        let mut c = Core::load(
+            std::env::temp_dir()
+                .join(format!("cal-due-{}", uuid::Uuid::new_v4()))
+                .join("state.json"),
+            false,
+        )
+        .unwrap();
+        // November: this year and next year are both wanted, because next year's table appears late.
+        assert_eq!(c.calendar_due(t), vec![2026, 2027]);
+        c.calendar_errors.insert(2027, ("尚未公布".into(), t));
+        assert_eq!(c.calendar_due(t + 60_000), vec![2026]);
+        assert_eq!(c.calendar_due(t + 3_600_000 + 1), vec![2026, 2027]);
+        c.saved.calendars.insert(
+            "2026".into(),
+            calendar_with(&[("2026-12-25", "行憲紀念日")], t),
+        );
+        assert_eq!(c.calendar_due(t + 3_600_000), vec![2027]);
+        assert_eq!(c.calendar_due(t + 6 * 3_600_000), vec![2026, 2027]);
+        // Weekday 08:40 the next Monday: a table fetched on Friday is refreshed once before open.
+        let early = FixedOffset::east_opt(28800)
+            .unwrap()
+            .with_ymd_and_hms(2026, 11, 9, 8, 40, 0)
+            .unwrap()
+            .timestamp_millis();
+        assert!(c.calendar_due(early).contains(&2026));
+        c.saved.calendars.get_mut("2026").unwrap().fetched_at = early - 60_000;
+        assert!(!c.calendar_due(early).contains(&2026));
     }
     #[test]
     fn topmost_defaults_migrate_and_changes_persist() {

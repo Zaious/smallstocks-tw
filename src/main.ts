@@ -344,7 +344,7 @@ function apply() {
           : date.replaceAll("-", "/")) + " 收盤"
       : "取得收盤資料中";
     document.querySelector("#health")!.textContent =
-      `${state.settings.paused ? "Ⅱ 已暫停" : "○ 休市"} · ${label}`;
+      `${state.settings.paused ? "Ⅱ 已暫停" : state.marketClosedReason ? `○ 休市（${state.marketClosedReason}）` : "○ 休市"} · ${label}`;
     document.querySelector("#source")!.textContent = "TWSE / TPEx · 日資料";
   }
   if (

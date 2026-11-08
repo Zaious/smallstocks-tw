@@ -75,6 +75,8 @@ export interface Snapshot {
   lastFetch: number | null;
   nextPoll: number;
   marketOpen: boolean;
+  /** Holiday name when the official calendar closes a weekday session. */
+  marketClosedReason?: string | null;
   now: number;
   revision: number;
 }
