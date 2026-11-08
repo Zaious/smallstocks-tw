@@ -580,11 +580,11 @@ impl Core {
                     .transpose()?
                     .unwrap_or(true);
                 // Editing preserves today's fire latch: no duplicate alert through edits/restarts.
-                let fired = next
-                    .saved
-                    .rules
-                    .iter()
-                    .find(|r| r.id == id)
+                // A spent one-time rule that the user turns back on is a new one-time request.
+                let previous = next.saved.rules.iter().find(|r| r.id == id);
+                let rearmed = repeat == "once" && enabled && previous.is_some_and(|r| !r.enabled);
+                let fired = previous
+                    .filter(|_| !rearmed)
                     .and_then(|r| r.fired_day.clone());
                 let rule = Rule {
                     id: id.clone(),
@@ -626,7 +626,9 @@ impl Core {
             r.last_day = None;
         }
     }
-    pub fn ingest(&mut self, quotes: Vec<Quote>, at: i64) -> Result<Vec<Event>, String> {
+    /// Applies a poll result. A failed save never discards live quotes or detected events:
+    /// state stays in memory, the failure is surfaced in `error`, and saving is retried next poll.
+    pub fn ingest(&mut self, quotes: Vec<Quote>, at: i64) -> Vec<Event> {
         let mut next = self.clone();
         let mut emitted = Vec::new();
         for q in quotes {
@@ -660,11 +662,13 @@ impl Core {
         next.failures = 0;
         if !emitted.is_empty() || at - next.last_intraday_save >= 60_000 {
             next.revision += 1;
-            next.last_intraday_save = at;
-            next.persist()?;
+            match next.persist() {
+                Ok(()) => next.last_intraday_save = at,
+                Err(e) => next.error = Some(format!("事件儲存失敗，稍後重試：{e}")),
+            }
         }
         *self = next;
-        Ok(emitted)
+        emitted
     }
 }
 
@@ -883,8 +887,8 @@ mod tests {
             .execute("set_watchlist", json!({"symbols":["0050"]}))
             .is_err());
         let t = ts();
-        c.ingest(vec![q(Some(100.), t)], t).unwrap();
-        let events = c.ingest(vec![q(Some(106.), t + 5000)], t + 5000).unwrap();
+        c.ingest(vec![q(Some(100.), t)], t);
+        let events = c.ingest(vec![q(Some(106.), t + 5000)], t + 5000);
         assert_eq!(events.len(), 1);
         let mut restored = Core::load(dir.join("state.json"), true).unwrap();
         assert_eq!(restored.saved.events.len(), 1);
@@ -913,6 +917,67 @@ mod tests {
             .execute("set_watchlist", json!({"symbols":["6488"]}))
             .is_err());
         assert_eq!(c.saved.watchlist, vec!["t00", "2330", "0050"]);
+    }
+    #[test]
+    fn failed_save_keeps_quotes_and_events_and_retries() {
+        let dir = std::env::temp_dir().join(format!("smallstocks-ingest-{}", uuid::Uuid::new_v4()));
+        let path = dir.join("state.json");
+        // Directory does not exist yet, so every save fails.
+        let mut c = Core::load(path.clone(), true).unwrap();
+        c.saved.rules.push(rule());
+        let t = ts();
+        c.ingest(vec![q(Some(100.), t)], t);
+        let events = c.ingest(vec![q(Some(106.), t + 5000)], t + 5000);
+        assert_eq!(events.len(), 1, "crossing must still be reported");
+        assert_eq!(c.quotes["2330"].price, Some(106.));
+        assert_eq!(c.saved.events.len(), 1);
+        assert!(c
+            .error
+            .as_deref()
+            .is_some_and(|e| e.contains("事件儲存失敗")));
+        // Once the folder is writable the next poll saves without losing the event.
+        std::fs::create_dir_all(&dir).unwrap();
+        c.ingest(vec![q(Some(107.), t + 10000)], t + 10000);
+        assert_eq!(Core::load(path, true).unwrap().saved.events.len(), 1);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
+    fn spent_once_rule_can_be_rearmed_but_daily_latch_is_kept() {
+        let dir = std::env::temp_dir().join(format!("smallstocks-once-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut c = Core::load(dir.join("state.json"), true).unwrap();
+        let t = ts();
+        let args = |id: &str, repeat: &str, enabled: bool| json!({"id":id,"symbol":"2330","metric":"price","direction":"above","threshold":105,"repeat":repeat,"channel":"strip","enabled":enabled});
+        let mut once = rule();
+        once.id = "once".into();
+        once.repeat = "once".into();
+        let mut daily = rule();
+        daily.id = "daily".into();
+        c.saved.rules.extend([once, daily]);
+        c.ingest(vec![q(Some(100.), t)], t);
+        assert_eq!(c.ingest(vec![q(Some(106.), t + 5000)], t + 5000).len(), 2);
+        assert!(
+            !c.saved
+                .rules
+                .iter()
+                .find(|r| r.id == "once")
+                .unwrap()
+                .enabled
+        );
+        c.execute("upsert_rule", args("once", "once", true))
+            .unwrap();
+        c.execute("upsert_rule", args("daily", "daily", true))
+            .unwrap();
+        let get = |c: &Core, id: &str| c.saved.rules.iter().find(|r| r.id == id).unwrap().clone();
+        assert!(
+            get(&c, "once").fired_day.is_none(),
+            "re-enabled once rule is armed again"
+        );
+        assert!(
+            get(&c, "daily").fired_day.is_some(),
+            "daily latch survives edits"
+        );
+        std::fs::remove_dir_all(dir).unwrap();
     }
     #[test]
     fn topmost_defaults_migrate_and_changes_persist() {

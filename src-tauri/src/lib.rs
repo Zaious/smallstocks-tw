@@ -6,7 +6,7 @@ use core::{now, Core};
 use serde_json::{json, Value};
 use std::{
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, PoisonError},
     time::Duration,
 };
 use tauri::{
@@ -32,12 +32,26 @@ fn data_dir() -> PathBuf {
         "SmallStocks-TW"
     })
 }
+/// Runs a background worker for the life of the app. A panic must not leave the monitor
+/// silently dead: record it for the UI/MCP status and start the worker again.
+fn supervise<F: FnMut() + Send + 'static>(state: mcp::Shared, name: &'static str, mut work: F) {
+    std::thread::spawn(move || loop {
+        if std::panic::catch_unwind(std::panic::AssertUnwindSafe(&mut work)).is_err() {
+            state.lock().unwrap_or_else(PoisonError::into_inner).error =
+                Some(format!("{name}發生內部錯誤，已自動重啟"));
+            std::thread::sleep(Duration::from_secs(5));
+        }
+    });
+}
 pub fn bridge() {
     mcp::bridge(&data_dir());
 }
 #[tauri::command]
 fn privacy_hide(app: tauri::AppHandle) {
-    app.state::<mcp::Shared>().lock().unwrap().notices_hidden = true;
+    app.state::<mcp::Shared>()
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .notices_hidden = true;
     let _ = app.emit("privacy-hide", ());
     for window in app.webview_windows().values() {
         let _ = window.hide();
@@ -63,7 +77,7 @@ fn fit_minimal_height(app: tauri::AppHandle, height: f64) -> Result<(), String> 
     }
     let compact = {
         let state = app.state::<mcp::Shared>();
-        let s = state.lock().unwrap();
+        let s = state.lock().unwrap_or_else(PoisonError::into_inner);
         if s.saved.settings.row_display != "minimal" {
             return Ok(());
         }
@@ -117,7 +131,12 @@ fn show_stock_detail(
     {
         return Err("無效的詳細資料".into());
     }
-    if app.state::<mcp::Shared>().lock().unwrap().notices_hidden {
+    if app
+        .state::<mcp::Shared>()
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .notices_hidden
+    {
         return Ok(());
     }
     let main = app
@@ -161,7 +180,7 @@ fn core_request(
 ) -> Result<Value, String> {
     let result = state
         .lock()
-        .map_err(|_| "監看核心無法存取".to_string())?
+        .unwrap_or_else(PoisonError::into_inner)
         .execute(&tool, args)?;
     if tool == "set_settings" {
         sync_main_window(&app)?;
@@ -172,7 +191,7 @@ fn sync_main_window(app: &tauri::AppHandle) -> Result<(), String> {
     let enabled = app
         .state::<mcp::Shared>()
         .lock()
-        .map_err(|_| "監看核心無法存取".to_string())?
+        .unwrap_or_else(PoisonError::into_inner)
         .saved
         .settings
         .always_on_top;
@@ -252,11 +271,16 @@ pub fn run() {
         .iter_mut()
         .find(|w| w.label == "main")
     {
-        window.always_on_top = state.lock().unwrap().saved.settings.always_on_top;
+        window.always_on_top = state
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .saved
+            .settings
+            .always_on_top;
     }
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            app.state::<mcp::Shared>().lock().unwrap().notices_hidden = false;
+            app.state::<mcp::Shared>().lock().unwrap_or_else(PoisonError::into_inner).notices_hidden = false;
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.show();
                 let _ = w.set_focus();
@@ -326,7 +350,7 @@ pub fn run() {
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
-                        app.state::<mcp::Shared>().lock().unwrap().notices_hidden = false;
+                        app.state::<mcp::Shared>().lock().unwrap_or_else(PoisonError::into_inner).notices_hidden = false;
                         if let Some(w) = app.get_webview_window("main") {
                             let _ = w.show();
                             let _ = w.set_focus();
@@ -340,14 +364,14 @@ pub fn run() {
             }
             tray.build(app)?;
             if let Err(error) = app.global_shortcut().register(privacy_shortcut()) {
-                setup_state.lock().unwrap().privacy_shortcut_error = Some(format!("全域隱藏快捷鍵無法註冊（可能已被占用）：{error}。程式內仍可使用快捷鍵或隱藏按鈕。"));
+                setup_state.lock().unwrap_or_else(PoisonError::into_inner).privacy_shortcut_error = Some(format!("全域隱藏快捷鍵無法註冊（可能已被占用）：{error}。程式內仍可使用快捷鍵或隱藏按鈕。"));
             }
             if let Err(e) = mcp::serve(setup_state.clone(), &dir, app.handle().clone()) {
-                setup_state.lock().unwrap().error = Some(format!("MCP 啟動失敗：{e}"));
+                setup_state.lock().unwrap_or_else(PoisonError::into_inner).error = Some(format!("MCP 啟動失敗：{e}"));
             }
             let handle = app.handle().clone();
             let poll_state = setup_state.clone();
-            std::thread::spawn(move || {
+            supervise(setup_state.clone(), "行情輪詢", move || {
                 let client = reqwest::blocking::Client::builder()
                     .timeout(Duration::from_secs(15))
                     .user_agent(concat!("SmallStocks-TW/", env!("CARGO_PKG_VERSION")))
@@ -357,7 +381,7 @@ pub fn run() {
                 loop {
                     std::thread::sleep(Duration::from_millis(500));
                     let (codes, is_demo, revision) = {
-                        let mut s = poll_state.lock().unwrap();
+                        let mut s = poll_state.lock().unwrap_or_else(PoisonError::into_inner);
                         let at = now();
                         if s.saved.settings.paused
                             || at < s.next_poll
@@ -384,24 +408,19 @@ pub fn run() {
                             .map_err(|e| e.to_string())
                             .and_then(|v| core::parse_mis(&v, now()))
                     };
-                    let mut s = poll_state.lock().unwrap();
+                    let mut s = poll_state.lock().unwrap_or_else(PoisonError::into_inner);
                     if s.config_revision != revision || s.saved.settings.paused {
                         continue;
                     }
                     match result {
-                        Ok(quotes) => match s.ingest(quotes, now()) {
-                            Ok(events) => {
-                                if !s.notices_hidden {
-                                    for e in events {
-                                        let _ = handle.emit("stock-notice", &e);
-                                    }
+                        Ok(quotes) => {
+                            let events = s.ingest(quotes, now());
+                            if !s.notices_hidden {
+                                for e in events {
+                                    let _ = handle.emit("stock-notice", &e);
                                 }
                             }
-                            Err(e) => {
-                                s.error = Some(format!("事件儲存失敗：{e}"));
-                                s.reset_baselines();
-                            }
-                        },
+                        }
                         Err(e) => {
                             s.error = Some(format!("行情連線失敗：{e}"));
                             s.failures = (s.failures + 1).min(6);
@@ -415,7 +434,7 @@ pub fn run() {
                 }
             });
             let line_state = setup_state.clone();
-            std::thread::spawn(move || {
+            supervise(setup_state.clone(), "分鐘線佇列", move || {
                 let client = reqwest::blocking::Client::builder()
                     .timeout(Duration::from_secs(15))
                     .user_agent("Mozilla/5.0 SmallStocks-TW")
@@ -423,10 +442,10 @@ pub fn run() {
                     .unwrap();
                 loop {
                     std::thread::sleep(Duration::from_secs(2));
-                    let task = line_state.lock().unwrap().intraday_queue.pop_front();
+                    let task = line_state.lock().unwrap_or_else(PoisonError::into_inner).intraday_queue.pop_front();
                     let Some(code) = task else { continue };
                     let (demo, otc) = {
-                        let s = line_state.lock().unwrap();
+                        let s = line_state.lock().unwrap_or_else(PoisonError::into_inner);
                         (
                             s.demo,
                             s.saved
@@ -440,7 +459,7 @@ pub fn run() {
                     } else {
                         intraday::fetch(&client, &code, otc)
                     };
-                    let mut s = line_state.lock().unwrap();
+                    let mut s = line_state.lock().unwrap_or_else(PoisonError::into_inner);
                     s.intraday_pending.remove(&code);
                     match result {
                         Ok(series) => {
@@ -461,23 +480,23 @@ pub fn run() {
                 }
             });
             let history_state = setup_state.clone();
-            std::thread::spawn(move || {
+            supervise(setup_state.clone(), "日資料佇列", move || {
                 let client = reqwest::blocking::Client::builder()
                     .timeout(Duration::from_secs(20))
-                    .user_agent("SmallStocks-TW/0.1.6")
+                    .user_agent(concat!("SmallStocks-TW/", env!("CARGO_PKG_VERSION")))
                     .build()
                     .unwrap();
                 loop {
                     std::thread::sleep(Duration::from_secs(2));
-                    let task = history_state.lock().unwrap().daily_queue.pop_front();
+                    let task = history_state.lock().unwrap_or_else(PoisonError::into_inner).daily_queue.pop_front();
                     let Some((code, month)) = task else { continue };
-                    let is_demo = history_state.lock().unwrap().demo;
+                    let is_demo = history_state.lock().unwrap_or_else(PoisonError::into_inner).demo;
                     let result = if is_demo {
                         Ok(daily::demo_series(&code, &month))
                     } else {
                         daily::fetch(&client, &code, &month)
                     };
-                    let mut s = history_state.lock().unwrap();
+                    let mut s = history_state.lock().unwrap_or_else(PoisonError::into_inner);
                     let key = format!("{code}:{month}");
                     s.daily_pending.remove(&key);
                     match result {

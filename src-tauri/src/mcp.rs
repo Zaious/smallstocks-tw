@@ -3,7 +3,7 @@ use serde_json::{json, Value};
 use std::{
     io::{BufRead, Write},
     path::Path,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, PoisonError},
 };
 
 pub type Shared = Arc<Mutex<Core>>;
@@ -44,7 +44,7 @@ pub fn rpc(state: &Shared, req: Value) -> Option<Value> {
     let error = |code: i32, message: &str| json!({"jsonrpc":"2.0","id":id,"error":{"code":code,"message":message}});
     let result = match req["method"].as_str().unwrap_or("") {
         "initialize" => {
-            json!({"protocolVersion":"2024-11-05","capabilities":{"tools":{"listChanged":false}},"serverInfo":{"name":"smallstocks-tw","version":"0.1.6"},"instructions":"Local desktop monitor. Quotes can be stale or synthetic; always check sourceAt, demo and error. Monitoring is performed by the desktop core. Never imply an agent schedule exists merely because a rule was created."})
+            json!({"protocolVersion":"2024-11-05","capabilities":{"tools":{"listChanged":false}},"serverInfo":{"name":"smallstocks-tw","version":env!("CARGO_PKG_VERSION")},"instructions":"Local desktop monitor. Quotes can be stale or synthetic; always check sourceAt, demo and error. Monitoring is performed by the desktop core. Never imply an agent schedule exists merely because a rule was created."})
         }
         "ping" => json!({}),
         "tools/list" => json!({"tools":tools()}),
@@ -53,7 +53,7 @@ pub fn rpc(state: &Shared, req: Value) -> Option<Value> {
             let args = req["params"].get("arguments").cloned().unwrap_or(json!({}));
             let result = state
                 .lock()
-                .unwrap()
+                .unwrap_or_else(PoisonError::into_inner)
                 .execute(tool, args)
                 .map(compact_charts);
             match result {
@@ -102,7 +102,14 @@ pub fn serve(state: Shared, dir: &Path, app: tauri::AppHandle) -> Result<(), Str
                 Ok(v) => {
                     let settings_changed =
                         v["method"] == "tools/call" && v["params"]["name"] == "set_settings";
-                    let mut response = rpc(&state, v).unwrap_or(json!({}));
+                    let id = v.get("id").cloned().unwrap_or(Value::Null);
+                    let mut response = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        rpc(&state, v)
+                    }))
+                    .unwrap_or_else(|_| {
+                        Some(json!({"jsonrpc":"2.0","id":id,"error":{"code":-32603,"message":"Internal error"}}))
+                    })
+                    .unwrap_or(json!({}));
                     if settings_changed && response["result"]["isError"] == false {
                         if let Err(error) = crate::sync_main_window(&app) {
                             response["result"] =
