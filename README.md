@@ -153,6 +153,8 @@ For browser checks, run `npm run dev`, then `node scripts/minimal-check.mjs` or 
 
 To package a portable build, run `./scripts/package-portable.ps1`. To regenerate the icon, see [the editable brand assets](assets/brand/README.md).
 
+The [Traditional Chinese product website source](site/README.md) lives in `site/`. It reuses the small-series site design and app screenshots, with interactive display/platform previews and release-aware download links. Build it with `node site/build.mjs` and deploy `site/dist` to a static host. Its current Sites review deployment is private; it is not a publicly announced custom-domain website.
+
 ## Licence
 
 Made by [Zaious](https://zaious.dev/) at [ChronicleCore Studio](https://studio.chroniclecore.com), 編年史記工作室.

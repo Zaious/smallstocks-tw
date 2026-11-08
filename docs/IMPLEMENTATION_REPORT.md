@@ -194,3 +194,15 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 最終 Windows 0.1.10 release／NSIS 建置成功。window-settings-check 通過：三鍵全域註冊成功、程式內三鍵事件進入原生隱藏操作，主視窗／明細／通知均隱藏，paused 仍為 false；同時通過置頂 UI／MCP 切換、隱藏時套用與重開保存。這不包含 Mac 原生全域按鍵實測。
 
 交付 0.1.10 Windows 免安裝包與安裝檔；封裝執行檔 SHA256 與已驗證建置一致：25A09D5CC1B8912B2572552E5E6BBE57A98F0759323A6DFA01B285191CE4B188。
+
+## 2026-11-08 — 繁體中文產品網站
+
+新增 site/ 純靜態宣傳頁，延續 Basesmall／SmalLoL 的配色、系統字體、金色主按鈕、留白及工作情境展示；複用本專案 icon、示範截圖與通知素材，沒有修改前兩作來源。首頁以「台股，縮小一點。」介紹三種 small 顯示方式、灰階／終端機／文字外觀、事件規則、收盤回顧與選配 MCP；沒有虛構回饋、下載數或原生 Mac 支援。
+
+- 互動：數字／單行走勢／極簡 tab（含鍵盤切換）、Windows／Mac 外觀切換、MCP JSON 複製、FAQ。
+- 下載：查詢 GitHub 已發布版本；目前沒有公開安裝包，因此明確顯示狀態、保留版本區連結，不放假的下載按鈕。檔案發布後可自動帶出合法 GitHub ZIP／安裝檔連結及大小。空版本、有效檔案、查詢失敗三種狀態均驗證。
+- scripts/site-check.mjs 通過：繁體中文、內容切換、鍵盤操作、MCP 複製、內部連結、無 JavaScript 時的內容／版本入口、1440／768／390 寬度無水平溢位、明暗主題與圖片載入；沒有頁面錯誤。另人工檢視桌機／手機首頁與完整頁面截圖。沒有新增分析追蹤、外部字體或帳號。
+- 產出可部署 site/dist、分享圖、favicon、sitemap、robots、llms.txt、404；有獨立建置腳本與網站 README。Site 來源在忽略的 .local-test/marketing-host 使用獨立 Git，沒有改動應用程式 origin。
+- Sites 私人檢閱站部署成功：https://smallstocks-tw.zaious.chatgpt.site 。project_id: [redacted]；來源 commit: [redacted]；已保存版本並確認 deployment succeeded。維持建立時的 owner-private 存取，尚未接自訂網域或公開發布官網。
+
+本輪僅網站變更，桌面程式版本仍為 0.1.10。

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://smallstocks-tw.zaious.chatgpt.site/sitemap.xml

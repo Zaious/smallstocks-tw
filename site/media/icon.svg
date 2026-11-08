@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>SmallStocks TW</title>
+  <desc>Red upward and green downward triangular pieces on the small series' dark rounded tile.</desc>
+  <rect x="48" y="48" width="928" height="928" rx="192" fill="#15171c" stroke="#292d36" stroke-width="16"/>
+  <ellipse cx="350" cy="590" rx="202" ry="22" fill="#000" opacity=".28"/>
+  <ellipse cx="698" cy="867" rx="90" ry="18" fill="#000" opacity=".28"/>
+  <!-- Equilateral face, with the same shallow down/right extrusion as the UI. -->
+  <path d="M340 210 525 530.43 539 574.43 354 254Z" fill="#814b47" stroke="#74413e" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M155 530.43H525L539 574.43H169Z" fill="#a7625b" stroke="#814b47" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M340 210 525 530.43H155Z" fill="#ec8c80" stroke="#f5b2a7" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M510 490 695 810.43 709 854.43 524 534Z" fill="#5e8f7c" stroke="#4b7666" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M880 490 695 810.43 709 854.43 894 534Z" fill="#426657" stroke="#3c5d50" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M510 490H880L695 810.43Z" fill="#83c8aa" stroke="#b2ddc7" stroke-width="8" stroke-linejoin="round"/>
+</svg>

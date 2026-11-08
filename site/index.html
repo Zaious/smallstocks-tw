@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#15171c" />
+    <title>SmallStocks TW｜台股，縮小一點。</title>
+    <meta
+      name="description"
+      content="讓幾檔自選股，安靜待在螢幕角落。SmallStocks TW 是免費開源的台股桌面小工具，提供數字、單行走勢、極簡棋子、終端機與文字外觀，以及自訂事件提醒和選配 MCP。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="zh_TW" />
+    <meta property="og:title" content="SmallStocks TW｜台股，縮小一點。" />
+    <meta
+      property="og:description"
+      content="做你的事，重要變化來找你。桌面自選股、安靜提醒，還有適合不同工作的低調外觀。"
+    />
+    <meta
+      property="og:image"
+      content="https://smallstocks-tw.zaious.chatgpt.site/media/share.png"
+    />
+    <meta
+      property="og:url"
+      content="https://smallstocks-tw.zaious.chatgpt.site/"
+    />
+    <link rel="canonical" href="https://smallstocks-tw.zaious.chatgpt.site/" />
+    <link rel="icon" href="media/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="media/icon.png" />
+    <link rel="stylesheet" href="style.css" />
+    <script src="site.js" defer></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "SmallStocks TW",
+        "description": "免費開源的台股桌面自選與事件提醒小工具。",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Windows",
+        "inLanguage": "zh-Hant",
+        "isAccessibleForFree": true,
+        "license": "https://www.apache.org/licenses/LICENSE-2.0",
+        "codeRepository": "https://github.com/Zaious/smallstocks-tw",
+        "author": { "@type": "Person", "name": "Zaious" },
+        "publisher": {
+          "@type": "Organization",
+          "name": "編年史記工作室 ChronicleCore Studio",
+          "url": "https://studio.chroniclecore.com"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">跳到主要內容</a>
+    <header class="top">
+      <a class="brand" href="#"
+        ><img src="media/icon.png" width="30" height="30" alt="" /><span
+          >SmallStocks <span class="brand-tw">TW</span></span
+        ></a
+      >
+      <nav aria-label="主要導覽">
+        <a href="#looks">看外觀</a><a href="#download">取得試用版</a
+        ><a href="https://github.com/Zaious/smallstocks-tw">原始碼 ↗</a>
+      </nav>
+    </header>
+    <main id="main">
+      <section class="hero" aria-labelledby="headline">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="gold-dot"></span> small 系列的台股桌面小工具
+          </p>
+          <h1 id="headline">台股，<br />縮小一點。</h1>
+          <p class="lead">
+            讓幾檔自選股，安靜待在螢幕角落。<br
+              class="desktop-break"
+            />瞄一眼知道變化，有事再提醒你。
+          </p>
+          <div class="ctas">
+            <a class="btn primary" href="#download"
+              >取得 Windows 試用版 <span aria-hidden="true">↓</span></a
+            ><a class="btn" href="#display"
+              >看看它有多小 <span aria-hidden="true">↘</span></a
+            >
+          </div>
+          <p class="fine">免費開源 · 不用帳號 · 本機直接取得資料</p>
+        </div>
+        <figure class="hero-shot">
+          <div class="desk" aria-label="工作視窗與角落小工具的情境示意">
+            <div class="work-window">
+              <div class="work-title">
+                <span class="work-dots" aria-hidden="true">● ● ●</span
+                ><span>專案進度</span><span>⋯</span>
+              </div>
+              <div class="work-body" aria-hidden="true">
+                <aside><i></i><i></i><i></i><i></i></aside>
+                <div class="work-document">
+                  <span class="doc-label">本週工作</span>
+                  <h3>把注意力留給手上的事。</h3>
+                  <div class="doc-rule"></div>
+                  <div class="doc-line long"></div>
+                  <div class="doc-line"></div>
+                  <div class="doc-line medium"></div>
+                  <div class="doc-check">✓ <span></span></div>
+                  <div class="doc-check">✓ <span></span></div>
+                  <div class="doc-check">○ <span></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="desk-corner">
+              <img
+                class="desk-notice"
+                src="media/notice.png"
+                width="450"
+                height="117"
+                alt="合成示範提醒：台積電成交價跨過使用者設定的門檻。"
+              /><img
+                src="media/numbers.png"
+                width="540"
+                height="252"
+                alt="角落裡的 SmallStocks TW：三檔自選、價格與漲跌幅。"
+              />
+            </div>
+          </div>
+          <figcaption>
+            工作情境示意；程式畫面與通知使用合成示範行情。
+          </figcaption>
+        </figure>
+      </section>
+      <div class="family-line">
+        <span>從比賽，到每天的自選股。</span>
+        <p>
+          延續 <a href="https://github.com/Zaious/basesmall">Basesmall</a> 與
+          <a href="https://github.com/Zaious/smallol">SmalLoL</a>
+          的小窗、棋子感與安靜通知。
+        </p>
+      </div>
+
+      <section
+        id="display"
+        class="section display-section"
+        aria-labelledby="display-title"
+      >
+        <div class="section-heading">
+          <p class="eyebrow">一眼就夠的資訊</p>
+          <h2 id="display-title">同樣一小列，<br />選你需要的內容。</h2>
+          <p>
+            不需要每次都打開一整套看盤軟體。價格、走勢，或只是今天的方向，依照你想關注的程度切換。
+          </p>
+        </div>
+        <div class="display-layout">
+          <div>
+            <div class="tabs" role="tablist" aria-label="顯示內容">
+              <button
+                id="tab-numbers"
+                role="tab"
+                aria-selected="true"
+                aria-controls="display-panel"
+                data-display="numbers"
+              >
+                純數字</button
+              ><button
+                id="tab-trend"
+                role="tab"
+                aria-selected="false"
+                aria-controls="display-panel"
+                tabindex="-1"
+                data-display="trend"
+              >
+                單行走勢</button
+              ><button
+                id="tab-minimal"
+                role="tab"
+                aria-selected="false"
+                aria-controls="display-panel"
+                tabindex="-1"
+                data-display="minimal"
+              >
+                極簡棋子
+              </button>
+            </div>
+            <div id="display-copy" class="display-copy" aria-live="polite">
+              <h3>名稱、價格、漲跌。剛剛好。</h3>
+              <p>
+                一檔一列，數字對齊。代號可以藏起來，hover
+                看資料時間，點一下再開完整行情。
+              </p>
+              <span class="measure">一般列高 22 px</span>
+            </div>
+          </div>
+          <figure
+            id="display-panel"
+            class="demo-stage"
+            role="tabpanel"
+            aria-labelledby="tab-numbers"
+            tabindex="0"
+          >
+            <div class="stage-ruler" aria-hidden="true">
+              <span>小窗，留在角落就好</span><span>↔</span>
+            </div>
+            <img
+              id="display-image"
+              src="media/numbers.png"
+              width="540"
+              height="252"
+              alt="純數字模式：自選股名稱、價格與漲跌幅。"
+            />
+            <div id="hover-example" class="hover-example" hidden>
+              <span class="hover-caption">滑鼠移上去，再看細節 ↘</span
+              ><img
+                src="media/hover.png"
+                width="420"
+                height="279"
+                alt="極簡模式的獨立明細浮窗：價格、漲跌幅、資料日期與來源。"
+              />
+            </div>
+            <figcaption id="display-caption">
+              程式實際畫面 · 合成示範行情
+            </figcaption>
+          </figure>
+        </div>
+        <p class="inline-note">
+          小三角形保留 small
+          系列的厚度感：正面明亮，側邊微深。紅漲綠跌；平盤與未確認資料會用不同符號標示。
+        </p>
+      </section>
+
+      <section id="looks" class="section" aria-labelledby="looks-title">
+        <div class="split-heading">
+          <div>
+            <p class="eyebrow">適合不同工作的樣子</p>
+            <h2 id="looks-title">不用太高調，<br />也不用長得一樣。</h2>
+          </div>
+          <p>
+            喜歡
+            small，就留下熟悉的元件；需要低調，可以用灰階、終端機或文字文件。同一份自選與提醒，換一種工作時的樣子。
+          </p>
+        </div>
+        <div class="look-toolbar">
+          <div class="segmented" role="group" aria-label="外觀預覽">
+            <button data-look="gray" aria-pressed="true">small 灰階</button
+            ><button data-look="terminal" aria-pressed="false">終端機</button
+            ><button data-look="text" aria-pressed="false">文字文件</button>
+          </div>
+          <div class="platform-switch" role="group" aria-label="平台預覽">
+            <button data-platform="windows" aria-pressed="true">Windows</button
+            ><button data-platform="mac" aria-pressed="false">Mac</button>
+          </div>
+        </div>
+        <figure class="look-stage">
+          <img
+            id="look-image"
+            src="media/gray.png"
+            width="540"
+            height="45"
+            loading="lazy"
+            alt="small 灰階極簡模式。"
+          />
+          <figcaption id="look-caption" aria-live="polite">
+            small 灰階：同樣的排版與元件，收起紅綠配色。
+          </figcaption>
+        </figure>
+        <div class="quiet-details">
+          <p>
+            <b>大小由你決定。</b> 極簡模式約 30 px
+            高，視窗拉寬就橫向並排，縮窄自動換行。
+          </p>
+          <p>
+            <b>置頂，也可以不要。</b>
+            設定會記住你的選擇；被其他視窗蓋住，監看仍繼續。
+          </p>
+          <p>
+            <b>需要時，三鍵藏好。</b> Windows
+            <kbd>Ctrl</kbd>＋<kbd>Alt</kbd>＋<kbd>S</kbd>；Mac 對應
+            <kbd>⌘</kbd>＋<kbd>⌥</kbd>＋<kbd>S</kbd>。
+          </p>
+        </div>
+        <p class="fine">
+          Mac 外觀為平台 UI 預覽，尚未提供 Mac
+          原生試用包或完成實機驗證。終端機與文字文件都是本程式的外觀，不會執行系統指令或修改其他文件。
+        </p>
+      </section>
+
+      <section
+        id="alerts"
+        class="section alert-section"
+        aria-labelledby="alert-title"
+      >
+        <div class="alert-copy">
+          <p class="eyebrow">把提醒交給小工具</p>
+          <h2 id="alert-title">有變化，<br />再來找你。</h2>
+          <p>
+            自己決定哪個價格、哪個漲跌幅值得留意。跨過門檻時，用一句話告訴你，不搶走正在打字的焦點。
+          </p>
+          <dl>
+            <dt>提醒什麼</dt>
+            <dd>成交價或漲跌幅，向上／向下跨過指定門檻。</dd>
+            <dt>怎麼提醒</dt>
+            <dd>只記錄、小細條、角落卡片，或關閉。</dd>
+            <dt>提醒幾次</dt>
+            <dd>一次，或每天一次。記錄留在本機，方便回看。</dd>
+          </dl>
+        </div>
+        <figure class="alert-visual">
+          <div class="rule-example">
+            <div class="rule-header">
+              <span class="gold-dot"></span> 一個提醒規則
+            </div>
+            <div class="rule-line">
+              <b>台積電</b><span>成交價向下跨過</span>
+            </div>
+            <p class="rule-price">1,005 <small>元</small></p>
+            <div class="rule-options">
+              <span>每天一次</span><span>細條提醒</span><span>灰階外觀</span>
+            </div>
+          </div>
+          <div class="notice-arrives">
+            <span aria-hidden="true">↓</span
+            ><img
+              src="media/notice.png"
+              width="450"
+              height="117"
+              loading="lazy"
+              alt="規則觸發的實際灰階細條通知，顯示成交價與門檻。"
+            />
+          </div>
+          <figcaption>
+            規則與行情皆為示範，不代表建議買賣價位。首次觀測先建立基準，並不追補先前跨越的事件。
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="section after-close" aria-labelledby="close-title">
+        <div>
+          <p class="eyebrow">收盤以後，也有東西可看</p>
+          <h2 id="close-title">今天收在哪，<br />前幾天怎麼走。</h2>
+        </div>
+        <div>
+          <p>
+            休市時顯示最近可用的正式收盤，清楚標上資料日期。點進一檔，就能按月份回顧每日開高低收、漲跌與成交量。
+          </p>
+          <p>
+            第一次下載也能取得來源有提供的歷史資料；盤中走勢可補上當天可取得的分鐘資料。尚未取得、缺點或只有局部時，都會如實標示。
+          </p>
+          <a
+            class="text-link"
+            href="https://github.com/Zaious/smallstocks-tw/blob/main/docs/USAGE.zh-TW.md"
+            >看完整使用說明 <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </section>
+
+      <section
+        id="agent"
+        class="section agent-section"
+        aria-labelledby="agent-title"
+      >
+        <div>
+          <p class="eyebrow">有在用 AI 助理，再加上這一層</p>
+          <h2 id="agent-title">用一句話，<br />設定你要的提醒。</h2>
+          <p>
+            透過選配的本機 MCP，讓你的 agent
+            讀自選股、整理事件，或把自然語言變成提醒規則。監看由桌面程式執行，agent
+            關掉也繼續。
+          </p>
+          <p class="fine">
+            平常使用不用 LLM、API Key 或模型帳號。定時摘要需由你的 agent
+            工具另行排程。
+          </p>
+        </div>
+        <div class="agent-example">
+          <span class="example-label">你可以這樣說</span>
+          <blockquote>
+            「幫我追蹤台積電，成交價向下跨過我設定的價格時，用灰階細條提醒，每天一次。」
+          </blockquote>
+          <div class="agent-flow">
+            <span>你的 AI 助理</span><i aria-hidden="true">→</i
+            ><span>本機 MCP</span><i aria-hidden="true">→</i
+            ><span>桌面提醒規則</span>
+          </div>
+          <details>
+            <summary>看 MCP 連接設定</summary>
+            <p class="fine">
+              先開啟桌面程式，把下方路徑換成你的執行檔位置，再加入支援本機 MCP
+              的工具。
+            </p>
+            <pre><code id="mcp-config">{
+  "mcpServers": {
+    "smallstocks-tw": {
+      "command": "C:\\你的路徑\\smallstocks-tw.exe",
+      "args": ["--mcp"]
+    }
+  }
+}</code></pre>
+            <button id="copy-config" class="copy-button">複製設定範例</button
+            ><span id="copy-result" class="fine" role="status"></span>
+          </details>
+        </div>
+      </section>
+
+      <section
+        id="download"
+        class="section download-section"
+        aria-labelledby="download-title"
+      >
+        <div>
+          <p class="eyebrow">不用把整個桌面交給股價</p>
+          <h2 id="download-title">留一個小角落，<br />給你的自選股。</h2>
+          <p>
+            Windows 本機預覽版
+            <b id="version">0.1.10</b>。免費、開源，提供免安裝與安裝版本。
+          </p>
+        </div>
+        <div class="download-content">
+          <p id="release-status" class="release-status" role="status">
+            Windows 已完成本機試用驗證，公開安裝包尚未發布。可以先到 GitHub
+            查看原始碼與版本進度。
+          </p>
+          <div id="release-files" class="ctas" hidden>
+            <a
+              id="portable-download"
+              class="btn primary"
+              href="https://github.com/Zaious/smallstocks-tw/releases"
+              hidden
+              >免安裝版 ZIP <span class="size"></span></a
+            ><a
+              id="installer-download"
+              class="btn"
+              href="https://github.com/Zaious/smallstocks-tw/releases"
+              hidden
+              >Windows 安裝版 <span class="size"></span
+            ></a>
+          </div>
+          <a
+            class="text-link"
+            href="https://github.com/Zaious/smallstocks-tw/releases"
+            >查看 GitHub 版本區 ↗</a
+          >
+          <p class="fine">
+            需要 WebView2；執行檔尚未簽章，Windows
+            或公司裝置管理可能攔截。尚無自動更新。Mac 目前只有差異化 UI
+            預覽，未開放原生下載。
+          </p>
+          <p class="fine">
+            網站只介紹產品，不提供即時行情；不需要提供券商帳號。
+          </p>
+        </div>
+      </section>
+
+      <section class="section faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">開始之前，可能會想問</h2>
+        <div>
+          <details>
+            <summary>不用 AI 助理，也可以正常使用嗎？</summary>
+            <p>
+              可以。自選股、監看、提醒與歷史都由獨立桌面程式提供。MCP 只是讓
+              agent 也能操作同一份設定。
+            </p>
+          </details>
+          <details>
+            <summary>價格會即時到什麼程度？</summary>
+            <p>
+              一般模式預設約每 15
+              秒批次取得行情，錯誤時會退避重試。這不是逐筆報價，也不保證零延遲或不漏報。過期、缺成交價與亂序資料不會觸發提醒；分鐘線僅供顯示，不參與提醒判定。
+            </p>
+          </details>
+          <details>
+            <summary>會經過你們的伺服器嗎？</summary>
+            <p>
+              不會由開發者轉送行情。桌面程式由使用者電腦直接請求資料來源，設定與事件保存在本機。若讓雲端模型讀取
+              MCP，內容可能會傳給你選用的模型服務。
+            </p>
+          </details>
+          <details>
+            <summary>可以下單、看券商庫存，或提醒爆量嗎？</summary>
+            <p>
+              目前不提供下單或券商庫存，也沒有爆量、大單、封板／開板或公告提醒。首版以自選股、價格與漲跌幅跨越規則為主。
+            </p>
+          </details>
+          <details>
+            <summary>支援哪些標的？</summary>
+            <p>
+              支援來源可取得的上市、上櫃股票與
+              ETF，以及加權／櫃買指數。可搜尋名稱、代號，或一次貼上多個代號；目前最多
+              30 檔自選。
+            </p>
+          </details>
+          <details>
+            <summary>免費嗎？會收集使用資料嗎？</summary>
+            <p>
+              程式免費開源，不需帳號，也沒有分析追蹤。行情資料受各來源條件限制，不包含在程式授權內。網站不放分析工具或追蹤
+              Cookie；為取得最新下載連結，會向 GitHub 查詢公開版本資訊。
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="credits">
+        <a class="brand" href="#"
+          ><img src="media/icon.png" width="25" height="25" alt="" /><span
+            >SmallStocks TW</span
+          ></a
+        >
+        <p>台股，縮小一點。</p>
+        <p>
+          由 <a href="https://zaious.dev/">Zaious</a> 與<a
+            href="https://studio.chroniclecore.com"
+            >編年史記工作室</a
+          >製作。
+        </p>
+      </div>
+      <div class="legal">
+        <p>
+          也是 small 系列的一員：<a href="https://github.com/Zaious/basesmall"
+            >Basesmall</a
+          >
+          · <a href="https://github.com/Zaious/smallol">SmalLoL</a>
+        </p>
+        <p>
+          <a href="https://github.com/Zaious/smallstocks-tw">原始碼</a> ·
+          <a href="https://github.com/Zaious/smallstocks-tw/blob/main/LICENSE"
+            >Apache-2.0 授權</a
+          >
+          ·
+          <a href="https://github.com/Zaious/smallstocks-tw/issues">回報問題</a>
+        </p>
+        <p class="fine">
+          獨立開源專案，與證交所、櫃買中心、Yahoo
+          或券商無隸屬關係。價格可能延遲，圖線為未還原價格，不能作為下單執行依據。本頁行情與畫面皆為示範。
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

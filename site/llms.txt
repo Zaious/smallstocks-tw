@@ -1,0 +1,26 @@
+# SmallStocks TW
+
+> 台股，縮小一點。免費開源的台股桌面自選與事件提醒小工具。
+
+## 功能
+
+- 獨立常駐 Tauri 2 桌面程式；不需 LLM、帳號或 API Key。
+- small 彩色／灰階、終端機與文字文件外觀。
+- 純數字、同列高的單行走勢、約 30 px 極簡棋子細條與獨立 hover 明細。
+- 自訂成交價／漲跌幅跨越規則，支援一次／每日一次及記錄／細條／卡片通知。
+- 休市收盤摘要、每日歷史、來源可提供的當天分鐘線。
+- 選配本機 MCP，讓 agent 查詢、管理自選與提醒；監看仍由本體執行。
+
+## 狀態與限制
+
+Windows x64 本機預覽版 0.1.10 已完成開發驗證；公開下載請以 GitHub 版本區為準。Mac 僅完成差異化 UI 預覽，沒有原生套件或實機驗證。
+資料由使用者電腦直接取得；不由開發者轉送行情。來源可能延遲，程式不是逐筆行情或下單工具。行情授權不包含在程式的 Apache-2.0 授權內。
+網站展示合成示範行情，不提供即時報價。
+
+## 連結
+
+- 原始碼：https://github.com/Zaious/smallstocks-tw
+- 使用說明：https://github.com/Zaious/smallstocks-tw/blob/main/docs/USAGE.zh-TW.md
+- 版本區：https://github.com/Zaious/smallstocks-tw/releases
+- 作者：Zaious，編年史記工作室 ChronicleCore Studio
+- 同系列：Basesmall、SmalLoL
