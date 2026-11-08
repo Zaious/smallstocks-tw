@@ -2,7 +2,7 @@ import { chromium } from "@playwright/test";
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 
-await mkdir("docs/media", { recursive: true });
+await mkdir(".local-test/screenshots", { recursive: true });
 const browser = await chromium.launch({ channel: "msedge", headless: true });
 try {
   for (const mac of [false, true]) {
@@ -48,7 +48,9 @@ try {
       );
       assert.equal(await page.locator(".mac-controls button").count(), 3);
       assert.ok((await page.locator(".mac-controls").boundingBox()).x < 30);
-      await page.screenshot({ path: "docs/media/mac-terminal-preview.png" });
+      await page.screenshot({
+        path: ".local-test/screenshots/mac-terminal-preview.png",
+      });
     }
     await input.press(`${primary}+,`);
     await page.locator("[data-look=txt]").click();
@@ -84,7 +86,9 @@ try {
       );
       await editor.press(`${primary}+0`);
       await editor.evaluate((el) => el.setSelectionRange(0, 0));
-      await page.screenshot({ path: "docs/media/mac-textedit-preview.png" });
+      await page.screenshot({
+        path: ".local-test/screenshots/mac-textedit-preview.png",
+      });
     } else
       assert.ok(
         (await page.locator(".notepad-status").innerText()).includes(

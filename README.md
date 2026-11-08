@@ -18,7 +18,7 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 *Synthetic demo quotes, captured from the Windows app.*
 
-> **Status: 0.1.10 local preview, Windows x64.** Portable ZIP and per-user installer. No public release has been published yet. The Windows build is unsigned; code signing and automatic updates are not included. Full-session live-market validation is still pending.
+> **Status: 0.1.11 preview, Windows x64.** Portable ZIP and per-user installer on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The Windows build is unsigned; code signing and automatic updates are not included. Full-session live-market validation is still pending.
 
 ## What it does
 
@@ -82,12 +82,12 @@ In **外觀與設定**, uncheck **視窗保持置頂** if you want other windows
 
 ## Try it
 
-Local packages are in `releases/` after building:
+Download from the [Releases page](https://github.com/Zaious/smallstocks-tw/releases), or build locally into `releases/`:
 
 | Windows x64 | File | Use |
 | --- | --- | --- |
-| Portable | `SmallStocks-TW-0.1.10-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`. |
-| Installer | `SmallStocks-TW-0.1.10-windows-x64-setup.exe` | Installs for the current user. |
+| Portable | `SmallStocks-TW-0.1.11-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`. |
+| Installer | `SmallStocks-TW-0.1.11-windows-x64-setup.exe` | Installs for the current user. |
 
 The app needs Microsoft WebView2. These are unsigned preview builds; workplace device policies may prevent either package from running.
 
@@ -153,7 +153,7 @@ For browser checks, run `npm run dev`, then `node scripts/minimal-check.mjs` or 
 
 To package a portable build, run `./scripts/package-portable.ps1`. To regenerate the icon, see [the editable brand assets](assets/brand/README.md).
 
-The [Traditional Chinese product website source](site/README.md) lives in `site/`. It reuses the small-series site design and app screenshots, with interactive display/platform previews and release-aware download links. Build it with `node site/build.mjs` and deploy `site/dist` to a static host. Its current Sites review deployment is private; it is not a publicly announced custom-domain website.
+The [Traditional Chinese product website source](site/README.md) lives in `site/`. It reuses the small-series site design and app screenshots, with interactive display/platform previews and release-aware download links. Build it with `node site/build.mjs`; the page is served at [smallstocks.chroniclecore.com](https://smallstocks.chroniclecore.com) from a Cloudflare Worker, with the deployment settings kept in a private repository.
 
 ## Support
 

@@ -2,7 +2,7 @@
 
 台股，但小一點。沿用 Basesmall / SmalLoL 的桌面元件與安靜通知，讓少數自選股在角落持續監看。
 
-目前為 **0.1.10 本機預覽版**，Windows 優先。名稱暫用 SmallStocks TW。
+目前為 **0.1.11 預覽版**，Windows 優先。名稱暫用 SmallStocks TW。
 
 ## 使用
 
