@@ -216,7 +216,7 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - site-check 通過：兩種工作外觀預設同時可見、區段先後順序、small 三種圖片實際像素／渲染寬度至少 2.5 倍、原圖連結隨 tab 更新、平台同時切兩圖、鍵盤切換、MCP 複製、下載狀態與手機／平板／桌機無水平溢位。人工檢視完整手機頁與兩個重點區域。
 - 同一私人檢閱站更新成功（deployment succeeded），沒有變更分享對象，也沒有桌面程式變更。
 
-## 2026-11-08 — 審查修正與文件整理（未發布）
+## 0.1.11 — 審查修正與文件整理
 
 依一輪程式審查修正：存檔失敗不再丟棄該輪行情與已偵測的跨越事件；背景工作 panic 後自動重啟；已用完的「一次」規則重新啟用後可再次生效；版本號改讀建置版本；macOS 設定資料夾改為 `~/Library/Application Support`。細節見 CHANGELOG「未發布」。
 
@@ -234,3 +234,12 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - 通過（目視實際視窗截圖）：透過 MCP `set_settings` 切換 small、terminal、txt，Mac 版外觀分別為 small 細條、左側交通燈的 zsh 終端機窗與 TextEdit 式純文字窗，內容為示範資料。
 - 未驗證：真實行情（當日休市）、盤中長時間、隱私快捷鍵實際按下後的隱藏行為、系統匣、通知窗、極簡與 hover 明細、簽章／公證、安裝後首次開啟的 Gatekeeper 流程、其他 macOS 版本與 Apple Silicon。因此只宣稱「示範模式可在 Intel Mac 啟動並顯示三種外觀」，不宣稱 Mac 已可正式使用。
 - 網站與 README 的 Mac 終端機／文字文件圖已改用上述原生視窗截圖（只截應用程式視窗本身，2x 像素，示範資料），取代先前的瀏覽器預覽；說明文字同步改為「Intel Mac 原生視窗截圖」，並保留「尚無 Mac 試用包、真實行情與長時間使用未驗證」。
+
+### 0.1.11 發布包（Windows x64）
+
+- 版本 0.1.11（package.json、Cargo、tauri.conf 同步）。TypeScript／Vite 建置、14 個前端測試、17 個 Rust 測試、clippy、rustfmt 檢查通過。
+- `npm run tauri build -- --bundles nsis` 成功；免安裝 zip 3,548,190 bytes、安裝檔 2,597,958 bytes。zip 內 `smallstocks-tw.exe` 與剛建置的執行檔 SHA256 相同：D2F3A15AF24FC8BA3FB5F08F5C557AA754BF706A28CE24523D0E3367FE609E63。
+- 以最終執行檔通過：`check:desktop`（RPC 身分、MCP、規則共用、合成跨門檻、獨立通知窗與事件落盤）、`window-settings-check`（置頂與三鍵隱私快捷鍵）、`desktop-minimal-check`（四種外觀、明細窗、寬度與設定保存）、`daily-check`（官方日資料，2330、0050、t00、6488、o00，上櫃量欄為張）、`live-check`（本體直接取得 2330、0050、t00，來源時間約為 209,763 秒前，即上週五收盤資料，因此沒有觸發事件；這只驗證休市保守處理，不是盤中延遲量測）。
+- 未簽章、無自動更新；NSIS 安裝／解除安裝流程仍未實際操作；盤中長時間穩定性仍未驗證；MIS 欄位 `t` 語意待盤中以 `scripts/mis-time-probe.mjs` 量測。
+- 網站：`site-check` 通過；正式網址 smallstocks.chroniclecore.com，以 Cloudflare Worker 提供。
+
