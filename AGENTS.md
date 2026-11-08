@@ -2,7 +2,7 @@
 
 - 回覆用繁體中文（台灣），識別字與程式碼使用英文。
 - 本體為獨立常駐 Tauri 2 程式；agent/MCP 是選配，不能讓基本監看依賴 LLM 或 host 排程。
-- 沿用我們自己的 Basesmall / SmalLoL 程式、元件與視覺，保留 LICENSE / NOTICE。參考路徑見 INITIAL_PLAN.md。
+- 沿用我們自己的 Basesmall / SmalLoL 程式、元件與視覺，保留 LICENSE / NOTICE。
 - `src-tauri/src/core.rs` 是監看、規則、事件與設定的唯一擁有者；UI 與 MCP 共用其 execute 方法。不要在每個視窗或 agent 再輪詢行情。
 - `src-tauri/src/daily.rs` 為官方每日歷史 adapter。日資料與即時通知完全分開，依來源欄位保留成交量單位，不把日資料灌入 ingest。當日 15:00 前不列入已完成資料，15:00 後仍以來源公布為準。行情為未還原價格，不做使用者用的盤中重播。
 - `src-tauri/src/mcp.rs` 為 stdio bridge 與經 token 保護的本機 RPC。不要輸出 token、開放外網或把 bridge 啟動成第二個監看核心。
