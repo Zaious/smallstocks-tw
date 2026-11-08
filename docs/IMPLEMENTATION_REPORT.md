@@ -206,3 +206,12 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - Sites 私人檢閱站部署成功：https://smallstocks-tw.zaious.chatgpt.site 。project_id: [redacted]；來源 commit: [redacted]；已保存版本並確認 deployment succeeded。維持建立時的 owner-private 存取，尚未接自訂網域或公開發布官網。
 
 本輪僅網站變更，桌面程式版本仍為 0.1.10。
+
+## 2026-11-08 — 網站資訊順序、並排外觀與高解析圖片
+
+依網站回饋調整：先展示融入工作視窗的價值，終端機／文字文件直接並排，不必切換外觀才看得到；Windows／Mac 平台按鈕同時更新兩張圖。手機上下排列且都直接可見。small 數字／走勢／棋子區移到後面，定位為偏好系列美術的選擇，保留灰階細條。
+
+- scripts/site-assets.mjs 從真正的程式瀏覽器預覽以 4× deviceScaleFactor 重拍：small 360px 寬畫面為 1440px 像素，終端機／文件 520px 畫面為 2080px；不是放大舊 PNG。所有畫面明確為合成示範，Mac 仍為 UI 預覽。small 三個 tab 與兩個工作外觀都提供原圖入口。
+- 減少 hero、區段、圖框、FAQ 與頁尾空白，small 標題與說明改為並排；同一 1440px 桌機視口、預設內容下，整頁高度由 5160px 減至 4283px（約 17%）。
+- site-check 通過：兩種工作外觀預設同時可見、區段先後順序、small 三種圖片實際像素／渲染寬度至少 2.5 倍、原圖連結隨 tab 更新、平台同時切兩圖、鍵盤切換、MCP 複製、下載狀態與手機／平板／桌機無水平溢位。人工檢視完整手機頁與兩個重點區域。
+- 同一 owner-private Sites 部署更新成功，保留原網址 https://smallstocks-tw.zaious.chatgpt.site 。來源 commit [redacted]，deployment succeeded。沒有變更分享對象，也沒有桌面程式變更。

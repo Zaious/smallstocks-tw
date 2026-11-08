@@ -38,20 +38,56 @@ try {
     await page.locator("#tab-numbers").getAttribute("aria-selected"),
     "true",
   );
-  await page.locator("[data-look=terminal]").click();
+  assert.ok(
+    await page.evaluate(
+      () =>
+        document
+          .querySelector("#looks")
+          .compareDocumentPosition(document.querySelector("#display")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ),
+    "low-key views come before small",
+  );
+  for (const id of ["terminal-image", "text-image"]) {
+    assert.equal(await page.locator("#" + id).isVisible(), true);
+  }
+  for (const mode of ["numbers", "trend", "minimal"]) {
+    await page.locator("#tab-" + mode).click();
+    await page.locator("#display-image").evaluate((image) => image.decode());
+    const quality = await page
+      .locator("#display-image")
+      .evaluate((image) => ({
+        natural: image.naturalWidth,
+        rendered: image.getBoundingClientRect().width,
+      }));
+    assert.ok(
+      quality.natural / quality.rendered >= 2.5,
+      mode + " provides enough pixels for high-density displays",
+    );
+    assert.ok(
+      (await page.locator("#display-zoom").getAttribute("href")).endsWith(
+        mode === "numbers" ? "numbers.png" : mode + ".png",
+      ),
+    );
+  }
+  await page.locator("#tab-numbers").click();
   await page.locator("[data-platform=mac]").click();
   assert.ok(
-    (await page.locator("#look-image").getAttribute("src")).endsWith(
+    (await page.locator("#terminal-image").getAttribute("src")).endsWith(
       "mac-terminal.png",
     ),
   );
-  await page.locator("[data-look=text]").click();
   assert.ok(
-    (await page.locator("#look-caption").innerText()).includes("尚未原生實測"),
+    (await page.locator("#text-image").getAttribute("src")).endsWith(
+      "mac-text.png",
+    ),
+  );
+  assert.ok(
+    (await page.locator("#text-caption").innerText()).includes("尚未原生實測"),
   );
   await page.locator("[data-platform=windows]").click();
   assert.ok(
-    (await page.locator("#look-image").getAttribute("src")).endsWith(
+    (await page.locator("#text-image").getAttribute("src")).endsWith(
       "windows-text.png",
     ),
   );
@@ -76,7 +112,7 @@ try {
     (await page.locator("#copy-result").innerText()).includes("已複製"),
   );
   await page.locator("#agent details summary").click();
-  await page.locator("[data-look=gray]").click();
+
   const anchors = await page
     .locator('a[href^="#"]')
     .evaluateAll((links) =>
@@ -109,6 +145,10 @@ try {
       fullPage: true,
     });
   }
+  console.log(
+    "Mobile page height after compaction:",
+    await page.evaluate(() => document.documentElement.scrollHeight),
+  );
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({

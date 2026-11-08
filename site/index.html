@@ -78,8 +78,8 @@
           <div class="ctas">
             <a class="btn primary" href="#download"
               >取得 Windows 試用版 <span aria-hidden="true">↓</span></a
-            ><a class="btn" href="#display"
-              >看看它有多小 <span aria-hidden="true">↘</span></a
+            ><a class="btn" href="#looks"
+              >看看工作外觀 <span aria-hidden="true">↘</span></a
             >
           </div>
           <p class="fine">免費開源 · 不用帳號 · 本機直接取得資料</p>
@@ -136,15 +136,100 @@
       </div>
 
       <section
+        id="looks"
+        class="section disguise-section"
+        aria-labelledby="looks-title"
+      >
+        <div class="split-heading">
+          <div>
+            <p class="eyebrow">適合不同工作的樣子</p>
+            <h2 id="looks-title">看盤，也能像<br />你平常開著的視窗。</h2>
+          </div>
+          <p>
+            寫程式時像終端機，做其他工作時像文字文件。讓自選股融入桌面，重要的變化再用通知告訴你。
+          </p>
+        </div>
+        <div class="look-toolbar">
+          <p>兩種低調外觀，同一份自選與提醒。</p>
+          <div class="platform-switch" role="group" aria-label="平台預覽">
+            <button data-platform="windows" aria-pressed="true">Windows</button
+            ><button data-platform="mac" aria-pressed="false">Mac</button>
+          </div>
+        </div>
+        <div class="look-gallery">
+          <figure class="look-card">
+            <h3>終端機</h3>
+            <a
+              id="terminal-zoom"
+              href="media/windows-terminal.png"
+              target="_blank"
+              rel="noopener"
+              aria-label="查看終端機高解析原圖"
+              ><img
+                id="terminal-image"
+                src="media/windows-terminal.png"
+                width="2080"
+                height="1200"
+                loading="lazy"
+                alt="Windows Terminal 外觀，等寬文字列出自選股。"
+            /></a>
+            <figcaption id="terminal-caption">
+              Windows Terminal／PowerShell 外觀，等寬表格清楚對齊。
+            </figcaption>
+          </figure>
+          <figure class="look-card">
+            <h3>文字文件</h3>
+            <a
+              id="text-zoom"
+              href="media/windows-text.png"
+              target="_blank"
+              rel="noopener"
+              aria-label="查看文字文件高解析原圖"
+              ><img
+                id="text-image"
+                src="media/windows-text.png"
+                width="2080"
+                height="1200"
+                loading="lazy"
+                alt="Windows 記事本外觀，純文字報表與文件狀態列。"
+            /></a>
+            <figcaption id="text-caption">
+              Windows 記事本外觀，像一份隨時更新的文字報表。
+            </figcaption>
+          </figure>
+        </div>
+        <div class="quiet-details">
+          <p>
+            <b>切換樣子，監看照常。</b>
+            自選、提醒、事件紀錄共用，更新時保留輸入與文字選取。
+          </p>
+          <p>
+            <b>置頂，也可以不要。</b>
+            設定會記住你的選擇；被其他視窗蓋住，監看仍繼續。
+          </p>
+          <p>
+            <b>需要時，三鍵藏好。</b> Windows
+            <kbd>Ctrl</kbd>＋<kbd>Alt</kbd>＋<kbd>S</kbd>；Mac 對應
+            <kbd>⌘</kbd>＋<kbd>⌥</kbd>＋<kbd>S</kbd>。
+          </p>
+        </div>
+        <p class="fine">
+          畫面為合成示範行情。Mac 外觀是 UI
+          預覽，尚無原生試用包或實機驗證。兩種外觀都不會執行系統指令或修改其他文件。
+        </p>
+      </section>
+
+      <section
         id="display"
         class="section display-section"
         aria-labelledby="display-title"
       >
         <div class="section-heading">
-          <p class="eyebrow">一眼就夠的資訊</p>
-          <h2 id="display-title">同樣一小列，<br />選你需要的內容。</h2>
+          <p class="eyebrow">想保留 small 的美術，就看這一版</p>
+          <h2 id="display-title">熟悉的元件，<br />剛剛好的資訊。</h2>
           <p>
-            不需要每次都打開一整套看盤軟體。價格、走勢，或只是今天的方向，依照你想關注的程度切換。
+            喜歡有一點顏色、有一點棋子感，就用
+            small。價格、走勢，或只是今天的方向，都放在一小列裡。
           </p>
         </div>
         <div class="display-layout">
@@ -181,10 +266,9 @@
             <div id="display-copy" class="display-copy" aria-live="polite">
               <h3>名稱、價格、漲跌。剛剛好。</h3>
               <p>
-                一檔一列，數字對齊。代號可以藏起來，hover
-                看資料時間，點一下再開完整行情。
+                一檔一列，數字對齊。代號可以藏起來，滑鼠移上看資料時間，點一下再開完整行情。
               </p>
-              <span class="measure">一般列高 22 px</span>
+              <span class="measure">實際列高 22 px · 畫面放大展示</span>
             </div>
           </div>
           <figure
@@ -197,13 +281,20 @@
             <div class="stage-ruler" aria-hidden="true">
               <span>小窗，留在角落就好</span><span>↔</span>
             </div>
-            <img
-              id="display-image"
-              src="media/numbers.png"
-              width="540"
-              height="252"
-              alt="純數字模式：自選股名稱、價格與漲跌幅。"
-            />
+            <a
+              id="display-zoom"
+              class="display-shot"
+              href="media/numbers.png"
+              target="_blank"
+              rel="noopener"
+              aria-label="另開分頁查看高解析原圖"
+              ><img
+                id="display-image"
+                src="media/numbers.png"
+                width="540"
+                height="252"
+                alt="純數字模式：自選股名稱、價格與漲跌幅。"
+            /></a>
             <div id="hover-example" class="hover-example" hidden>
               <span class="hover-caption">滑鼠移上去，再看細節 ↘</span
               ><img
@@ -214,69 +305,26 @@
               />
             </div>
             <figcaption id="display-caption">
-              程式實際畫面 · 合成示範行情
+              4 倍像素截圖 · 點圖片看原圖 · 合成示範行情
             </figcaption>
           </figure>
+        </div>
+        <div class="small-gray">
+          <div>
+            <strong>彩色，或更安靜的灰階。</strong>
+            <p>同一套圓角、字體與厚度感，也能收起紅綠配色。</p>
+          </div>
+          <img
+            src="media/gray.png"
+            width="1440"
+            height="120"
+            loading="lazy"
+            alt="small 灰階細條：方向與名稱並排。"
+          />
         </div>
         <p class="inline-note">
           小三角形保留 small
           系列的厚度感：正面明亮，側邊微深。紅漲綠跌；平盤與未確認資料會用不同符號標示。
-        </p>
-      </section>
-
-      <section id="looks" class="section" aria-labelledby="looks-title">
-        <div class="split-heading">
-          <div>
-            <p class="eyebrow">適合不同工作的樣子</p>
-            <h2 id="looks-title">不用太高調，<br />也不用長得一樣。</h2>
-          </div>
-          <p>
-            喜歡
-            small，就留下熟悉的元件；需要低調，可以用灰階、終端機或文字文件。同一份自選與提醒，換一種工作時的樣子。
-          </p>
-        </div>
-        <div class="look-toolbar">
-          <div class="segmented" role="group" aria-label="外觀預覽">
-            <button data-look="gray" aria-pressed="true">small 灰階</button
-            ><button data-look="terminal" aria-pressed="false">終端機</button
-            ><button data-look="text" aria-pressed="false">文字文件</button>
-          </div>
-          <div class="platform-switch" role="group" aria-label="平台預覽">
-            <button data-platform="windows" aria-pressed="true">Windows</button
-            ><button data-platform="mac" aria-pressed="false">Mac</button>
-          </div>
-        </div>
-        <figure class="look-stage">
-          <img
-            id="look-image"
-            src="media/gray.png"
-            width="540"
-            height="45"
-            loading="lazy"
-            alt="small 灰階極簡模式。"
-          />
-          <figcaption id="look-caption" aria-live="polite">
-            small 灰階：同樣的排版與元件，收起紅綠配色。
-          </figcaption>
-        </figure>
-        <div class="quiet-details">
-          <p>
-            <b>大小由你決定。</b> 極簡模式約 30 px
-            高，視窗拉寬就橫向並排，縮窄自動換行。
-          </p>
-          <p>
-            <b>置頂，也可以不要。</b>
-            設定會記住你的選擇；被其他視窗蓋住，監看仍繼續。
-          </p>
-          <p>
-            <b>需要時，三鍵藏好。</b> Windows
-            <kbd>Ctrl</kbd>＋<kbd>Alt</kbd>＋<kbd>S</kbd>；Mac 對應
-            <kbd>⌘</kbd>＋<kbd>⌥</kbd>＋<kbd>S</kbd>。
-          </p>
-        </div>
-        <p class="fine">
-          Mac 外觀為平台 UI 預覽，尚未提供 Mac
-          原生試用包或完成實機驗證。終端機與文字文件都是本程式的外觀，不會執行系統指令或修改其他文件。
         </p>
       </section>
 

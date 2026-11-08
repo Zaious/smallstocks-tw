@@ -4,10 +4,10 @@
     numbers: {
       title: "名稱、價格、漲跌。剛剛好。",
       text: "一檔一列，數字對齊。代號可以藏起來，滑鼠移上看資料時間，點一下再開完整行情。",
-      measure: "一般列高 22 px",
+      measure: "實際列高 22 px · 畫面放大展示",
       image: "numbers.png",
       alt: "純數字模式：自選股名稱、價格與漲跌幅。",
-      caption: "程式實際畫面 · 合成示範行情",
+      caption: "4 倍像素截圖 · 點圖片看原圖 · 合成示範行情",
     },
     trend: {
       title: "走勢，放進原本那一列。",
@@ -15,7 +15,7 @@
       measure: "同樣 22 px 列高，不增加視窗高度",
       image: "trend.png",
       alt: "單行走勢模式：三檔自選股的折線直接放在每一列。",
-      caption: "實際介面 · 合成整日走勢示意，非真實市場資料",
+      caption: "4 倍像素截圖 · 點圖片看原圖 · 合成走勢示意",
     },
     minimal: {
       title: "再小一點，只留方向與名稱。",
@@ -23,7 +23,7 @@
       measure: "small 細條約 30 px 高",
       image: "minimal.png",
       alt: "極簡棋子模式：立體三角形加上自選股名稱。",
-      caption: "程式實際畫面 · 明細浮窗不會把細條撐高",
+      caption: "4 倍像素截圖 · 點圖片看原圖 · 明細不撐高細條",
     },
   };
   const tabs = [...document.querySelectorAll("[data-display]")];
@@ -45,6 +45,7 @@
     const image = document.querySelector("#display-image");
     image.src = `media/${data.image}`;
     image.alt = data.alt;
+    document.querySelector("#display-zoom").href = image.src;
     document.querySelector("#display-caption").textContent = data.caption;
     document.querySelector("#hover-example").hidden = mode !== "minimal";
   }
@@ -67,47 +68,36 @@
       setDisplay(tabs[target]);
     });
   });
-  let look = "gray",
-    platform = "windows";
-  const lookButtons = [...document.querySelectorAll("[data-look]")],
-    platformButtons = [...document.querySelectorAll("[data-platform]")];
-  function updateLook() {
-    const captions = {
-      gray: "small 灰階：同樣的排版與元件，收起紅綠配色。",
-      terminal:
-        platform === "mac"
-          ? "Mac 終端機 UI 預覽：zsh 提示、左側交通燈與等寬文字，尚未原生實測。"
-          : "Windows Terminal 外觀：PowerShell 提示、等寬表格，輸入與選取在更新時保留。",
-      text:
-        platform === "mac"
-          ? "TextEdit 純文字 UI 預覽：簡單文件窗，沒有 Windows 分頁與狀態列。尚未原生實測。"
-          : "Windows 記事本外觀：文件分頁、選單、純文字區與狀態列。",
-    };
-    lookButtons.forEach((button) =>
-      button.setAttribute("aria-pressed", String(button.dataset.look === look)),
-    );
+  const platformButtons = [...document.querySelectorAll("[data-platform]")];
+  function updatePlatform(platform) {
     platformButtons.forEach((button) =>
       button.setAttribute(
         "aria-pressed",
         String(button.dataset.platform === platform),
       ),
     );
-    const image = document.querySelector("#look-image");
-    image.src = `media/${look === "gray" ? "gray" : `${platform}-${look}`}.png`;
-    image.alt = captions[look];
-    document.querySelector("#look-caption").textContent = captions[look];
+    const mac = platform === "mac";
+    const captions = {
+      terminal: mac
+        ? "Mac 終端機／zsh 外觀預覽，尚未原生實測。"
+        : "Windows Terminal／PowerShell 外觀，等寬表格清楚對齊。",
+      text: mac
+        ? "TextEdit 純文字外觀預覽，尚未原生實測。"
+        : "Windows 記事本外觀，像一份隨時更新的文字報表。",
+    };
+    for (const kind of ["terminal", "text"]) {
+      const image = document.getElementById(kind + "-image"),
+        src = "media/" + platform + "-" + kind + ".png";
+      image.src = src;
+      image.alt = captions[kind];
+      document.getElementById(kind + "-zoom").href = src;
+      document.getElementById(kind + "-caption").textContent = captions[kind];
+    }
   }
-  lookButtons.forEach((button) =>
-    button.addEventListener("click", () => {
-      look = button.dataset.look;
-      updateLook();
-    }),
-  );
   platformButtons.forEach((button) =>
-    button.addEventListener("click", () => {
-      platform = button.dataset.platform;
-      updateLook();
-    }),
+    button.addEventListener("click", () =>
+      updatePlatform(button.dataset.platform),
+    ),
   );
   document.querySelector("#copy-config").addEventListener("click", async () => {
     const result = document.querySelector("#copy-result"),
