@@ -1,3 +1,4 @@
 dist/
 .sites-runtime/
 *.log
+.openai/

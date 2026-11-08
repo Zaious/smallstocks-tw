@@ -69,7 +69,7 @@
 
 驗證：npm run build、5 個前端測試、10 個 Rust 測試與 ui-check 通過。UI 檢查包含三檔與十檔完整可見、四種外觀、點擊股票開啟對應行情、自選及規則操作。daily-check 使用最終 Windows 執行檔通過；實測主窗邏輯尺寸不超過 360 × 150、三檔完整可見且主窗沒有走勢圖，月歷史及快取照常可用。截圖為 .local-test/screenshots/desktop-close.png。
 
-測試期間偵測到另一個版本的實例正在執行，未關閉或操作該實例。獨立設定目錄改用獨立實例識別，避免 QA 被單一實例機制轉送到使用者視窗。
+測試期間偵測到另一個版本的實例正在執行，未關閉或操作它。獨立設定目錄改用獨立實例識別，避免 QA 被單一實例機制轉送到使用者視窗。
 
 0.1.2 已產出免安裝 zip 與 NSIS 安裝檔。安裝／解除安裝流程仍未於本輪操作；發布狀態維持本機預覽。
 
@@ -158,7 +158,7 @@ README 依兩個系列專案的介紹結構重寫，主標為 Taiwan stocks, but
 
 - 12 個前端測試、TypeScript／Vite 生產建置通過。
 - Windows x64 release 與 NSIS 建置成功，已檢查新圖示嵌入產物。
-- 初始化本機 Git main 分支；排除實際設定、測試資料、依賴與建置／下載產物。沒有建立遠端儲存庫或公開發布。
+- 初始化本機 Git main 分支；排除實際設定、測試資料、依賴與建置／下載產物。當時尚未建立遠端儲存庫（現已有公開的 GitHub 儲存庫）；沒有公開發布安裝檔。
 
 最終 0.1.8 的 desktop-minimal-check 通過四種實際視窗、獨立明細窗、代號選項、寬度／自動高度、Native 選單與設定保存。
 
@@ -202,8 +202,8 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - 互動：數字／單行走勢／極簡 tab（含鍵盤切換）、Windows／Mac 外觀切換、MCP JSON 複製、FAQ。
 - 下載：查詢 GitHub 已發布版本；目前沒有公開安裝包，因此明確顯示狀態、保留版本區連結，不放假的下載按鈕。檔案發布後可自動帶出合法 GitHub ZIP／安裝檔連結及大小。空版本、有效檔案、查詢失敗三種狀態均驗證。
 - scripts/site-check.mjs 通過：繁體中文、內容切換、鍵盤操作、MCP 複製、內部連結、無 JavaScript 時的內容／版本入口、1440／768／390 寬度無水平溢位、明暗主題與圖片載入；沒有頁面錯誤。另人工檢視桌機／手機首頁與完整頁面截圖。沒有新增分析追蹤、外部字體或帳號。
-- 產出可部署 site/dist、分享圖、favicon、sitemap、robots、llms.txt、404；有獨立建置腳本與網站 README。Site 來源在忽略的 .local-test/marketing-host 使用獨立 Git，沒有改動應用程式 origin。
-- Sites 私人檢閱站部署成功：https://smallstocks-tw.zaious.chatgpt.site 。project_id: [redacted]；來源 commit: [redacted]；已保存版本並確認 deployment succeeded。維持建立時的 owner-private 存取，尚未接自訂網域或公開發布官網。
+- 產出可部署 site/dist、分享圖、favicon、sitemap、robots、llms.txt、404；有獨立建置腳本與網站 README。網站以獨立工作目錄發布，沒有改動應用程式 origin。
+- 私人檢閱站部署成功並確認 deployment succeeded；維持僅擁有者可見，尚未接自訂網域或公開發布官網。
 
 本輪僅網站變更，桌面程式版本仍為 0.1.10。
 
@@ -214,4 +214,13 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - scripts/site-assets.mjs 從真正的程式瀏覽器預覽以 4× deviceScaleFactor 重拍：small 360px 寬畫面為 1440px 像素，終端機／文件 520px 畫面為 2080px；不是放大舊 PNG。所有畫面明確為合成示範，Mac 仍為 UI 預覽。small 三個 tab 與兩個工作外觀都提供原圖入口。
 - 減少 hero、區段、圖框、FAQ 與頁尾空白，small 標題與說明改為並排；同一 1440px 桌機視口、預設內容下，整頁高度由 5160px 減至 4283px（約 17%）。
 - site-check 通過：兩種工作外觀預設同時可見、區段先後順序、small 三種圖片實際像素／渲染寬度至少 2.5 倍、原圖連結隨 tab 更新、平台同時切兩圖、鍵盤切換、MCP 複製、下載狀態與手機／平板／桌機無水平溢位。人工檢視完整手機頁與兩個重點區域。
-- 同一 owner-private Sites 部署更新成功，保留原網址 https://smallstocks-tw.zaious.chatgpt.site 。來源 commit [redacted]，deployment succeeded。沒有變更分享對象，也沒有桌面程式變更。
+- 同一私人檢閱站更新成功（deployment succeeded），沒有變更分享對象，也沒有桌面程式變更。
+
+## 2026-11-08 — 審查修正與文件整理（未發布）
+
+依一輪程式審查修正：存檔失敗不再丟棄該輪行情與已偵測的跨越事件；背景工作 panic 後自動重啟；已用完的「一次」規則重新啟用後可再次生效；版本號改讀建置版本；macOS 設定資料夾改為 `~/Library/Application Support`。細節見 CHANGELOG「未發布」。
+
+- 新增 2 個 Rust 測試（存檔失敗後行情與事件保留並於下一輪補存、一次規則重新武裝但每日防重複保留）。Rust 17 個測試、clippy warnings-as-errors、rustfmt 檢查與 14 個前端測試、TypeScript／Vite 建置通過。
+- 新增 `scripts/mis-time-probe.mjs`，供盤中判斷 MIS 欄位 `t` 是快照時間還是最近成交時間。收盤後的一次查詢中各檔 `t` 相同（13:30:00），但集合競價會造成同樣結果，**尚未下結論**；放寬新鮮度判斷前須先在盤中量測。
+- macOS 資料夾修正只確認可編譯，Mac 實機驗證見下一項（未完成前不宣稱 Mac 可用）。
+- 文件整理：移除公開文件中的私人檢閱站網址、託管專案 ID 與內部來源 commit；`site/.openai/` 取消追蹤並加入忽略。

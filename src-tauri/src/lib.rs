@@ -23,9 +23,13 @@ fn data_dir() -> PathBuf {
     if let Some(p) = std::env::var_os("SMALLSTOCKS_CONFIG_DIR") {
         return PathBuf::from(p);
     }
-    let base = std::env::var_os("APPDATA")
-        .map(PathBuf::from)
-        .unwrap_or_else(std::env::temp_dir);
+    // APPDATA only exists on Windows; without this macOS fell back to a purgeable temp folder.
+    let base = if cfg!(target_os = "macos") {
+        std::env::var_os("HOME").map(|h| PathBuf::from(h).join("Library/Application Support"))
+    } else {
+        std::env::var_os("APPDATA").map(PathBuf::from)
+    }
+    .unwrap_or_else(std::env::temp_dir);
     base.join(if demo() {
         "SmallStocks-TW-demo"
     } else {
