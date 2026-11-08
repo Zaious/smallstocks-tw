@@ -6,7 +6,7 @@
 - 背景工作（行情輪詢、分鐘線、日資料）發生內部錯誤時會自動重啟並顯示在狀態；MCP 請求處理加上同樣的防護。
 - 已觸發而自動停用的「一次」規則，重新啟用後會再次生效；「每日」規則編輯時仍保留當天的防重複觸發。
 - MCP serverInfo 與資料請求標頭的版本號改為自動讀取建置版本。
-- macOS 設定資料夾改為 `~/Library/Application Support/SmallStocks-TW`（先前會落在暫存資料夾）。尚未在 Mac 實機驗證。
+- macOS 設定資料夾改為 `~/Library/Application Support/SmallStocks-TW`（先前會落在暫存資料夾）。已在 Intel Mac（macOS 26.2）以示範模式驗證資料夾建立與三種外觀顯示；真實行情、通知與其他 Mac 功能尚未驗證。
 
 ## 0.1.10 — 2026-11-08
 

@@ -222,5 +222,14 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 
 - 新增 2 個 Rust 測試（存檔失敗後行情與事件保留並於下一輪補存、一次規則重新武裝但每日防重複保留）。Rust 17 個測試、clippy warnings-as-errors、rustfmt 檢查與 14 個前端測試、TypeScript／Vite 建置通過。
 - 新增 `scripts/mis-time-probe.mjs`，供盤中判斷 MIS 欄位 `t` 是快照時間還是最近成交時間。收盤後的一次查詢中各檔 `t` 相同（13:30:00），但集合競價會造成同樣結果，**尚未下結論**；放寬新鮮度判斷前須先在盤中量測。
-- macOS 資料夾修正只確認可編譯，Mac 實機驗證見下一項（未完成前不宣稱 Mac 可用）。
-- 文件整理：移除公開文件中的私人檢閱站網址、託管專案 ID 與內部來源 commit；`site/.openai/` 取消追蹤並加入忽略。
+- 文件整理：移除公開文件中的私人檢閱站網址、託管專案 ID 與內部來源 commit；`site/.openai/` 取消追蹤並加入忽略。內部規劃筆記不再放入公開儲存庫，儲存庫歷史已一併清理。
+
+### Intel Mac 實機驗證（x86_64、macOS 26.2、示範模式）
+
+在 Mac 上以 rustup 自行建置（`npx tauri build --bundles app`），未簽章、未公證、非 universal。
+
+- 通過：`cargo test --lib` 17 個測試；產出 x86_64 `.app`，含 `.icns` 圖示。
+- 通過：首次啟動建立 `~/Library/Application Support/SmallStocks-TW-demo/`，內含 `state.json` 與 `mcp-connection.json`（修正前會寫到暫存資料夾）。
+- 通過：本機 RPC 帶 token 可讀 `get_status`（示範資料、三檔自選、無錯誤），不帶 token 回 401；全域隱私快捷鍵註冊成功（`privacyShortcutError` 為空）。
+- 通過（目視實際視窗截圖）：透過 MCP `set_settings` 切換 small、terminal、txt，Mac 版外觀分別為 small 細條、左側交通燈的 zsh 終端機窗與 TextEdit 式純文字窗，內容為示範資料。
+- 未驗證：真實行情（當日休市）、盤中長時間、隱私快捷鍵實際按下後的隱藏行為、系統匣、通知窗、極簡與 hover 明細、簽章／公證、安裝後首次開啟的 Gatekeeper 流程、其他 macOS 版本與 Apple Silicon。因此只宣稱「示範模式可在 Intel Mac 啟動並顯示三種外觀」，不宣稱 Mac 已可正式使用。
