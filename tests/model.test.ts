@@ -68,3 +68,74 @@ describe("display truthfulness", () => {
     ).toContain("成交價降至 1,000 元");
   });
 });
+import { closeDay } from "../src/model.ts";
+describe("what a closed session shows", () => {
+  const at = (time: string) => Date.parse(`2026-11-09T${time}+08:00`);
+  const friday = { date: "2026-11-06", close: 2135, changePercent: -4.69 };
+  const snapshot = (
+    now: string,
+    quote: Record<string, unknown>,
+    days = [friday],
+  ) =>
+    ({
+      now: at(now),
+      watchlist: ["2330"],
+      dailySummaries: { "2330": { days } },
+      quotes: {
+        "2330": {
+          price: 2235,
+          changePercent: 4.68,
+          date: "20261109",
+          ...quote,
+        },
+      },
+    }) as unknown as Parameters<typeof closeDay>[0];
+  it("shows today's closing trade once the session has ended, not last Friday", () => {
+    const view = closeDay(
+      snapshot("13:36:00", {
+        tradeAt: at("13:30:00"),
+        sourceAt: at("13:30:00"),
+      }),
+      "2330",
+    );
+    expect(view).toMatchObject({
+      date: "2026-11-09",
+      close: 2235,
+      kind: "final",
+    });
+  });
+  it("waits for a postponed close before treating a mid-session trade as the close", () => {
+    const early = snapshot("13:32:00", {
+      tradeAt: at("13:29:50"),
+      sourceAt: at("13:31:00"),
+    });
+    expect(closeDay(early, "2330")?.kind).toBe("previous");
+    const later = snapshot("13:36:00", {
+      tradeAt: at("13:29:50"),
+      sourceAt: at("13:35:00"),
+    });
+    expect(closeDay(later, "2330")?.kind).toBe("final");
+  });
+  it("prefers the official row for today, and falls back to the earlier day without today's data", () => {
+    const official = snapshot(
+      "15:30:00",
+      { tradeAt: at("13:30:00"), sourceAt: at("13:30:00") },
+      [friday, { date: "2026-11-09", close: 2236, changePercent: 4.7 }],
+    );
+    expect(closeDay(official, "2330")).toMatchObject({
+      close: 2236,
+      kind: "official",
+    });
+    const yesterdayQuote = snapshot("08:00:00", {
+      date: "20261106",
+      sourceAt: at("08:00:00"),
+    });
+    expect(closeDay(yesterdayQuote, "2330")).toMatchObject({
+      date: "2026-11-06",
+      kind: "previous",
+    });
+    expect(closeDay(snapshot("13:36:00", { price: null }), "2330")?.kind).toBe(
+      "previous",
+    );
+  });
+});

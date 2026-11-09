@@ -6,6 +6,7 @@ import {
   latestCloseDate,
   stale,
   livePrice,
+  closeDay,
   BOOK_NOTE,
 } from "./model.ts";
 import type { Snapshot } from "./model.ts";
@@ -28,7 +29,7 @@ export interface StockDetail {
 export function stockDetail(s: Snapshot, c: string): StockDetail {
   const q = s.quotes[c],
     closed = !s.marketOpen && !s.demo,
-    d = closed ? s.dailySummaries[c]?.days.at(-1) : undefined;
+    d = closed ? closeDay(s, c) : undefined;
   const name =
       q?.name || (c === "t00" ? "加權指數" : c === "o00" ? "櫃買指數" : c),
     live = livePrice(q),
@@ -70,7 +71,11 @@ export function stockDetail(s: Snapshot, c: string): StockDetail {
         : !valid
           ? "資料未確認"
           : closed
-            ? "最近收盤"
+            ? d?.kind === "final"
+              ? "今日收盤（待官方日資料）"
+              : d?.kind === "previous"
+                ? "上一交易日收盤"
+                : "最近收盤"
             : live.basis === "book"
               ? BOOK_NOTE
               : "盤中資料"),

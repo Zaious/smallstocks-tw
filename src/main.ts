@@ -23,6 +23,7 @@ import {
   ruleText,
   latestCloseDate,
   livePrice,
+  closeDay,
   BOOK_NOTE,
 } from "./model.ts";
 import { historyBody } from "./daily-view.ts";
@@ -354,7 +355,10 @@ function apply() {
             .slice(0, 4),
         )
           ? date.slice(5).replace("-", "/")
-          : date.replaceAll("-", "/")) + " 收盤"
+          : date.replaceAll("-", "/")) +
+        (state.watchlist.some((c) => closeDay(state, c)?.kind === "final")
+          ? " 收盤（待官方日資料）"
+          : " 收盤")
       : "取得收盤資料中";
     document.querySelector("#health")!.textContent =
       `${state.settings.paused ? "Ⅱ 已暫停" : state.marketClosedReason ? `○ 休市（${state.marketClosedReason}）` : "○ 休市"} · ${label}`;
@@ -377,7 +381,7 @@ function rows() {
       .map((c) => {
         const q = state.quotes[c];
         const closed = !state.marketOpen && !state.demo;
-        const d = closed ? state.dailySummaries[c]?.days.at(-1) : undefined;
+        const d = closed ? closeDay(state, c) : undefined;
         const live = livePrice(q);
         const pct = closed ? d?.changePercent : live.pct;
         const stamp = closed

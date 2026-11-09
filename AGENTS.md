@@ -4,7 +4,7 @@
 - 本體為獨立常駐 Tauri 2 程式；agent/MCP 是選配，不能讓基本監看依賴 LLM 或 host 排程。
 - 沿用我們自己的 Basesmall / SmalLoL 程式、元件與視覺，保留 LICENSE / NOTICE。
 - `src-tauri/src/core.rs` 是監看、規則、事件與設定的唯一擁有者；UI 與 MCP 共用其 execute 方法。不要在每個視窗或 agent 再輪詢行情。
-- `src-tauri/src/daily.rs` 為官方每日歷史 adapter。日資料與即時通知完全分開，依來源欄位保留成交量單位，不把日資料灌入 ingest。當日 15:00 前不列入已完成資料，15:00 後仍以來源公布為準。行情為未還原價格，不做使用者用的盤中重播。
+- `src-tauri/src/daily.rs` 為官方每日歷史 adapter。日資料與即時通知完全分開，依來源欄位保留成交量單位，不把日資料灌入 ingest。當日 15:00 前不列入已完成的官方日資料，15:00 後以來源公布為準。官方日資料出來前，收盤後（13:30 起；延遲收盤的標的 13:34 起）休市畫面改顯示即時來源的今日最後一筆，明確標示「今日收盤（待官方日資料）」，官方資料到了就換掉；今天沒有資料時標示「上一交易日收盤」，不用舊日方向冒充今天。行情為未還原價格，不做使用者用的盤中重播。
 - `src-tauri/src/mcp.rs` 為 stdio bridge 與經 token 保護的本機 RPC。不要輸出 token、開放外網或把 bridge 啟動成第二個監看核心。
 - `src/main.ts` 為 UI，`src/notify.ts` 為獨立不搶焦點的通知窗。`src/client.ts` 的 browser fallback 只供清楚標示的合成預覽。
 - 四種外觀：small 彩色、small 灰階、terminal 灰階、txt 灰階；後三者通知亦為灰階。純文字版面以文件感為主。

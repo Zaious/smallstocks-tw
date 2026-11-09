@@ -6,6 +6,7 @@ import {
   latestCloseDate,
   stale,
   livePrice,
+  closeDay,
 } from "./model.ts";
 import type { Snapshot } from "./model.ts";
 import { minimalMarkup, bindMinimal, updateMinimal } from "./minimal.ts";
@@ -45,7 +46,7 @@ const pad = (text: string, cells: number) => {
 function values(s: Snapshot, c: string) {
   const q = s.quotes[c],
     closed = !s.marketOpen && !s.demo,
-    d = closed ? s.dailySummaries[c]?.days.at(-1) : undefined,
+    d = closed ? closeDay(s, c) : undefined,
     live = livePrice(q);
   return {
     code: c,
@@ -58,7 +59,9 @@ function values(s: Snapshot, c: string) {
       ? d
         ? d.date !== latestCloseDate(s)
           ? d.date.slice(5).replace("-", "/")
-          : "CLOSED"
+          : d.kind === "final"
+            ? "CLOSED(MIS)"
+            : "CLOSED"
         : "WAITING"
       : stale(q, s.now)
         ? "STALE"

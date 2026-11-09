@@ -32,6 +32,8 @@ export interface Quote {
   midChangePercent?: number | null;
   sourceAt: number;
   receivedAt: number;
+  /** When the last trade happened, when the source said. */
+  tradeAt?: number | null;
   date: string;
   source: string;
 }
@@ -147,11 +149,67 @@ export function livePrice(q: Quote | undefined): {
   return { price: null, pct: null, basis: "none" };
 }
 export const BOOK_NOTE = "委託價（買賣中間價），非成交價";
+/**
+ * The close a closed-session view shows for one symbol.
+ *  - "official": the official daily row for today (published after 15:00).
+ *  - "final": today's last trade from the live source, once the session has ended (the closing
+ *    auction trade at 13:30, or from 13:34 for a postponed close). It is labelled as awaiting the
+ *    official daily data and is replaced by it when that arrives.
+ *  - "previous": the latest earlier trading day, used before today's close is known.
+ */
+export interface CloseDay {
+  date: string;
+  close: number;
+  changePercent: number | null;
+  kind: "official" | "final" | "previous";
+}
+const taipeiDay = (ms: number) =>
+  new Date(ms).toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
+export function closeDay(
+  s: Pick<Snapshot, "dailySummaries"> &
+    Partial<Pick<Snapshot, "quotes" | "now">>,
+  c: string,
+): CloseDay | undefined {
+  const d = s.dailySummaries[c]?.days.at(-1);
+  const q = s.quotes?.[c];
+  if (s.now && q && q.price != null) {
+    const today = taipeiDay(s.now),
+      closeAt = Date.parse(`${today}T13:30:00+08:00`),
+      traded = q.tradeAt ?? 0;
+    const sameDay = q.date === today.replaceAll("-", "");
+    const settled =
+      traded >= closeAt ||
+      (s.now >= closeAt + 4 * 60_000 && q.sourceAt >= closeAt);
+    if (d?.date === today)
+      return {
+        date: d.date,
+        close: d.close,
+        changePercent: d.changePercent,
+        kind: "official",
+      };
+    if (sameDay && settled && s.now >= closeAt)
+      return {
+        date: today,
+        close: q.price,
+        changePercent: q.changePercent,
+        kind: "final",
+      };
+  }
+  return d
+    ? {
+        date: d.date,
+        close: d.close,
+        changePercent: d.changePercent,
+        kind: s.now && d.date === taipeiDay(s.now) ? "official" : "previous",
+      }
+    : undefined;
+}
 export function latestCloseDate(
-  s: Pick<Snapshot, "watchlist" | "dailySummaries">,
+  s: Pick<Snapshot, "watchlist" | "dailySummaries"> &
+    Partial<Pick<Snapshot, "quotes" | "now">>,
 ): string | null {
   const dates = s.watchlist
-    .map((c) => s.dailySummaries[c]?.days.at(-1)?.date)
+    .map((c) => closeDay(s, c)?.date)
     .filter((d): d is string => Boolean(d));
   return dates.sort().at(-1) ?? null;
 }
@@ -168,8 +226,7 @@ export function terminalRows(s: Snapshot): string {
   return s.watchlist
     .map((c) => {
       const q = s.quotes[c];
-      const d =
-        !s.marketOpen && !s.demo ? s.dailySummaries[c]?.days.at(-1) : undefined;
+      const d = !s.marketOpen && !s.demo ? closeDay(s, c) : undefined;
       const name = [...(q?.name ?? "等待資料")].slice(0, 8).join("");
       const cells = [...name].reduce(
         (n, c) => n + (/[^\u0000-\u00ff]/.test(c) ? 2 : 1),
