@@ -332,6 +332,16 @@ impl Core {
     pub fn market_open(&self, ms: i64) -> bool {
         trading(ms) && self.closure_on(ms).is_none()
     }
+    /// When polling the source is worthwhile: a little before the open (08:55) until three minutes
+    /// after the delayed-close limit (13:33), on a weekday the calendar does not close. The final
+    /// 13:30 closing price and any postponed close are only published after the session ends.
+    pub fn polling_window(&self, ms: i64) -> bool {
+        let day = local(ms);
+        let minutes = day.hour() * 60 + day.minute();
+        day.weekday().number_from_monday() <= 5
+            && (535..816).contains(&minutes)
+            && self.closure_on(ms).is_none()
+    }
     /// Why a weekday session is closed (holiday name), for the status line.
     pub fn closed_reason(&self, ms: i64) -> Option<String> {
         let day = local(ms);
@@ -1156,6 +1166,35 @@ mod tests {
         .is_none());
         let snap = c.snapshot();
         assert_eq!(snap["calendar"]["years"][0], "2026");
+    }
+    #[test]
+    fn polling_continues_through_the_closing_auction_until_the_delayed_close_limit() {
+        let c = Core::load(
+            std::env::temp_dir()
+                .join(format!("poll-window-{}", uuid::Uuid::new_v4()))
+                .join("state.json"),
+            false,
+        )
+        .unwrap();
+        let at = |h, m, s| {
+            FixedOffset::east_opt(28800)
+                .unwrap()
+                .with_ymd_and_hms(2026, 11, 6, h, m, s)
+                .unwrap()
+                .timestamp_millis()
+        };
+        assert!(!c.polling_window(at(8, 50, 0)));
+        assert!(c.polling_window(at(8, 55, 0)));
+        assert!(c.polling_window(at(13, 29, 55)));
+        // The closing price is published at 13:30 and a postponed close can run to 13:33.
+        assert!(c.polling_window(at(13, 30, 5)));
+        assert!(c.polling_window(at(13, 35, 59)));
+        assert!(!c.polling_window(at(13, 36, 0)));
+        // Alerts still only run inside the session.
+        assert!(!c.market_open(at(13, 30, 5)));
+        assert!(c.market_open(at(13, 29, 55)));
+        // A weekend is never polled.
+        assert!(!c.polling_window(at(10, 0, 0) + 86_400_000));
     }
     #[test]
     fn calendar_is_fetched_when_missing_stale_or_before_open_and_retried_slowly() {

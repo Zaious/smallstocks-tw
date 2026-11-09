@@ -48,6 +48,26 @@ fn supervise<F: FnMut() + Send + 'static>(state: mcp::Shared, name: &'static str
         }
     });
 }
+/// QA aid: with SMALLSTOCKS_CAPTURE_RAW=<folder> every source response is appended, whole, to
+/// <folder>/mis-raw.ndjson with the local receive time. Off by default; nothing leaves the machine.
+fn capture_raw(text: &str) {
+    use std::io::Write;
+    let Some(dir) = std::env::var_os("SMALLSTOCKS_CAPTURE_RAW") else {
+        return;
+    };
+    let path = PathBuf::from(dir).join("mis-raw.ndjson");
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
+        let line = json!({"receivedAt": now(), "body": text});
+        let _ = writeln!(file, "{line}");
+    }
+}
 pub fn bridge() {
     mcp::bridge(&data_dir());
 }
@@ -432,7 +452,7 @@ pub fn run() {
                         {
                             continue;
                         }
-                        if !s.demo && !s.market_open(at) && s.last_fetch.is_some() {
+                        if !s.demo && !s.polling_window(at) && s.last_fetch.is_some() {
                             s.next_poll = at + 60_000;
                             continue;
                         }
@@ -447,8 +467,19 @@ pub fn run() {
                             .get(core::mis_url(&codes))
                             .send()
                             .and_then(|r| r.error_for_status())
-                            .and_then(|r| r.json::<Value>())
+                            .and_then(|r| r.text())
                             .map_err(|e| e.to_string())
+                            .and_then(|text| {
+                                capture_raw(&text);
+                                // A body that is not the expected JSON (an error page, a throttle
+                                // notice) is reported with its first characters, not just "decode".
+                                serde_json::from_str::<Value>(&text).map_err(|e| {
+                                    format!(
+                                        "行情格式錯誤：{e}（開頭：{}）",
+                                        text.chars().take(160).collect::<String>()
+                                    )
+                                })
+                            })
                             .and_then(|v| core::parse_mis(&v, now()))
                     };
                     let mut s = poll_state.lock().unwrap_or_else(PoisonError::into_inner);
