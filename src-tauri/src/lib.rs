@@ -399,7 +399,14 @@ pub fn run() {
                 tray = tray.icon(icon.clone())
             }
             tray.build(app)?;
-            if let Err(error) = app.global_shortcut().register(privacy_shortcut()) {
+            // A long-running test instance must not take the user's own hide shortcut from them.
+            let skip_shortcut = std::env::var_os("SMALLSTOCKS_NO_GLOBAL_SHORTCUT").is_some();
+            let registered = if skip_shortcut {
+                Ok(())
+            } else {
+                app.global_shortcut().register(privacy_shortcut())
+            };
+            if let Err(error) = registered {
                 setup_state.lock().unwrap_or_else(PoisonError::into_inner).privacy_shortcut_error = Some(format!("全域隱藏快捷鍵無法註冊（可能已被占用）：{error}。程式內仍可使用快捷鍵或隱藏按鈕。"));
             }
             if let Err(e) = mcp::serve(setup_state.clone(), &dir, app.handle().clone()) {
