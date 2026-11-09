@@ -7,7 +7,7 @@ $exePath = Join-Path $projectRoot 'src-tauri\target\release\smallstocks-tw.exe'
 if (-not (Test-Path -LiteralPath $exePath)) { throw 'Build the release executable first.' }
 New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
 Copy-Item -LiteralPath $exePath -Destination (Join-Path $packageDir 'smallstocks-tw.exe')
-foreach ($documentName in @('README.md', 'LICENSE', 'NOTICE')) {
+foreach ($documentName in @('README.md', 'LICENSE', 'NOTICE', 'THIRD_PARTY_LICENSES.txt')) {
     Copy-Item -LiteralPath (Join-Path $projectRoot $documentName) -Destination (Join-Path $packageDir $documentName)
 }
 $guideDir = Join-Path $packageDir 'docs'

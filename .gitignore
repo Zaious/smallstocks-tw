@@ -11,3 +11,6 @@ src-tauri/icons/ios/
 .env.*
 !.env.example
 .local-notes/
+
+# Made at release time (scripts/third-party-licenses.mjs)
+THIRD_PARTY_LICENSES.txt
