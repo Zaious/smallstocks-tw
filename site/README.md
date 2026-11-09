@@ -17,4 +17,4 @@ npm exec vite -- site --host 127.0.0.1 --port 4175 --strictPort
 
 Created by Zaious, ChronicleCore Studio. Apache-2.0；沿用父專案 LICENSE／NOTICE。
 
-產品圖以 scripts/site-assets.mjs 從程式預覽重新渲染為 4 倍像素；先啟動 npm run dev（1432），再執行 node scripts/site-assets.mjs。終端機／文字文件並排常駐，平台按鈕同時切換兩圖。small 三種顯示方式另保留 tabs 和原圖入口。
+展示圖以 scripts/site-assets.mjs 從程式預覽重新渲染為 4 倍像素；先啟動 npm run dev（1432），再執行 node scripts/site-assets.mjs。終端機／文字文件並排常駐，平台按鈕同時切換兩圖。small 三種顯示方式另保留 tabs 和原圖入口。

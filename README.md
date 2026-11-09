@@ -155,7 +155,7 @@ For browser checks, run `npm run dev`, then `node scripts/minimal-check.mjs` or 
 
 To package a portable build, run `./scripts/package-portable.ps1`. To regenerate the icon, see [the editable brand assets](assets/brand/README.md).
 
-The [Traditional Chinese product website source](site/README.md) lives in `site/`. It reuses the small-series site design and app screenshots, with interactive display/platform previews and release-aware download links. Build it with `node site/build.mjs`; the page is served at [smallstocks.chroniclecore.com](https://smallstocks.chroniclecore.com) from a Cloudflare Worker, with the deployment settings kept in a private repository.
+The [Traditional Chinese project website source](site/README.md) lives in `site/`. It reuses the small-series site design and app screenshots, with interactive display/platform previews and release-aware download links. Build it with `node site/build.mjs`; the page is served at [smallstocks.chroniclecore.com](https://smallstocks.chroniclecore.com) from a Cloudflare Worker, with the deployment settings kept in a private repository.
 
 ## Support
 

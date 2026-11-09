@@ -120,8 +120,8 @@ UI 檢查：先執行 `npm run dev`，再 `node scripts/ui-check.mjs`（使用�
 
 ## 範圍與授權
 
-目前沒有自動下單、券商庫存、爆量、大單、封板／開板或公告事件；不聲稱逐筆行情與零漏報。來源介面非本產品所控制，資料使用條件需另行確認；程式授權不涵蓋市場資料。
+目前沒有自動下單、券商庫存、爆量、大單、封板／開板或公告事件；不聲稱逐筆行情與零漏報。來源介面非本專案所控制，資料使用條件需另行確認；程式授權不涵蓋市場資料。
 
-Apache-2.0。Based on Basesmall and SmalLoL by Zaious, ChronicleCore Studio，保留原作授權與 NOTICE。運動、美術與比賽資料未帶入本產品。
+Apache-2.0。Based on Basesmall and SmalLoL by Zaious, ChronicleCore Studio，保留原作授權與 NOTICE。運動、美術與比賽資料未帶入本專案。
 
 Mac 外觀目前以瀏覽器平台分支預覽驗證，尚無 macOS 原生套件或實機驗證。Windows 使用三鍵 Ctrl+Alt+S 全域隱藏；Mac 對應 ⌘⌥S。若快捷鍵被占用，設定頁會顯示註冊失敗，程式內仍可使用快捷鍵與隱藏控制。
