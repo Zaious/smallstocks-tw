@@ -120,7 +120,9 @@ MCP connects over stdio to a token-protected loopback endpoint. Do not share `mc
 
 ## Data and privacy
 
-Your computer fetches data directly. There is no developer-hosted quote server, account system or analytics. Settings, rules, events and caches are stored locally under `%APPDATA%\SmallStocks-TW`; demo mode uses a separate folder by default.
+Your computer fetches data directly. There is no developer-hosted quote server, account system or analytics. Settings, rules, events and caches are stored locally under `%APPDATA%\SmallStocks-TW` (macOS: `~/Library/Application Support/SmallStocks-TW`); demo mode uses a separate folder by default.
+
+**Update check.** Once each time the app starts it asks GitHub whether a newer version exists (switch it off in Settings). Nothing about you is sent; GitHub sees an ordinary download request, and the developer sees only the download count GitHub publishes for the release file. An installed copy downloads and installs an update only when you press **Update** in Settings, after checking its signature; the portable zip only shows a link to the download page.
 
 - **Quotes:** TWSE MIS, batched for the watchlist, every 15 seconds by default during weekday 09:00–13:30 Taiwan time. Errors back off. The app has not yet integrated the official holiday calendar.
 - **Daily history:** official TWSE and TPEx sources, downloaded on demand and cached locally. Prices are unadjusted. The latest completed date depends on publication by the source.

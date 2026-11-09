@@ -1,0 +1,81 @@
+# A version tag (v0.1.11) builds Windows into a DRAFT release: nothing is public until the maintainer
+# reads it and presses Publish. It holds the installer (per user, no admin), a portable zip, SHA256
+# sums and, when the maintainer's update key is in the repository secrets, the signed update file and
+# latest.json that installed copies read to learn about a new version (the start-up check).
+# macOS and Linux are not built: Mac has only been checked as a UI preview.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - name: Third-party licences
+        shell: bash
+        run: node scripts/third-party-licenses.mjs
+      - name: Tests
+        shell: bash
+        run: |
+          npm test
+          cargo test --manifest-path src-tauri/Cargo.toml --lib
+      # The key is optional only in the sense that a fork without it still builds; the released app
+      # needs the real public key in tauri.conf.json, which this step checks.
+      - name: Update signing key
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if grep -q REPLACE_WITH_PUBLIC_KEY src-tauri/tauri.conf.json; then
+            echo "::error::src-tauri/tauri.conf.json still has the placeholder public key"; exit 1
+          fi
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY=$TAURI_SIGNING_PRIVATE_KEY" >> "$GITHUB_ENV"
+            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "UPDATER_CONFIG=--config src-tauri/tauri.updater.conf.json" >> "$GITHUB_ENV"
+            echo "update key: set"
+          else
+            echo "::error::TAURI_SIGNING_PRIVATE_KEY is not set; run tools/updater-key.ps1 first"; exit 1
+          fi
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: SmallStocks TW ${{ github.ref_name }}
+          releaseBody: See CHANGELOG.md. The Windows build is not code-signed, so SmartScreen may warn. Windows x64 only.
+          releaseDraft: true
+          prerelease: false
+          args: --bundles nsis --config src-tauri/tauri.release.conf.json ${{ env.UPDATER_CONFIG }}
+      - name: Portable zip and checksums
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/package-portable.ps1 | Out-Null
+          $v = '${{ github.ref_name }}'.TrimStart('v')
+          $zip = "releases/SmallStocks-TW-$v-windows-x64.zip"
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis -Filter "*_${v}_x64-setup.exe" | Select-Object -First 1
+          $lines = @()
+          foreach ($f in @((Get-Item $zip), $setup)) {
+            # GitHub stores "SmallStocks TW_x" as "SmallStocks.TW_x"; list the name people download.
+            $lines += ("{0}  {1}" -f (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower(), ($f.Name -replace ' ', '.'))
+          }
+          [IO.File]::WriteAllText("SHA256SUMS-$v.txt", ($lines -join "`n") + "`n")
+          gh release upload '${{ github.ref_name }}' $zip "SHA256SUMS-$v.txt" --clobber

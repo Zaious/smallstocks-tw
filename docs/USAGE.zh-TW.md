@@ -112,7 +112,9 @@ UI 檢查：先執行 `npm run dev`，再 `node scripts/ui-check.mjs`（使用�
 
 完整桌面整合檢查：完成 release 建置並結束其他實例後執行 `npm run check:desktop`。收盤後真實接入檢查可執行 `node scripts/live-check.mjs`。兩者均使用獨立測試資料夾並在結束後關閉測試程式。驗證紀錄見 `docs/IMPLEMENTATION_REPORT.md`。
 
-資料預設存於 `%APPDATA%\SmallStocks-TW`，示範為 `%APPDATA%\SmallStocks-TW-demo`。測試可設定 `SMALLSTOCKS_CONFIG_DIR` 為獨立資料夾，桌面與 bridge 必須使用相同設定。
+更新檢查：每次啟動會向 GitHub 詢問一次是否有新版本，可在「外觀與設定」關閉。不會傳送任何關於你的資料；GitHub 看到的是一般下載請求，開發者只看得到 GitHub 公布的發布檔下載次數。安裝版只有在你按下「更新並重新啟動」才會下載並安裝，並先驗證簽章；免安裝版只顯示下載頁連結。
+
+資料預設存於 `%APPDATA%\SmallStocks-TW`（macOS 為 `~/Library/Application Support/SmallStocks-TW`），示範為 `%APPDATA%\SmallStocks-TW-demo`。測試可設定 `SMALLSTOCKS_CONFIG_DIR` 為獨立資料夾，桌面與 bridge 必須使用相同設定。
 
 指定獨立測試資料夾時，程式會為該路徑使用獨立的實例鎖，讓測試不會喚起或操作正在使用的正式實例。
 
