@@ -9,7 +9,9 @@ let activeRoot: HTMLElement | null = null,
   onOpen: (code: string) => void,
   anchor: HTMLButtonElement | null = null,
   timer: ReturnType<typeof setTimeout> | undefined,
-  sequence = 0;
+  sequence = 0,
+  shownKey = "",
+  ignoreFocusLossUntil = 0;
 let browserTip: HTMLElement | null = null;
 export function minimalMarkup(s: Snapshot): string {
   return `<div class="minimal-list" data-codes="${Boolean(s.settings.showCodes)}" aria-label="極簡自選清單">${
@@ -26,40 +28,53 @@ export function hideDetail() {
   if (timer) clearTimeout(timer);
   timer = undefined;
   anchor = null;
+  shownKey = "";
   if (browserTip) browserTip.hidden = true;
   if (isTauri()) void invoke("hide_stock_detail").catch(() => {});
 }
-async function showDetail(button: HTMLButtonElement) {
+// Draws the detail for `button` now. `token` is the hover it belongs to: if the pointer has moved
+// on by the time the window is up, the stale window is taken down again.
+async function present(button: HTMLButtonElement, token: number) {
+  const d = stockDetail(snapshot, button.dataset.miniStock!);
+  const r = button.getBoundingClientRect();
+  if (isTauri()) {
+    ignoreFocusLossUntil = Date.now() + 800;
+    try {
+      await invoke("show_stock_detail", {
+        detail: d,
+        x: r.left,
+        y: r.bottom,
+        top: r.top,
+      });
+      shownKey = JSON.stringify(d);
+    } catch {}
+    if (token !== sequence) {
+      shownKey = "";
+      void invoke("hide_stock_detail").catch(() => {});
+    }
+  } else {
+    if (!browserTip) {
+      browserTip = document.createElement("div");
+      browserTip.className = "stock-detail browser-detail";
+      browserTip.setAttribute("role", "tooltip");
+      document.body.append(browserTip);
+    }
+    browserTip.dataset.mode = d.appearance;
+    browserTip.innerHTML = detailMarkup(d);
+    browserTip.hidden = false;
+    browserTip.style.left = `${Math.max(4, Math.min(innerWidth - 284, r.left))}px`;
+    browserTip.style.top = `${Math.max(4, Math.min(innerHeight - 190, r.bottom + 5))}px`;
+    shownKey = JSON.stringify(d);
+  }
+}
+function showDetail(button: HTMLButtonElement) {
   const token = ++sequence;
   anchor = button;
   if (timer) clearTimeout(timer);
-  timer = setTimeout(async () => {
+  shownKey = "";
+  timer = setTimeout(() => {
     if (token !== sequence || !button.isConnected) return;
-    const d = stockDetail(snapshot, button.dataset.miniStock!);
-    const r = button.getBoundingClientRect();
-    if (isTauri()) {
-      try {
-        await invoke("show_stock_detail", {
-          detail: d,
-          x: r.left,
-          y: r.bottom,
-          top: r.top,
-        });
-      } catch {}
-      if (token !== sequence) void invoke("hide_stock_detail").catch(() => {});
-    } else {
-      if (!browserTip) {
-        browserTip = document.createElement("div");
-        browserTip.className = "stock-detail browser-detail";
-        browserTip.setAttribute("role", "tooltip");
-        document.body.append(browserTip);
-      }
-      browserTip.dataset.mode = d.appearance;
-      browserTip.innerHTML = detailMarkup(d);
-      browserTip.hidden = false;
-      browserTip.style.left = `${Math.max(4, Math.min(innerWidth - 284, r.left))}px`;
-      browserTip.style.top = `${Math.max(4, Math.min(innerHeight - 190, r.bottom + 5))}px`;
-    }
+    void present(button, token);
   }, 220);
 }
 export function bindMinimal(
@@ -77,7 +92,7 @@ export function bindMinimal(
     const button = (e.target as Element).closest<HTMLButtonElement>(
       "[data-mini-stock]",
     );
-    if (button && button !== anchor) void showDetail(button);
+    if (button && button !== anchor) showDetail(button);
   };
   list.onpointerout = (e) => {
     const b = (e.target as Element).closest("[data-mini-stock]");
@@ -92,7 +107,7 @@ export function bindMinimal(
     const button = (e.target as Element).closest<HTMLButtonElement>(
       "[data-mini-stock]",
     );
-    if (button) void showDetail(button);
+    if (button) showDetail(button);
   });
   list.addEventListener("focusout", () => hideDetail());
   list.onkeydown = (e) => {
@@ -146,15 +161,22 @@ export function updateMinimal(root: HTMLElement, s: Snapshot) {
     const code = b.querySelector(".minimal-code");
     if (code) code.textContent = d.symbol;
   }
-  if (anchor && anchor.isConnected && activeRoot === root)
-    void showDetail(anchor);
+  // The status refresh runs every second. Refresh a visible detail only when its content changed,
+  // and never restart the hover: restarting it made the window blink and, racing the pending
+  // show, take itself down.
+  if (anchor && anchor.isConnected && activeRoot === root && shownKey) {
+    const key = JSON.stringify(stockDetail(s, anchor.dataset.miniStock!));
+    if (key !== shownKey) void present(anchor, sequence);
+  }
 }
 if (isTauri()) {
   void listen("privacy-hide", hideDetail);
   void import("@tauri-apps/api/window")
     .then(({ getCurrentWindow }) =>
       getCurrentWindow().onFocusChanged((e) => {
-        if (!e.payload) hideDetail();
+        // Showing the detail window makes the system report this window gaining and at once losing
+        // focus. That echo is not the user leaving, so it must not take the detail down again.
+        if (!e.payload && Date.now() > ignoreFocusLossUntil) hideDetail();
       }),
     )
     .catch(() => {});

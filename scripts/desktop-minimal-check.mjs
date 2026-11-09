@@ -106,6 +106,19 @@ try {
   await tip.screenshot({
     path: path.join(root, ".local-test/screenshots/desktop-minimal-detail.png"),
   });
+  // Regression: with the pointer resting on the row, the 1 s status refresh must not make the
+  // detail window blink or vanish. Sample its real visibility for five seconds.
+  const hidden = [];
+  for (let i = 0; i < 40; i++) {
+    const visible = await tip.evaluate(() =>
+      window.__TAURI_INTERNALS__.invoke("plugin:window|is_visible", {
+        label: "detail",
+      }),
+    );
+    if (!visible) hidden.push(i);
+    await wait(125);
+  }
+  assert.deepEqual(hidden, [], "detail window stays visible while hovering");
   await main.mouse.move(0, 0);
   await wait(400);
   assert.equal(
