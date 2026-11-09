@@ -42,7 +42,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "REPLACE_WITH_PUBLIC_KEY_FROM_tools/updater-key.ps1",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZBNTRDQTMxQUM5RjFBNjkKUldScEdwK3NNY3BVYW4xRW5ETXFvNFhhblVqWFQwb0oxaWlRU1g0SSt3VTZxMWdJWis3cEs3alAK",
       "endpoints": [
         "https://github.com/Zaious/smallstocks-tw/releases/latest/download/latest.json"
       ],
