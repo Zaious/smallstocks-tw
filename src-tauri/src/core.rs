@@ -72,6 +72,8 @@ pub struct Quote {
     /// Average of the best bid and ask of the same snapshot. An order-book value, not a trade.
     pub mid: Option<f64>,
     pub mid_change_percent: Option<f64>,
+    /// When the last trade happened (the source's own `trade` block), if it said.
+    pub trade_at: Option<i64>,
     pub source_at: i64,
     pub received_at: i64,
     pub date: String,
@@ -102,7 +104,23 @@ pub fn parse_mis(v: &Value, received: i64) -> Result<Vec<Quote>, String> {
             .map(|t| t.timestamp_millis());
         let Some(stamp) = stamp else { continue };
         // Missing trade stays missing: order book and previous close never become a trade.
-        let price = num(&r["z"]);
+        // z is the trade price of this snapshot only and is "-" between trades. The official MIS
+        // site then reads the last trade from the response's `trade` block; so do we. Only a real
+        // trade ever fills `price`: the order book never does.
+        let trade = &r["trade"];
+        let price = num(&r["z"]).or_else(|| num(&trade["z"]));
+        let trade_at = trade["t"]
+            .as_str()
+            .filter(|_| price.is_some())
+            .and_then(|t| {
+                NaiveDateTime::parse_from_str(&format!("{date} {t}"), "%Y%m%d %H:%M:%S").ok()
+            })
+            .and_then(|t| {
+                FixedOffset::east_opt(28800)?
+                    .from_local_datetime(&t)
+                    .single()
+            })
+            .map(|t| t.timestamp_millis());
         let previous = num(&r["y"]);
         let level = |k: &str| {
             r[k].as_str()
@@ -127,6 +145,7 @@ pub fn parse_mis(v: &Value, received: i64) -> Result<Vec<Quote>, String> {
             change_percent: price.zip(previous).map(|(p, y)| (p / y - 1.) * 100.),
             mid,
             mid_change_percent: mid.zip(previous).map(|(m, y)| (m / y - 1.) * 100.),
+            trade_at,
             source_at: stamp,
             received_at: received,
             date: date.into(),
@@ -874,6 +893,7 @@ pub fn demo_quotes(codes: &[String], tick: u64) -> Vec<Quote> {
                 change_percent: Some((p / base - 1.) * 100.),
                 mid: Some(p),
                 mid_change_percent: Some((p / base - 1.) * 100.),
+                trade_at: Some(at),
                 source_at: at,
                 received_at: at,
                 date: local(at).format("%Y%m%d").to_string(),
@@ -900,6 +920,7 @@ mod tests {
             change_percent: p.map(|v| v - 100.),
             mid: None,
             mid_change_percent: None,
+            trade_at: None,
             source_at: t,
             received_at: t,
             date: local(t).format("%Y%m%d").to_string(),
@@ -1166,6 +1187,36 @@ mod tests {
         assert!(c.calendar_due(early).contains(&2026));
         c.saved.calendars.get_mut("2026").unwrap().fetched_at = early - 60_000;
         assert!(!c.calendar_due(early).contains(&2026));
+    }
+    #[test]
+    fn last_trade_comes_from_the_trade_block_when_z_is_a_dash_and_never_from_the_book() {
+        let t = ts();
+        let with_trade = json!({"rtcode":"0000","msgArray":[{
+            "c":"2330","n":"台積電","d":"20261106","t":"10:00:00","z":"-","y":"100","b":"99_","a":"101_",
+            "trade":{"t":"09:59:41","v":12,"z":"100.5000","ft":20}}]});
+        let p = parse_mis(&with_trade, t).unwrap();
+        assert_eq!(p[0].price, Some(100.5), "the last trade is the price");
+        assert!((p[0].change_percent.unwrap() - 0.5).abs() < 1e-9);
+        assert_eq!(p[0].mid, Some(100.), "the book mid stays a separate value");
+        assert_eq!(
+            p[0].trade_at,
+            Some(ts() - 19_000),
+            "the trade's own time is kept"
+        );
+        // A real z wins over the trade block.
+        let both = json!({"rtcode":"0000","msgArray":[{
+            "c":"2330","n":"x","d":"20261106","t":"10:00:00","z":"101.0000","y":"100",
+            "trade":{"t":"09:59:41","z":"100.5000"}}]});
+        assert_eq!(parse_mis(&both, t).unwrap()[0].price, Some(101.));
+        // Neither z nor a usable trade block: no price, and the bid/ask is not promoted to one.
+        let none = json!({"rtcode":"0000","msgArray":[{
+            "c":"2330","n":"x","d":"20261106","t":"10:00:00","z":"-","y":"100","b":"99_","a":"101_","trade":null}]});
+        let n = parse_mis(&none, t).unwrap();
+        assert_eq!(n[0].price, None);
+        assert_eq!(n[0].trade_at, None);
+        let junk = json!({"rtcode":"0000","msgArray":[{
+            "c":"2330","n":"x","d":"20261106","t":"10:00:00","z":"-","y":"100","trade":{"t":"09:59:41","z":"-"}}]});
+        assert_eq!(parse_mis(&junk, t).unwrap()[0].price, None);
     }
     #[test]
     fn book_mid_comes_only_from_a_sane_two_sided_book_and_is_never_a_trade() {
