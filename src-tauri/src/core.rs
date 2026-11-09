@@ -69,11 +69,17 @@ pub struct Quote {
     pub ask: Option<f64>,
     pub previous: Option<f64>,
     pub change_percent: Option<f64>,
+    /// Average of the best bid and ask of the same snapshot. An order-book value, not a trade.
+    pub mid: Option<f64>,
+    pub mid_change_percent: Option<f64>,
     pub source_at: i64,
     pub received_at: i64,
     pub date: String,
     pub source: String,
 }
+/// Stock snapshots from the source arrive about every one to two minutes, so a quote stays usable
+/// for three minutes; older than that it is stale and cannot start or complete a crossing.
+pub const FRESH_MS: i64 = 180_000;
 pub fn parse_mis(v: &Value, received: i64) -> Result<Vec<Quote>, String> {
     if v["rtcode"].as_str() != Some("0000") {
         return Err("行情來源未回傳成功狀態".into());
@@ -104,14 +110,23 @@ pub fn parse_mis(v: &Value, received: i64) -> Result<Vec<Quote>, String> {
                 .and_then(|s| s.parse::<f64>().ok())
                 .filter(|n| n.is_finite() && *n > 0.)
         };
+        let bid = level("b");
+        let ask = level("a");
+        // Only a sane two-sided book gives a mid; a locked or empty side (limit up or down) gives none.
+        let mid = bid
+            .zip(ask)
+            .filter(|(b, a)| b <= a)
+            .map(|(b, a)| (b + a) / 2.);
         out.push(Quote {
             symbol: code,
             name: r["n"].as_str().unwrap_or("").into(),
             price,
-            bid: level("b"),
-            ask: level("a"),
+            bid,
+            ask,
             previous,
             change_percent: price.zip(previous).map(|(p, y)| (p / y - 1.) * 100.),
+            mid,
+            mid_change_percent: mid.zip(previous).map(|(m, y)| (m / y - 1.) * 100.),
             source_at: stamp,
             received_at: received,
             date: date.into(),
@@ -620,14 +635,14 @@ impl Core {
                     .ok_or("門檻必須是有限數字")?;
                 let channel = args["channel"].as_str().unwrap_or("strip");
                 let repeat = args["repeat"].as_str().unwrap_or("daily");
-                if !["price", "changePercent"].contains(&metric)
+                if !["price", "changePercent", "mid", "midChangePercent"].contains(&metric)
                     || !["above", "below"].contains(&dir)
                     || !["off", "log", "strip", "card"].contains(&channel)
                     || !["once", "daily"].contains(&repeat)
                 {
                     return Err("不支援的規則欄位".into());
                 }
-                if metric == "price" && threshold <= 0. {
+                if matches!(metric, "price" | "mid") && threshold <= 0. {
                     return Err("價格門檻必須大於零".into());
                 }
                 if next.saved.rules.len() >= 100 && args.get("id").is_none() {
@@ -754,17 +769,18 @@ impl Core {
 /// `open` is whether the session is open now (hours and official calendar), decided by the caller.
 pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool, open: bool) -> Option<Event> {
     let fresh = q.source_at <= at + 5000
-        && at - q.source_at <= 60_000
+        && at - q.source_at <= FRESH_MS
         && q.date == local(at).format("%Y%m%d").to_string();
     if !fresh || (!demo && !open) || r.channel == "off" {
         r.last_value = None;
         r.last_at = None;
         return None;
     }
-    let Some(value) = (if r.metric == "price" {
-        q.price
-    } else {
-        q.change_percent
+    let Some(value) = (match r.metric.as_str() {
+        "price" => q.price,
+        "mid" => q.mid,
+        "midChangePercent" => q.mid_change_percent,
+        _ => q.change_percent,
     }) else {
         r.last_value = None;
         r.last_at = None;
@@ -774,7 +790,7 @@ pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool, open: bool) -> Opt
         return None;
     }
     let continuous = r.last_day.as_deref() == Some(&q.date)
-        && r.last_at.is_some_and(|t| q.source_at - t <= 60_000);
+        && r.last_at.is_some_and(|t| q.source_at - t <= FRESH_MS);
     let crossed = continuous
         && r.last_value.is_some_and(|v| {
             if r.direction == "above" {
@@ -796,17 +812,22 @@ pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool, open: bool) -> Opt
     if r.repeat == "once" {
         r.enabled = false;
     }
-    let metric = if r.metric == "price" {
-        "成交價"
-    } else {
-        "漲跌幅"
+    let metric = match r.metric.as_str() {
+        "price" => "成交價",
+        "mid" => "買賣中間價（委託價，非成交價）",
+        "midChangePercent" => "漲跌幅（買賣中間價，非成交價）",
+        _ => "漲跌幅",
     };
     let direction = if r.direction == "above" {
         "升至"
     } else {
         "降至"
     };
-    let unit = if r.metric == "price" { "元" } else { "%" };
+    let unit = if matches!(r.metric.as_str(), "price" | "mid") {
+        "元"
+    } else {
+        "%"
+    };
     Some(Event {
         id: uuid::Uuid::new_v4().to_string(),
         rule_id: r.id.clone(),
@@ -851,6 +872,8 @@ pub fn demo_quotes(codes: &[String], tick: u64) -> Vec<Quote> {
                 bid: Some(p - 0.5),
                 ask: Some(p + 0.5),
                 change_percent: Some((p / base - 1.) * 100.),
+                mid: Some(p),
+                mid_change_percent: Some((p / base - 1.) * 100.),
                 source_at: at,
                 received_at: at,
                 date: local(at).format("%Y%m%d").to_string(),
@@ -875,6 +898,8 @@ mod tests {
             ask: None,
             previous: Some(100.),
             change_percent: p.map(|v| v - 100.),
+            mid: None,
+            mid_change_percent: None,
             source_at: t,
             received_at: t,
             date: local(t).format("%Y%m%d").to_string(),
@@ -922,10 +947,10 @@ mod tests {
         let mut r = rule();
         ev(&mut r, &q(Some(100.), t), t, false);
         assert!(ev(&mut r, &q(Some(106.), t - 5000), t, false).is_none());
-        assert!(ev(&mut r, &q(Some(106.), t + 5000), t + 120000, false).is_none());
-        assert!(ev(&mut r, &q(Some(106.), t + 125000), t + 125000, false).is_none());
-        ev(&mut r, &q(None, t + 130000), t + 130000, false);
-        assert!(ev(&mut r, &q(Some(106.), t + 135000), t + 135000, false).is_none());
+        assert!(ev(&mut r, &q(Some(106.), t + 5000), t + 200000, false).is_none());
+        assert!(ev(&mut r, &q(Some(106.), t + 205000), t + 205000, false).is_none());
+        ev(&mut r, &q(None, t + 210000), t + 210000, false);
+        assert!(ev(&mut r, &q(Some(106.), t + 215000), t + 215000, false).is_none());
     }
     #[test]
     fn day_reset_and_off_session() {
@@ -1141,6 +1166,73 @@ mod tests {
         assert!(c.calendar_due(early).contains(&2026));
         c.saved.calendars.get_mut("2026").unwrap().fetched_at = early - 60_000;
         assert!(!c.calendar_due(early).contains(&2026));
+    }
+    #[test]
+    fn book_mid_comes_only_from_a_sane_two_sided_book_and_is_never_a_trade() {
+        let t = ts();
+        let row = |b: &str, a: &str| json!({"rtcode":"0000","msgArray":[{"c":"2330","n":"台積電","d":"20261106","t":"10:00:00","z":"-","y":"100","b":b,"a":a}]});
+        let p = parse_mis(&row("99_98_", "101_102_"), t).unwrap();
+        assert_eq!(p[0].price, None);
+        assert_eq!(p[0].mid, Some(100.));
+        assert_eq!(p[0].mid_change_percent, Some(0.));
+        assert_eq!(parse_mis(&row("0.0000_", "101_"), t).unwrap()[0].mid, None);
+        assert_eq!(parse_mis(&row("99_", "-"), t).unwrap()[0].mid, None);
+        assert_eq!(
+            parse_mis(&row("102_", "101_"), t).unwrap()[0].mid,
+            None,
+            "a crossed book is not a price"
+        );
+    }
+    #[test]
+    fn mid_rules_cross_on_the_book_and_trade_rules_stay_silent_without_a_trade() {
+        let t = ts();
+        let book = |mid: f64, at: i64| {
+            let mut x = q(None, at);
+            x.mid = Some(mid);
+            x.mid_change_percent = Some(mid - 100.);
+            x
+        };
+        let mut mid_rule = rule();
+        mid_rule.metric = "mid".into();
+        let mut trade_rule = rule();
+        let first = book(100., t);
+        assert!(ev(&mut mid_rule, &first, t, false).is_none());
+        assert!(ev(&mut trade_rule, &first, t, false).is_none());
+        // Stock snapshots come about two minutes apart; that is still one continuous crossing.
+        let second = book(106., t + 120_000);
+        let event = ev(&mut mid_rule, &second, t + 125_000, false)
+            .expect("a two-minute cadence still crosses");
+        assert!(event.text.contains("買賣中間價") && event.text.contains("非成交價"));
+        assert!(
+            ev(&mut trade_rule, &second, t + 125_000, false).is_none(),
+            "no trade price, no trade alert"
+        );
+    }
+    #[test]
+    fn rules_accept_book_metrics_and_reject_unknown_ones() {
+        let dir = std::env::temp_dir().join(format!("smallstocks-mid-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut c = Core::load(dir.join("state.json"), true).unwrap();
+        for metric in ["mid", "midChangePercent"] {
+            c.execute(
+                "upsert_rule",
+                json!({"symbol":"2330","metric":metric,"direction":"above","threshold":1}),
+            )
+            .unwrap();
+        }
+        assert!(c
+            .execute(
+                "upsert_rule",
+                json!({"symbol":"2330","metric":"mid","direction":"above","threshold":0}),
+            )
+            .is_err());
+        assert!(c
+            .execute(
+                "upsert_rule",
+                json!({"symbol":"2330","metric":"volume","direction":"above","threshold":1}),
+            )
+            .is_err());
+        std::fs::remove_dir_all(dir).unwrap();
     }
     #[test]
     fn topmost_defaults_migrate_and_changes_persist() {

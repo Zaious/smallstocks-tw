@@ -18,7 +18,7 @@ export function minimalMarkup(s: Snapshot): string {
     s.watchlist
       .map((c) => {
         const d = stockDetail(s, c);
-        return `<button type="button" class="minimal-stock ${d.direction}" data-mini-stock="${esc(c)}" aria-label="${esc(detailLabel(d))}"><span class="minimal-mark" data-piece="${s.settings.appearance}:${d.direction}" aria-hidden="true">${directionMark(d.direction, d.mark, s.settings.appearance)}</span><span class="minimal-name">${esc(d.name)}</span>${s.settings.showCodes && d.name !== c ? `<span class="minimal-code">${esc(c)}</span>` : ""}</button>`;
+        return `<button type="button" class="minimal-stock ${d.direction}${d.basis === "book" ? " book" : ""}" data-mini-stock="${esc(c)}" aria-label="${esc(detailLabel(d))}"><span class="minimal-mark" data-piece="${s.settings.appearance}:${d.direction}" aria-hidden="true">${directionMark(d.direction, d.mark, s.settings.appearance)}</span><span class="minimal-name">${esc(d.name)}</span>${s.settings.showCodes && d.name !== c ? `<span class="minimal-code">${esc(c)}</span>` : ""}</button>`;
       })
       .join(" ") || '<span class="minimal-empty">尚無自選</span>'
   }</div>`;
@@ -145,7 +145,7 @@ export function updateMinimal(root: HTMLElement, s: Snapshot) {
     "[data-mini-stock]",
   )) {
     const d = stockDetail(s, b.dataset.miniStock!);
-    b.className = `minimal-stock ${d.direction}`;
+    b.className = `minimal-stock ${d.direction}${d.basis === "book" ? " book" : ""}`;
     b.setAttribute("aria-label", detailLabel(d));
     const mark = b.querySelector<HTMLElement>(".minimal-mark")!;
     const key = `${s.settings.appearance}:${d.direction}`;

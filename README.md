@@ -16,7 +16,7 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 ![The small watchlist with names, prices and daily changes](docs/media/small-numbers.png)
 
-*Synthetic demo quotes, captured from the Windows app.*
+_Synthetic demo quotes, captured from the Windows app._
 
 > **Status: 0.1.11 preview, Windows x64.** Portable ZIP and per-user installer on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The Windows build is unsigned; code signing and automatic updates are not included. Full-session live-market validation is still pending.
 
@@ -25,7 +25,7 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 - **A small watchlist.** Search by name or code, or paste several codes at once. Follow listed and OTC stocks, ETFs, the TAIEX and the OTC index. Up to 30 watchlist entries.
 - **Three ways to glance.** Numbers, a single-row trend, or just direction and name. The minimal small view becomes a roughly 30 px bar, wraps when narrowed, and reveals price, change and source time on hover. Stock codes are optional.
 - **Four appearances.** Small in colour, small in greyscale, terminal and plain text. On Windows the latter two resemble Windows Terminal and Notepad; the macOS UI branch uses a zsh-style Terminal and a plain-text TextEdit window. These are appearances inside this app; they do not run a shell or edit your documents. Mac UI has browser-preview checks, not native Mac validation yet.
-- **Alerts you choose.** Price or percentage crossing a threshold, upwards or downwards; once or once each trading day. Turn a rule off, record it quietly, or show a strip or card in the corner. Notices do not take keyboard focus.
+- **Alerts you choose.** Trade price, percentage, or bid/ask mid price crossing a threshold, upwards or downwards; once or once each trading day. Turn a rule off, record it quietly, or show a strip or card in the corner. Notices do not take keyboard focus.
 - **Useful after the close.** The latest available official daily close, clearly dated, plus monthly open/high/low/close and volume history. Opening the app for the first time can fetch earlier daily records. Intraday trend mode can also retrieve the current day's available minute samples; gaps and partial data are labelled.
 - **An optional agent connection.** Ask your agent to summarise the watchlist, inspect recorded events or create an alert. The desktop app keeps monitoring after the agent closes. No model account or API key is needed to use the app itself.
 - **Fits your desktop.** Draggable, with optional always-on-top (on by default, saved across restarts) and a three-key hide-all shortcut: `Ctrl+Alt+S` on Windows, `⌘⌥S` on Mac. Closing the window hides it to the tray; choose Quit there to stop it.
@@ -36,17 +36,17 @@ Red means up and green means down. The little triangular pieces have an equilate
 
 The small series uses restrained colours, rounded capsules and compact type to keep a watchlist in the corner of your desktop. Names stay readable, values align, and each normal row is only 22 px high. Small in colour uses Taiwan's red-up, green-down convention; its greyscale companion keeps the same shapes and layout.
 
-| Display | At a glance | Details |
-| --- | --- | --- |
-| Numbers | Name, latest trade or official close, daily percentage change. Stock codes are optional. | Hover a row for its code, date/time and price; click for daily history. |
+| Display          | At a glance                                                                                       | Details                                                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Numbers          | Name, latest trade or official close, daily percentage change. Stock codes are optional.          | Hover a row for its code, date/time and price; click for daily history.                                                                                 |
 | Single-row trend | The middle price slot becomes a tiny line; name and change stay in place, at the same row height. | During trading hours, today's minute samples; outside trading hours, recent daily closes. Hover identifies the chart source, time and partial coverage. |
-| Minimal | Just a triangular direction piece and a name, side by side when space allows. | Hover or keyboard focus opens a separate detail window with price, change, code, source time and data status. Click for daily history. |
+| Minimal          | Just a triangular direction piece and a name, side by side when space allows.                     | Hover or keyboard focus opens a separate detail window with price, change, code, source time and data status. Click for daily history.                  |
 
 **Single-row trend.** The chart uses the existing row rather than adding a chart panel or making the window taller:
 
 ![Tiny trend lines inside the normal stock rows](docs/media/small-trend.png)
 
-*A synthetic session illustration. The actual chart shows the available portion of the session and labels partial coverage.*
+_A synthetic session illustration. The actual chart shows the available portion of the session and labels partial coverage._
 
 **Minimal and hover.** The equilateral pieces have a bright face and a shallow, darker side. The bar can shrink to roughly 30 px tall; the detail window appears outside it without enlarging the bar or taking keyboard focus:
 
@@ -54,7 +54,7 @@ The small series uses restrained colours, rounded capsules and compact type to k
 
 ![The separate hover detail window](docs/media/small-hover.png)
 
-*All images above use labelled synthetic demo data. Normal and trend rows use their row tooltip; the separate detail window shown here belongs to minimal mode. Neither hover nor switching modes interrupts monitoring.*
+_All images above use labelled synthetic demo data. Normal and trend rows use their row tooltip; the separate detail window shown here belongs to minimal mode. Neither hover nor switching modes interrupts monitoring._
 
 ## Four appearances, the same watchlist
 
@@ -68,13 +68,13 @@ The Mac UI uses left-side traffic lights, a simple document title, Menlo-style t
 <img src="docs/media/mac-terminal.png" width="420" alt="Mac terminal appearance on an Intel Mac, synthetic data">
 <img src="docs/media/mac-textedit.png" width="420" alt="Mac TextEdit-style appearance on an Intel Mac, synthetic data">
 
-*Mac appearances shown above are native window screenshots from an Intel Mac (macOS 26.2) running the demo mode with synthetic data. There is no macOS package yet; signing, real-market data, long-running use and the pressed-shortcut behaviour are not validated.*
+_Mac appearances shown above are native window screenshots from an Intel Mac (macOS 26.2) running the demo mode with synthetic data. There is no macOS package yet; signing, real-market data, long-running use and the pressed-shortcut behaviour are not validated._
 
-| Action | Windows | Mac UI |
-| --- | --- | --- |
-| Hide all windows and suppress notices, keep monitoring | Ctrl+Alt+S | ⌘⌥S |
-| Open settings in terminal/text/minimal views | Ctrl+, | ⌘, |
-| Text zoom / reset | Ctrl++ / Ctrl+− / Ctrl+0 | ⌘+ / ⌘− / ⌘0 |
+| Action                                                 | Windows                  | Mac UI       |
+| ------------------------------------------------------ | ------------------------ | ------------ |
+| Hide all windows and suppress notices, keep monitoring | Ctrl+Alt+S               | ⌘⌥S          |
+| Open settings in terminal/text/minimal views           | Ctrl+,                   | ⌘,           |
+| Text zoom / reset                                      | Ctrl++ / Ctrl+− / Ctrl+0 | ⌘+ / ⌘− / ⌘0 |
 
 The hide-all shortcut works globally when registration succeeds. If another app occupies it, Settings reports the failure; the focused app's shortcut and hide controls remain available. The previous four-key shortcut has been replaced. Show the app from the tray to restore notices.
 
@@ -84,10 +84,10 @@ In **外觀與設定**, uncheck **視窗保持置頂** if you want other windows
 
 Download from the [Releases page](https://github.com/Zaious/smallstocks-tw/releases), or build locally into `releases/`:
 
-| Windows x64 | File | Use |
-| --- | --- | --- |
-| Portable | `SmallStocks-TW-0.1.11-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`. |
-| Installer | `SmallStocks-TW-0.1.11-windows-x64-setup.exe` | Installs for the current user. |
+| Windows x64 | File                                          | Use                                 |
+| ----------- | --------------------------------------------- | ----------------------------------- |
+| Portable    | `SmallStocks-TW-0.1.11-windows-x64.zip`       | Unzip and run `smallstocks-tw.exe`. |
+| Installer   | `SmallStocks-TW-0.1.11-windows-x64-setup.exe` | Installs for the current user.      |
 
 The app needs Microsoft WebView2. These are unsigned preview builds; workplace device policies may prevent either package from running.
 
@@ -128,7 +128,7 @@ Your computer fetches data directly. There is no developer-hosted quote server, 
 - **Daily history:** official TWSE and TPEx sources, downloaded on demand and cached locally. Prices are unadjusted. The latest completed date depends on publication by the source.
 - **Intraday lines:** Yahoo Finance minute samples where available, or clearly labelled local MIS observations. Chart samples are kept separate from alert evaluation and are never combined into a supposedly complete feed.
 
-Source time and fetch time are separate. Missing, stale or out-of-order quotes cannot trigger alerts, and bid/ask prices are not presented as trades. A crossing rule needs a baseline: starting the app above a threshold does not itself trigger an upward-crossing alert. Gaps between samples can still miss crossings.
+Source time and fetch time are separate. Missing, stale (older than three minutes) or out-of-order quotes cannot trigger alerts. During the session the source often gives no trade price for a stock and refreshes stocks only every one to two minutes; the app then shows the average of the best bid and ask, always marked as an order price (a "委" tag, a lighter arrow, `~` in the text skins) and never called a trade. Trade-price rules need a trade; the separate bid/ask mid rules say so in their notices. A crossing rule needs a baseline: starting the app above a threshold does not itself trigger an upward-crossing alert. Gaps between samples can still miss crossings.
 
 This is a companion for keeping an eye on a watchlist. It does not place orders, read brokerage holdings, or provide tick-by-tick, large-order, volume-spike, price-limit-lock or announcement alerts. Market data is subject to its providers' terms; this project's software licence does not grant market-data rights. Local access and open source do not establish permission to redistribute data.
 

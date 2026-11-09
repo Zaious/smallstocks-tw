@@ -1,5 +1,6 @@
 import { it, expect } from "vitest";
 import { notepadText } from "../src/disguise.ts";
+import { terminalRows } from "../src/model.ts";
 import type { Snapshot } from "../src/model.ts";
 it("the Notepad report does not substitute an old live price for an unpublished close", () => {
   const s = {
@@ -28,4 +29,38 @@ it("the Notepad report does not substitute an old live price for an unpublished 
     days: [{ date: "2026-11-06", close: 92.5, changePercent: -4.79 }],
   } as Snapshot["dailySummaries"][string];
   expect(notepadText(s)).toContain("(11/05)");
+});
+it("plain-text skins mark an order-book price with ~ and never present it as a trade", () => {
+  const at = Date.parse("2026-11-09T10:00:00+08:00");
+  const s = {
+    marketOpen: true,
+    demo: false,
+    now: at,
+    watchlist: ["2330", "0050"],
+    dailySummaries: {},
+    quotes: {
+      "2330": {
+        name: "台積電",
+        price: null,
+        mid: 2237.5,
+        midChangePercent: 4.8,
+        changePercent: null,
+        sourceAt: at,
+      },
+      "0050": {
+        name: "元大台灣50",
+        price: 92.5,
+        changePercent: 1,
+        sourceAt: at,
+      },
+    },
+    settings: { paused: false },
+    events: [],
+    lastFetch: at,
+  } as unknown as Snapshot;
+  const text = notepadText(s);
+  expect(text).toContain("~2,237.5");
+  expect(text).not.toContain("~92.5");
+  expect(terminalRows(s)).toContain("BOOK");
+  expect(terminalRows(s)).toContain("OK");
 });

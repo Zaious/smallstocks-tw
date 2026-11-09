@@ -1,4 +1,12 @@
-import { esc, number, change, time, latestCloseDate, stale } from "./model.ts";
+import {
+  esc,
+  number,
+  change,
+  time,
+  latestCloseDate,
+  stale,
+  livePrice,
+} from "./model.ts";
 import type { Snapshot } from "./model.ts";
 import { minimalMarkup, bindMinimal, updateMinimal } from "./minimal.ts";
 import { stockDetail } from "./stock-view.ts";
@@ -37,13 +45,15 @@ const pad = (text: string, cells: number) => {
 function values(s: Snapshot, c: string) {
   const q = s.quotes[c],
     closed = !s.marketOpen && !s.demo,
-    d = closed ? s.dailySummaries[c]?.days.at(-1) : undefined;
+    d = closed ? s.dailySummaries[c]?.days.at(-1) : undefined,
+    live = livePrice(q);
   return {
     code: c,
     name: q?.name || (c === "t00" ? "加權指數" : c === "o00" ? "櫃買指數" : ""),
-    price: closed ? d?.close : q?.price,
+    price: closed ? d?.close : live.price,
+    book: !closed && live.basis === "book",
     date: d?.date,
-    pct: closed ? d?.changePercent : q?.changePercent,
+    pct: closed ? d?.changePercent : live.pct,
     status: closed
       ? d
         ? d.date !== latestCloseDate(s)
@@ -52,9 +62,11 @@ function values(s: Snapshot, c: string) {
         : "WAITING"
       : stale(q, s.now)
         ? "STALE"
-        : q?.price == null
-          ? "NO TRADE"
-          : "OK",
+        : live.basis === "book"
+          ? "BOOK"
+          : live.basis === "none"
+            ? "NO PRICE"
+            : "OK",
   };
 }
 function dateLabel(s: Snapshot) {
@@ -80,7 +92,7 @@ export function notepadText(s: Snapshot): string {
       return (
         (s.settings.showCodes ? pad(v.code, 7) : "") +
         pad(v.name || v.code, 14) +
-        number(v.price).padStart(10) +
+        ((v.book ? "~" : "") + number(v.price)).padStart(10) +
         "  " +
         change(v.pct).padStart(8) +
         (v.date && v.date !== latestCloseDate(s)
@@ -123,7 +135,7 @@ function terminalText(s: Snapshot): string {
       return (
         (s.settings.showCodes ? pad(v.code, 7) : "") +
         pad(v.name || v.code, 14) +
-        number(v.price).padStart(10) +
+        ((v.book ? "~" : "") + number(v.price)).padStart(10) +
         "  " +
         change(v.pct).padStart(9) +
         "  " +
@@ -159,7 +171,7 @@ function terminalMarkup(s: Snapshot): string {
     return (
       (s.settings.showCodes ? cell(pad(v.code, 7), "id") : "") +
       cell(pad(v.name || v.code, 14), "name") +
-      cell(number(v.price) + "  ", "last") +
+      cell((v.book ? "~" : "") + number(v.price) + "  ", "last") +
       cell(change(v.pct) + "  ", "change") +
       cell(v.status, "state")
     );

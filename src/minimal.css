@@ -28,6 +28,18 @@
   font: 10px var(--font);
   flex-shrink: 0;
 }
+/* An arrow from the order book (bid/ask average), not from a trade: drawn lighter, and the detail
+   window says so. */
+.minimal-stock.book .minimal-mark {
+  opacity: 0.55;
+}
+.book-tag {
+  font:
+    500 10px "Microsoft JhengHei UI",
+    sans-serif;
+  margin-right: 4px;
+  opacity: 0.75;
+}
 .minimal-stock.up .minimal-mark {
   color: var(--up);
 }

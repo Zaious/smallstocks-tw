@@ -27,6 +27,9 @@ export interface Quote {
   bid: number | null;
   ask: number | null;
   changePercent: number | null;
+  /** Average of the best bid and ask: an order-book value, never a trade. */
+  mid?: number | null;
+  midChangePercent?: number | null;
   sourceAt: number;
   receivedAt: number;
   date: string;
@@ -35,7 +38,7 @@ export interface Quote {
 export interface Rule {
   id: string;
   symbol: string;
-  metric: "price" | "changePercent";
+  metric: "price" | "changePercent" | "mid" | "midChangePercent";
   direction: "above" | "below";
   threshold: number;
   channel: "off" | "log" | "strip" | "card";
@@ -122,8 +125,28 @@ export const time = (n: number | null | undefined) =>
         timeZone: "Asia/Taipei",
       })
     : "尚未取得";
+// Stock snapshots arrive about every one to two minutes; the core uses the same three minutes.
+export const FRESH_MS = 180_000;
 export const stale = (q: Quote | undefined, now: number) =>
-  !q || now - q.sourceAt > 60_000 || q.sourceAt > now + 5000;
+  !q || now - q.sourceAt > FRESH_MS || q.sourceAt > now + 5000;
+/**
+ * The number a live quote shows. The last trade when the source gave one; otherwise the average of
+ * the best bid and ask, which is marked as an order price wherever it is drawn and is never called
+ * a trade. "none" when neither exists.
+ */
+export type PriceBasis = "trade" | "book" | "none";
+export function livePrice(q: Quote | undefined): {
+  price: number | null;
+  pct: number | null;
+  basis: PriceBasis;
+} {
+  if (q?.price != null)
+    return { price: q.price, pct: q.changePercent ?? null, basis: "trade" };
+  if (q?.mid != null)
+    return { price: q.mid, pct: q.midChangePercent ?? null, basis: "book" };
+  return { price: null, pct: null, basis: "none" };
+}
+export const BOOK_NOTE = "委託價（買賣中間價），非成交價";
 export function latestCloseDate(
   s: Pick<Snapshot, "watchlist" | "dailySummaries">,
 ): string | null {
@@ -133,7 +156,13 @@ export function latestCloseDate(
   return dates.sort().at(-1) ?? null;
 }
 export const ruleText = (r: Rule) =>
-  `${r.symbol} · ${r.metric === "price" ? "成交價" : "漲跌幅"}${r.direction === "above" ? "升至" : "降至"} ${number(r.threshold)}${r.metric === "price" ? " 元" : "%"}`;
+  `${r.symbol} · ${METRIC_LABEL[r.metric] ?? r.metric}${r.direction === "above" ? "升至" : "降至"} ${number(r.threshold)}${r.metric === "price" || r.metric === "mid" ? " 元" : "%"}`;
+const METRIC_LABEL: Record<string, string> = {
+  price: "成交價",
+  changePercent: "漲跌幅",
+  mid: "買賣中間價（委託價）",
+  midChangePercent: "漲跌幅（買賣中間價）",
+};
 // Adapted from Terminalol's escaped fixed-width rows; stock-specific data stays separate.
 export function terminalRows(s: Snapshot): string {
   return s.watchlist
@@ -146,7 +175,7 @@ export function terminalRows(s: Snapshot): string {
         (n, c) => n + (/[^\u0000-\u00ff]/.test(c) ? 2 : 1),
         0,
       );
-      return `${c.padEnd(8)}${name}${" ".repeat(Math.max(0, 16 - cells))} ${number(d?.close ?? q?.price).padStart(10)} ${change(d ? d.changePercent : q?.changePercent).padStart(9)}  ${d ? "CLOSE " + d.date : stale(q, s.now) ? "STALE" : q?.price == null ? "NO TRADE" : "OK"}`;
+      return `${c.padEnd(8)}${name}${" ".repeat(Math.max(0, 16 - cells))} ${number(d?.close ?? livePrice(q).price).padStart(10)} ${change(d ? d.changePercent : livePrice(q).pct).padStart(9)}  ${d ? "CLOSE " + d.date : stale(q, s.now) ? "STALE" : livePrice(q).basis === "book" ? "BOOK" : livePrice(q).basis === "none" ? "NO PRICE" : "OK"}`;
     })
     .join("\n");
 }

@@ -184,6 +184,17 @@ nav .gear {
   min-width: 56px;
   text-align: right;
 }
+.price.book {
+  font-style: italic;
+  color: var(--muted);
+}
+.price.book::before {
+  content: "委";
+  font: normal 9px var(--sans, inherit);
+  margin-right: 3px;
+  vertical-align: 1px;
+  opacity: 0.8;
+}
 .change {
   font: 11px var(--mono);
   min-width: 54px;
