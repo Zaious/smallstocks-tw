@@ -69,6 +69,33 @@ fn privacy_shortcut() -> &'static str {
         "Ctrl+Alt+S"
     }
 }
+/// How this copy was installed. "installed" (the Windows installer, a macOS app outside a disk
+/// image) can replace itself; "portable" (the Windows zip) and "other" (a development build) only
+/// get a link to the download page.
+#[tauri::command]
+fn install_kind() -> &'static str {
+    if cfg!(debug_assertions) {
+        return "other";
+    }
+    let Ok(exe) = std::env::current_exe() else {
+        return "other";
+    };
+    if cfg!(target_os = "windows") {
+        // The NSIS installer writes uninstall.exe next to the program; the zip has none.
+        let installed = exe
+            .parent()
+            .is_some_and(|d| d.join("uninstall.exe").is_file());
+        return if installed { "installed" } else { "portable" };
+    }
+    if cfg!(target_os = "macos") {
+        let path = exe.to_string_lossy();
+        let movable = path.contains(".app/Contents/MacOS/")
+            && !path.starts_with("/Volumes/")
+            && !path.contains("/AppTranslocation/");
+        return if movable { "installed" } else { "other" };
+    }
+    "other"
+}
 #[tauri::command]
 fn hide_stock_detail(app: tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("detail") {
@@ -306,8 +333,12 @@ pub fn run() {
                 })
                 .build(),
         )
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_opener::init())
         .manage(state)
         .invoke_handler(tauri::generate_handler![
+            install_kind,
             core_request,
             privacy_hide,
             search_stocks,

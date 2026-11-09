@@ -65,6 +65,7 @@ export interface Snapshot {
     refreshSeconds: number;
     rowDisplay?: "numbers" | "trend" | "minimal";
     showCodes?: boolean;
+    updateCheck?: boolean;
   };
   quotes: Record<string, Quote>;
   rules: Rule[];

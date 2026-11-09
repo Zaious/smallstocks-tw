@@ -1,0 +1,17 @@
+{
+  "identifier": "updates",
+  "description": "Only the main window may check for, install and restart into a new version, and open the release page",
+  "windows": ["main"],
+  "permissions": [
+    "updater:default",
+    "process:allow-restart",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://github.com/Zaious/smallstocks-tw" },
+        { "url": "https://github.com/Zaious/smallstocks-tw/*" },
+        { "url": "https://smallstocks.chroniclecore.com/" }
+      ]
+    }
+  ]
+}

@@ -128,6 +128,9 @@ pub struct Settings {
     pub always_on_top: bool,
     #[serde(default)]
     pub show_codes: bool,
+    /// Ask GitHub once per launch whether a newer version exists. On by default, switchable.
+    #[serde(default = "default_update_check")]
+    pub update_check: bool,
     #[serde(default = "default_row_display")]
     pub row_display: String,
     pub appearance: String,
@@ -140,11 +143,15 @@ fn default_row_display() -> String {
 fn default_always_on_top() -> bool {
     true
 }
+fn default_update_check() -> bool {
+    true
+}
 impl Default for Settings {
     fn default() -> Self {
         Self {
             always_on_top: true,
             show_codes: false,
+            update_check: true,
             row_display: default_row_display(),
             appearance: "small".into(),
             paused: false,
@@ -573,6 +580,9 @@ impl Core {
                         return Err("列顯示需為 numbers、trend 或 minimal".into());
                     }
                     next.saved.settings.row_display = v.into();
+                }
+                if let Some(v) = args.get("updateCheck") {
+                    next.saved.settings.update_check = v.as_bool().ok_or("更新檢查需為布林值")?;
                 }
                 if let Some(v) = args.get("showCodes") {
                     next.saved.settings.show_codes = v.as_bool().ok_or("代號顯示需為布林值")?;
@@ -1164,12 +1174,29 @@ mod tests {
         std::fs::remove_dir(dir).unwrap();
     }
     #[test]
+    fn update_check_is_a_shared_persistent_setting() {
+        let dir = std::env::temp_dir().join(format!("smallstocks-update-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("state.json");
+        let mut core = Core::load(path.clone(), true).unwrap();
+        assert!(core.saved.settings.update_check);
+        assert!(core
+            .execute("set_settings", json!({"updateCheck":"no"}))
+            .is_err());
+        core.execute("set_settings", json!({"updateCheck":false}))
+            .unwrap();
+        assert!(!Core::load(path, true).unwrap().saved.settings.update_check);
+        assert_eq!(core.snapshot()["settings"]["updateCheck"], false);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
     fn old_settings_keep_numbers_by_default() {
         let cfg: Settings =
             serde_json::from_value(json!({"appearance":"gray","paused":false,"refreshSeconds":15}))
                 .unwrap();
         assert_eq!(cfg.row_display, "numbers");
         assert!(!cfg.show_codes);
+        assert!(cfg.update_check, "old settings keep the update check on");
         assert_eq!(cfg.appearance, "gray");
     }
     #[test]
