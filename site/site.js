@@ -147,7 +147,11 @@
               safeDownload(asset.browser_download_url),
           ),
       );
-      if (!release) return;
+      if (!release) {
+        document.querySelector("#release-status").textContent =
+          "公開安裝包尚未發布。可以先到 GitHub 查看原始碼與版本進度。";
+        return;
+      }
       let count = 0;
       for (const [id, pattern] of [
         ["portable-download", /windows.*x64.*\.zip$/i],

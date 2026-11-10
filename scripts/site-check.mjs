@@ -54,12 +54,10 @@ try {
   for (const mode of ["numbers", "trend", "minimal"]) {
     await page.locator("#tab-" + mode).click();
     await page.locator("#display-image").evaluate((image) => image.decode());
-    const quality = await page
-      .locator("#display-image")
-      .evaluate((image) => ({
-        natural: image.naturalWidth,
-        rendered: image.getBoundingClientRect().width,
-      }));
+    const quality = await page.locator("#display-image").evaluate((image) => ({
+      natural: image.naturalWidth,
+      rendered: image.getBoundingClientRect().width,
+    }));
     assert.ok(
       quality.natural / quality.rendered >= 2.5,
       mode + " provides enough pixels for high-density displays",
@@ -170,10 +168,10 @@ try {
                 "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.11/SmallStocks-TW-0.1.11-windows-x64.zip",
             },
             {
-              name: "SmallStocks-TW-0.1.11-windows-x64-setup.exe",
+              name: "SmallStocks.TW_0.1.11_x64-setup.exe",
               size: 2598055,
               browser_download_url:
-                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.11/SmallStocks-TW-0.1.11-windows-x64-setup.exe",
+                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.11/SmallStocks.TW_0.1.11_x64-setup.exe",
             },
           ],
         },
