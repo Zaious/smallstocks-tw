@@ -7,7 +7,12 @@ import {
   privacyPressed,
   privacyShortcutLabel,
 } from "./platform.ts";
-import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+import {
+  currentMonitor,
+  getCurrentWindow,
+  LogicalSize,
+  PhysicalPosition,
+} from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -162,54 +167,88 @@ function skinAction(action: SkinAction) {
   if (action === "manage") manage();
   else render();
 }
+// Other tabs (rates, alerts, history, settings) need more room than the watch strip. The window
+// grows downward only: the width stays what it is, so a width the user chose is never replaced by a
+// default. The default width is applied only when the appearance changes.
+const defaultWidth = (a: string) =>
+  a === "terminal" ? 520 : a === "txt" ? 500 : 360;
+const PANE_HEIGHT = 420;
+let sizedFor = "";
+async function keepOnScreen(width: number, height: number) {
+  try {
+    const win = getCurrentWindow(),
+      scale = await win.scaleFactor(),
+      monitor = await currentMonitor(),
+      pos = await win.outerPosition();
+    if (!monitor) return;
+    const area = monitor.workArea ?? {
+      position: monitor.position,
+      size: monitor.size,
+    };
+    const right = area.position.x + area.size.width,
+      bottom = area.position.y + area.size.height;
+    const w = Math.round(width * scale),
+      h = Math.round(height * scale);
+    const x = Math.max(area.position.x, Math.min(pos.x, right - w)),
+      y = Math.max(area.position.y, Math.min(pos.y, bottom - h));
+    if (x !== pos.x || y !== pos.y)
+      await win.setPosition(new PhysicalPosition(x, y));
+  } catch {
+    /* Placement is a courtesy; the resize itself already happened. */
+  }
+}
 async function resize() {
   if (!desktop) return;
   const wide = tab !== "watch";
   const a = state.settings.appearance;
   const compact = a === "small" || a === "gray";
+  const win = getCurrentWindow();
+  const sameAppearance = sizedFor === a;
+  sizedFor = a;
   if (!wide && state.settings.rowDisplay === "minimal") {
     await fitMinimal();
     return;
   }
-  await getCurrentWindow().setMinSize(new LogicalSize(300, 100));
-  await getCurrentWindow()
-    .setSize(
-      new LogicalSize(
-        wide ? 500 : a === "terminal" ? 520 : a === "txt" ? 500 : 360,
-        wide
-          ? 500
-          : compact
-            ? Math.min(
-                410,
-                Math.max(
-                  100,
-                  76 +
-                    state.watchlist.length * 24 +
-                    (state.demo ? 20 : 0) +
-                    (state.events.length ? 18 : 0),
-                ),
-              )
-            : a === "terminal"
-              ? Math.min(
-                  480,
-                  Math.max(
-                    280,
-                    210 +
-                      state.watchlist.length * 18 +
-                      (state.demo ? 18 : 0) +
-                      Math.min(state.events.length, 3) * 18,
-                  ),
-                )
-              : Math.min(
-                  480,
-                  Math.max(
-                    300,
-                    210 + state.watchlist.length * 19 + (state.demo ? 19 : 0),
-                  ),
-                ),
-      ),
-    )
-    .catch(showError);
+  const width = sameAppearance
+    ? Math.max(
+        300,
+        Math.round((await win.innerSize()).width / (await win.scaleFactor())),
+      )
+    : defaultWidth(a);
+  const height = wide
+    ? PANE_HEIGHT
+    : compact
+      ? Math.min(
+          410,
+          Math.max(
+            100,
+            76 +
+              state.watchlist.length * 24 +
+              (state.demo ? 20 : 0) +
+              (state.events.length ? 18 : 0),
+          ),
+        )
+      : a === "terminal"
+        ? Math.min(
+            480,
+            Math.max(
+              280,
+              210 +
+                state.watchlist.length * 18 +
+                (state.demo ? 18 : 0) +
+                Math.min(state.events.length, 3) * 18,
+            ),
+          )
+        : Math.min(
+            480,
+            Math.max(
+              300,
+              210 + state.watchlist.length * 19 + (state.demo ? 19 : 0),
+            ),
+          );
+  await win.setMinSize(new LogicalSize(300, 100));
+  await win.setSize(new LogicalSize(width, height)).catch(showError);
+  await keepOnScreen(width, height);
 }
 let fittingMinimal = false,
   fitAgain = false;

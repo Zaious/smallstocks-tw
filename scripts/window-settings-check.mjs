@@ -131,6 +131,68 @@ try {
     () => native("is_visible"),
     (v) => v === true,
   );
+  // Other tabs grow downward only: the width, including one the user chose, is kept.
+  const box = () => main.evaluate(() => [innerWidth, innerHeight]);
+  await main.locator('[data-tab="watch"]').click();
+  await until(
+    async () => (await box())[1],
+    (h) => h <= 180,
+  );
+  const [startWidth, startHeight] = await box();
+  await main.locator('[data-tab="daily"]').click();
+  await until(
+    async () => (await box())[1],
+    (h) => h >= 380,
+  );
+  assert.equal((await box())[0], startWidth, "width kept when a pane opens");
+  await main.locator('[data-tab="watch"]').click();
+  await until(
+    async () => (await box())[1],
+    (h) => h <= startHeight + 2,
+  );
+  assert.equal((await box())[0], startWidth, "width kept on the way back");
+  // A width the user drags to survives the same round trip.
+  await main.evaluate(() =>
+    window.__TAURI_INTERNALS__.invoke("plugin:window|set_size", {
+      label: "main",
+      value: { Logical: { width: 430, height: 200 } },
+    }),
+  );
+  await until(
+    async () => (await box())[0],
+    (w) => Math.abs(w - 430) <= 1,
+  );
+  await main.locator('[data-tab="rules"]').click();
+  await until(
+    async () => (await box())[1],
+    (h) => h >= 380,
+  );
+  assert.ok(
+    Math.abs((await box())[0] - 430) <= 1,
+    "dragged width kept in a pane",
+  );
+  await main.locator('[data-tab="watch"]').click();
+  await until(
+    async () => (await box())[1],
+    (h) => h <= 200,
+  );
+  assert.ok(
+    Math.abs((await box())[0] - 430) <= 1,
+    "dragged width kept on return",
+  );
+  await main.evaluate(
+    (width) =>
+      window.__TAURI_INTERNALS__.invoke("plugin:window|set_size", {
+        label: "main",
+        value: { Logical: { width, height: 200 } },
+      }),
+    startWidth,
+  );
+
+  await until(
+    async () => (await box())[0],
+    (w) => Math.abs(w - startWidth) <= 1,
+  );
   await main.locator('[data-tab="settings"]').click();
   await main.locator("#always-on-top").uncheck();
   await until(
@@ -267,7 +329,7 @@ try {
   );
   assert.equal(await native("is_visible"), true, "back from minimized");
   console.log(
-    "PASS: topmost UI/MCP/native persistence; three-key shortcut registered, key handling hides all windows without pausing and the same toggle brings them back (also from minimized); pin button flips the real topmost state; actual small numbers/trend/hover screenshots",
+    "PASS: topmost UI/MCP/native persistence; three-key shortcut registered, key handling hides all windows without pausing and the same toggle brings them back (also from minimized); pin button flips the real topmost state; panes keep the width (also a dragged one) and grow downward only; actual small numbers/trend/hover screenshots",
   );
 } finally {
   await stop();
