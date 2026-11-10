@@ -71,6 +71,48 @@ fn capture_raw(text: &str) {
 pub fn bridge() {
     mcp::bridge(&data_dir());
 }
+/// Quits the program (the same as the tray menu's quit), so it can be stopped from inside the app.
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+/// Starts the program again with the same arguments and environment after this copy has gone (a
+/// second copy cannot start while this one runs: the program is single-instance), then quits.
+#[tauri::command]
+fn restart_app(app: tauri::AppHandle) -> Result<(), String> {
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let quote = |s: &str| format!("'{}'", s.replace('\'', "''"));
+        let mut script = format!(
+            "Start-Sleep -Seconds 2; Start-Process -FilePath {}",
+            quote(&exe.to_string_lossy())
+        );
+        if !args.is_empty() {
+            let list: Vec<String> = args.iter().map(|a| quote(a)).collect();
+            script.push_str(&format!(" -ArgumentList {}", list.join(",")));
+        }
+        std::process::Command::new("powershell")
+            .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &script])
+            .creation_flags(0x0800_0000)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(not(windows))]
+    {
+        std::process::Command::new("sh")
+            .arg("-c")
+            .arg("sleep 2; exec \"$0\" \"$@\"")
+            .arg(&exe)
+            .args(&args)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    app.exit(0);
+    Ok(())
+}
 /// The one way back from every kind of hiding (the hide button, the close box, minimizing, the
 /// privacy shortcut): the tray menu, a second launch and the shortcut all come here.
 fn show_main_window(app: &tauri::AppHandle) {
@@ -382,6 +424,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             install_kind,
             privacy_toggle,
+            quit_app,
+            restart_app,
             core_request,
             privacy_hide,
             search_stocks,
