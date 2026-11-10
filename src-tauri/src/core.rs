@@ -74,6 +74,9 @@ pub struct Quote {
     pub mid_change_percent: Option<f64>,
     /// When the last trade happened (the source's own `trade` block), if it said.
     pub trade_at: Option<i64>,
+    /// The day's highest and lowest trade price so far, from the same snapshot.
+    pub day_high: Option<f64>,
+    pub day_low: Option<f64>,
     pub source_at: i64,
     pub received_at: i64,
     pub date: String,
@@ -146,6 +149,8 @@ pub fn parse_mis(v: &Value, received: i64) -> Result<Vec<Quote>, String> {
             mid,
             mid_change_percent: mid.zip(previous).map(|(m, y)| (m / y - 1.) * 100.),
             trade_at,
+            day_high: num(&r["h"]),
+            day_low: num(&r["l"]),
             source_at: stamp,
             received_at: received,
             date: date.into(),
@@ -210,6 +215,12 @@ pub struct Rule {
     pub last_at: Option<i64>,
     #[serde(default)]
     pub last_day: Option<String>,
+    /// The day high and low (in the rule's unit) at the last update, to notice a touch between two
+    /// updates.
+    #[serde(default)]
+    pub last_high: Option<f64>,
+    #[serde(default)]
+    pub last_low: Option<f64>,
     #[serde(default)]
     pub fired_day: Option<String>,
 }
@@ -285,6 +296,8 @@ impl Core {
             r.last_value = None;
             r.last_at = None;
             r.last_day = None;
+            r.last_high = None;
+            r.last_low = None;
         }
         Ok(Self {
             intraday_queue: Default::default(),
@@ -720,6 +733,8 @@ impl Core {
                     last_value: None,
                     last_at: None,
                     last_day: None,
+                    last_high: None,
+                    last_low: None,
                     fired_day: fired,
                 };
                 next.saved.rules.retain(|r| r.id != id);
@@ -746,6 +761,8 @@ impl Core {
             r.last_value = None;
             r.last_at = None;
             r.last_day = None;
+            r.last_high = None;
+            r.last_low = None;
         }
     }
     /// Applies a poll result. A failed save never discards live quotes or detected events:
@@ -820,6 +837,23 @@ pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool, open: bool) -> Opt
     }
     let continuous = r.last_day.as_deref() == Some(&q.date)
         && r.last_at.is_some_and(|t| q.source_at - t <= FRESH_MS);
+    // The day's high and low in the rule's unit. Trade-price rules only: the book mid has no such
+    // record. They catch a threshold touched between two updates, which the latest price alone
+    // would miss.
+    let (high, low) = match r.metric.as_str() {
+        "price" => (q.day_high, q.day_low),
+        "changePercent" => {
+            let pct = |x: Option<f64>| x.zip(q.previous).map(|(v, y)| (v / y - 1.) * 100.);
+            (pct(q.day_high), pct(q.day_low))
+        }
+        _ => (None, None),
+    };
+    let touched = continuous
+        && if r.direction == "above" {
+            high.is_some_and(|h| h >= r.threshold) && r.last_high.is_some_and(|p| p < r.threshold)
+        } else {
+            low.is_some_and(|l| l <= r.threshold) && r.last_low.is_some_and(|p| p > r.threshold)
+        };
     let crossed = continuous
         && r.last_value.is_some_and(|v| {
             if r.direction == "above" {
@@ -831,7 +865,10 @@ pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool, open: bool) -> Opt
     r.last_value = Some(value);
     r.last_at = Some(q.source_at);
     r.last_day = Some(q.date.clone());
-    if !crossed
+    r.last_high = high;
+    r.last_low = low;
+    let via_touch = !crossed && touched;
+    if !(crossed || via_touch)
         || r.fired_day.as_deref() == Some(&q.date)
         || r.repeat == "once" && r.fired_day.is_some()
     {
@@ -857,14 +894,33 @@ pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool, open: bool) -> Opt
     } else {
         "%"
     };
+    let (text, value) = if via_touch {
+        let (extreme, side) = if r.direction == "above" {
+            (high.unwrap_or(value), "高點")
+        } else {
+            (low.unwrap_or(value), "低點")
+        };
+        (
+            format!(
+                "{} {} · {}期間內曾{} {:.2}{}（門檻 {:.2}；兩次更新之間的{}，非即時價）",
+                q.symbol, q.name, metric, direction, extreme, unit, r.threshold, side
+            ),
+            extreme,
+        )
+    } else {
+        (
+            format!(
+                "{} {} · {}{} {:.2}{}（門檻 {:.2}）",
+                q.symbol, q.name, metric, direction, value, unit, r.threshold
+            ),
+            value,
+        )
+    };
     Some(Event {
         id: uuid::Uuid::new_v4().to_string(),
         rule_id: r.id.clone(),
         symbol: q.symbol.clone(),
-        text: format!(
-            "{} {} · {}{} {:.2}{}（門檻 {:.2}）",
-            q.symbol, q.name, metric, direction, value, unit, r.threshold
-        ),
+        text,
         source_at: q.source_at,
         detected_at: at,
         channel: r.channel.clone(),
@@ -904,6 +960,8 @@ pub fn demo_quotes(codes: &[String], tick: u64) -> Vec<Quote> {
                 mid: Some(p),
                 mid_change_percent: Some((p / base - 1.) * 100.),
                 trade_at: Some(at),
+                day_high: Some(p),
+                day_low: Some(p),
                 source_at: at,
                 received_at: at,
                 date: local(at).format("%Y%m%d").to_string(),
@@ -931,6 +989,8 @@ mod tests {
             mid: None,
             mid_change_percent: None,
             trade_at: None,
+            day_high: None,
+            day_low: None,
             source_at: t,
             received_at: t,
             date: local(t).format("%Y%m%d").to_string(),
@@ -950,6 +1010,8 @@ mod tests {
             last_value: None,
             last_at: None,
             last_day: None,
+            last_high: None,
+            last_low: None,
             fired_day: None,
         }
     }
@@ -1256,6 +1318,72 @@ mod tests {
         let junk = json!({"rtcode":"0000","msgArray":[{
             "c":"2330","n":"x","d":"20261106","t":"10:00:00","z":"-","y":"100","trade":{"t":"09:59:41","z":"-"}}]});
         assert_eq!(parse_mis(&junk, t).unwrap()[0].price, None);
+    }
+    #[test]
+    fn a_touch_between_two_updates_is_caught_from_the_day_high_and_low() {
+        let t = ts();
+        let snap = |price: f64, high: f64, low: f64, at: i64| {
+            let mut x = q(Some(price), at);
+            x.day_high = Some(high);
+            x.day_low = Some(low);
+            x
+        };
+        // Above 105: the day high rises through the threshold between two updates while the latest
+        // price is back under it.
+        let mut up = rule();
+        assert!(ev(&mut up, &snap(101., 103., 99., t), t, false).is_none());
+        let touched = ev(
+            &mut up,
+            &snap(102., 107., 99., t + 60_000),
+            t + 60_000,
+            false,
+        )
+        .expect("the high reached the threshold");
+        assert!(touched.text.contains("期間內曾") && touched.text.contains("非即時價"));
+        assert_eq!(touched.value, 107.);
+        assert!(
+            ev(
+                &mut up,
+                &snap(108., 108., 99., t + 120_000),
+                t + 120_000,
+                false
+            )
+            .is_none(),
+            "once per day"
+        );
+        // Already above when first seen: nothing to report.
+        let mut already = rule();
+        assert!(ev(&mut already, &snap(106., 107., 99., t), t, false).is_none());
+        assert!(ev(
+            &mut already,
+            &snap(104., 107., 99., t + 60_000),
+            t + 60_000,
+            false
+        )
+        .is_none());
+        // Below 95: the day low reaches the threshold.
+        let mut down = rule();
+        down.direction = "below".into();
+        down.threshold = 95.;
+        assert!(ev(&mut down, &snap(100., 101., 97., t), t, false).is_none());
+        let low = ev(
+            &mut down,
+            &snap(99., 101., 94., t + 60_000),
+            t + 60_000,
+            false,
+        )
+        .expect("the low reached the threshold");
+        assert_eq!(low.value, 94.);
+        assert!(low.text.contains("低點"));
+        // A book-based rule has no day extremes and is not touched by them.
+        let mut mid = rule();
+        mid.metric = "mid".into();
+        let mut a = snap(101., 107., 99., t);
+        a.mid = Some(101.);
+        let mut b = snap(102., 110., 99., t + 60_000);
+        b.mid = Some(102.);
+        assert!(ev(&mut mid, &a, t, false).is_none());
+        assert!(ev(&mut mid, &b, t + 60_000, false).is_none());
     }
     #[test]
     fn book_mid_comes_only_from_a_sane_two_sided_book_and_is_never_a_trade() {

@@ -136,6 +136,22 @@ export const stale = (q: Quote | undefined, now: number) =>
  * the best bid and ask, which is marked as an order price wherever it is drawn and is never called
  * a trade. "none" when neither exists.
  */
+// Data is "aging" (drawn grey) after a minute and "stale" (expired) after three.
+export const AGING_MS = 60_000;
+export const aging = (q: Quote | undefined, now: number) =>
+  !stale(q, now) && now - q!.sourceAt > AGING_MS;
+/** Seconds since the source's own snapshot time, 0 when it is not older than now. */
+export const ageSeconds = (q: Quote | undefined, now: number) =>
+  q ? Math.max(0, Math.round((now - q.sourceAt) / 1000)) : null;
+/** The oldest snapshot time among the watched symbols: the data is at least this fresh. */
+export function oldestDataAt(
+  s: Pick<Snapshot, "watchlist" | "quotes">,
+): number | null {
+  const times = s.watchlist
+    .map((c) => s.quotes[c]?.sourceAt)
+    .filter((t): t is number => typeof t === "number");
+  return times.length ? Math.min(...times) : null;
+}
 export type PriceBasis = "trade" | "book" | "none";
 export function livePrice(q: Quote | undefined): {
   price: number | null;

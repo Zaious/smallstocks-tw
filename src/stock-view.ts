@@ -7,6 +7,7 @@ import {
   stale,
   livePrice,
   closeDay,
+  ageSeconds,
   BOOK_NOTE,
 } from "./model.ts";
 import type { Snapshot } from "./model.ts";
@@ -33,6 +34,7 @@ export function stockDetail(s: Snapshot, c: string): StockDetail {
   const name =
       q?.name || (c === "t00" ? "加權指數" : c === "o00" ? "櫃買指數" : c),
     live = livePrice(q),
+    age = closed ? null : ageSeconds(q, s.now),
     price = (closed ? d?.close : live.price) ?? null,
     pct = (closed ? d?.changePercent : live.pct) ?? null;
   const old = closed
@@ -78,7 +80,9 @@ export function stockDetail(s: Snapshot, c: string): StockDetail {
                 : "最近收盤"
             : live.basis === "book"
               ? BOOK_NOTE
-              : "盤中資料"),
+              : age != null && age > 60
+                ? `盤中資料 · ${age} 秒前`
+                : "盤中資料"),
     basis: closed ? "trade" : live.basis,
     direction,
     mark:

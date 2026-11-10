@@ -184,6 +184,10 @@ nav .gear {
   min-width: 56px;
   text-align: right;
 }
+.quote.aging .price,
+.quote.aging .change {
+  color: var(--muted);
+}
 .price.book {
   font-style: italic;
   color: var(--muted);

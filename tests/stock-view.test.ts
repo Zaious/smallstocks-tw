@@ -66,3 +66,10 @@ it("draws an order-book price as a book price: marked, lighter arrow, never call
   s.quotes["2330"]!.changePercent = 1;
   expect(stockDetail(s, "2330").basis).toBe("trade");
 });
+it("says how old a live price is once it is more than a minute behind", () => {
+  const s = state();
+  s.now = at + 90_000;
+  expect(stockDetail(s, "2330").status).toContain("90 秒前");
+  s.now = at + 30_000;
+  expect(stockDetail(s, "2330").status).toBe("盤中資料");
+});

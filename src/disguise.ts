@@ -7,6 +7,7 @@ import {
   stale,
   livePrice,
   closeDay,
+  oldestDataAt,
 } from "./model.ts";
 import type { Snapshot } from "./model.ts";
 import { minimalMarkup, bindMinimal, updateMinimal } from "./minimal.ts";
@@ -78,7 +79,9 @@ function dateLabel(s: Snapshot) {
     ? d
       ? d.replaceAll("-", "/") + " 收盤"
       : "等待收盤資料"
-    : time(s.lastFetch);
+    : oldestDataAt(s)
+      ? `資料 ${time(oldestDataAt(s)!)}（取得 ${time(s.lastFetch)}）`
+      : time(s.lastFetch);
 }
 export function notepadText(s: Snapshot): string {
   const lines = [

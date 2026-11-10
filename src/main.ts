@@ -24,6 +24,8 @@ import {
   latestCloseDate,
   livePrice,
   closeDay,
+  aging,
+  oldestDataAt,
   BOOK_NOTE,
 } from "./model.ts";
 import { historyBody } from "./daily-view.ts";
@@ -345,7 +347,13 @@ function apply() {
     "成交價規則只依新鮮成交資料；買賣中間價規則依委託價（非成交價）。首次觀測只建立基準";
   document.querySelector("#source")!.textContent = state.demo
     ? "DEMO"
-    : `TWSE MIS · 取得 ${time(state.lastFetch)}`;
+    : state.marketOpen && oldestDataAt(state)
+      ? `TWSE MIS · 資料 ${time(oldestDataAt(state)!)}`
+      : `TWSE MIS · 取得 ${time(state.lastFetch)}`;
+  document.querySelector<HTMLElement>("#source")!.title =
+    state.marketOpen && oldestDataAt(state)
+      ? `各檔資料時間不同，顯示最舊的一筆（最新取得於 ${time(state.lastFetch)}）。證交所個股約每 1 至 2 分鐘更新一次。`
+      : "";
   if (!state.demo && !state.marketOpen) {
     const date = latestCloseDate(state);
     const label = date
@@ -392,7 +400,7 @@ function rows() {
         const sign = (pct ?? 0) > 0 ? "up" : (pct ?? 0) < 0 ? "down" : "flat";
         const trend =
           state.settings.rowDisplay === "trend" ? trendCell(state, c) : null;
-        return `<button class="quote ${sign}${!closed && stale(q, state.now) ? " stale" : ""}" data-quote="${esc(c)}" title="${esc(name && name !== c ? `${name}（${c}）` : c)} · ${closed ? "正式收盤" : "來源時間"} ${esc(stamp)} · ${!closed && live.basis === "book" ? BOOK_NOTE : "價格"} ${number(closed ? d?.close : live.price)}${trend ? " · " + esc(trend.title) : ""} · 點擊查看行情"><span class="stock-name">${state.settings.showCodes || !name ? `<span class="stock-code">${esc(c)}</span>` : ""}<strong>${esc(name)}</strong></span>${trend ? `<span class="trend-slot">${trend.html}</span>` : `<span class="price${!closed && live.basis === "book" ? " book" : ""}">${number(closed ? d?.close : live.price)}</span>`}<span class="change">${change(pct)}</span>${closed && d && d.date !== commonDate ? `<span class="as-of">${d.date.slice(5).replace("-", "/")}</span>` : ""}</button>`;
+        return `<button class="quote ${sign}${!closed && stale(q, state.now) ? " stale" : !closed && aging(q, state.now) ? " aging" : ""}" data-quote="${esc(c)}" title="${esc(name && name !== c ? `${name}（${c}）` : c)} · ${closed ? "正式收盤" : "來源時間"} ${esc(stamp)} · ${!closed && live.basis === "book" ? BOOK_NOTE : "價格"} ${number(closed ? d?.close : live.price)}${trend ? " · " + esc(trend.title) : ""} · 點擊查看行情"><span class="stock-name">${state.settings.showCodes || !name ? `<span class="stock-code">${esc(c)}</span>` : ""}<strong>${esc(name)}</strong></span>${trend ? `<span class="trend-slot">${trend.html}</span>` : `<span class="price${!closed && live.basis === "book" ? " book" : ""}">${number(closed ? d?.close : live.price)}</span>`}<span class="change">${change(pct)}</span>${closed && d && d.date !== commonDate ? `<span class="as-of">${d.date.slice(5).replace("-", "/")}</span>` : ""}</button>`;
       })
       .join("") || '<div class="empty">加入第一檔自選，讓重要變化來找你。</div>'
   );

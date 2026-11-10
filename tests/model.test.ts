@@ -139,3 +139,25 @@ describe("what a closed session shows", () => {
     );
   });
 });
+import { aging, ageSeconds, oldestDataAt } from "../src/model.ts";
+describe("how old the data is", () => {
+  const quote = (ageMs: number, now = 1_000_000) =>
+    ({ sourceAt: now - ageMs }) as Quote;
+  it("goes grey after a minute and expires after three", () => {
+    expect(aging(quote(30_000), 1_000_000)).toBe(false);
+    expect(aging(quote(70_000), 1_000_000)).toBe(true);
+    expect(stale(quote(70_000), 1_000_000)).toBe(false);
+    expect(aging(quote(200_000), 1_000_000)).toBe(false);
+    expect(stale(quote(200_000), 1_000_000)).toBe(true);
+    expect(ageSeconds(quote(70_000), 1_000_000)).toBe(70);
+    expect(ageSeconds(undefined, 1_000_000)).toBeNull();
+  });
+  it("reports the oldest snapshot time among the watched symbols", () => {
+    const s = {
+      watchlist: ["a", "b", "c"],
+      quotes: { a: { sourceAt: 500 }, b: { sourceAt: 300 } },
+    } as unknown as Parameters<typeof oldestDataAt>[0];
+    expect(oldestDataAt(s)).toBe(300);
+    expect(oldestDataAt({ watchlist: ["x"], quotes: {} })).toBeNull();
+  });
+});
