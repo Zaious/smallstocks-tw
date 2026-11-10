@@ -31,13 +31,26 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
-    "icon": ["icons/icon.ico"],
+    "targets": ["nsis", "app", "dmg"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "category": "Finance",
     "windows": {
       "nsis": {
         "installMode": "currentUser"
       }
+    },
+    "publisher": "ChronicleCore Studio",
+    "copyright": "Copyright 2026 ChronicleCore Studio. Apache License 2.0.",
+    "shortDescription": "A quiet local Taiwan stock monitor.",
+    "homepage": "https://smallstocks.chroniclecore.com",
+    "macOS": {
+      "signingIdentity": "-"
     }
   },
   "plugins": {
