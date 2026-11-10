@@ -184,6 +184,14 @@ nav .gear {
   min-width: 56px;
   text-align: right;
 }
+.stealth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.stealth-btn svg {
+  display: block;
+}
 .pin-btn {
   display: inline-flex;
   align-items: center;

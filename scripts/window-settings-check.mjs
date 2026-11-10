@@ -118,6 +118,19 @@ try {
     (v) => v === true,
   );
   assert.equal(await main.locator("#pin").getAttribute("aria-pressed"), "true");
+  // The true-hide button hides everything like the shortcut; the shared toggle brings it back.
+  await main.locator("#stealth").click();
+  await until(
+    () => native("is_visible"),
+    (v) => v === false,
+  );
+  await main.evaluate(() =>
+    window.__TAURI_INTERNALS__.invoke("privacy_toggle"),
+  );
+  await until(
+    () => native("is_visible"),
+    (v) => v === true,
+  );
   await main.locator('[data-tab="settings"]').click();
   await main.locator("#always-on-top").uncheck();
   await until(
