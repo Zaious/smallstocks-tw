@@ -184,6 +184,23 @@ nav .gear {
   min-width: 56px;
   text-align: right;
 }
+.pin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.pin-btn svg {
+  display: block;
+  transform: rotate(45deg);
+  opacity: 0.55;
+}
+.pin-btn[aria-pressed="true"] {
+  color: var(--accent) !important;
+}
+.pin-btn[aria-pressed="true"] svg {
+  transform: none;
+  opacity: 1;
+}
 .quote.aging .price,
 .quote.aging .change {
   color: var(--muted);

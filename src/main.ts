@@ -114,7 +114,7 @@ function dailyPage() {
   if (dailySymbol) void loadDaily();
   else document.querySelector("#daily-body")!.textContent = "請先加入自選股。";
 }
-app.innerHTML = `<main class="shell"><header data-tauri-drag-region><span class="brand" data-tauri-drag-region><i></i><b>small</b><span>stocks / TW</span></span><div class="window-actions"><button id="row-display" title="切換數字、走勢與極簡" aria-label="切換顯示內容">數字</button><button id="manage" aria-label="＋ 管理自選" title="管理自選">＋</button><button id="hide" title="隱藏到系統匣；持續監看">−</button></div></header><nav aria-label="主選單"><button data-tab="watch" class="active">自選</button><button data-tab="daily">行情</button><button data-tab="rules">提醒 <span id="rule-count"></span></button><button data-tab="history">紀錄</button><button data-tab="settings" class="gear">外觀與設定</button></nav><div id="banner"></div><section id="content"></section><footer><span id="health"></span><span id="source">TWSE MIS</span></footer><div id="message" role="status" aria-live="polite"></div></main>`;
+app.innerHTML = `<main class="shell"><header data-tauri-drag-region><span class="brand" data-tauri-drag-region><i></i><b>small</b><span>stocks / TW</span></span><div class="window-actions"><button id="row-display" title="切換數字、走勢與極簡" aria-label="切換顯示內容">數字</button><button id="manage" aria-label="＋ 管理自選" title="管理自選">＋</button><button id="pin" class="pin-btn" aria-pressed="true" aria-label="視窗保持置頂" title="已置頂：點一下取消置頂"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M9.8 1.2 14.8 6.2 13.4 7.6 12.3 7.2 9.4 10.1 9.9 12 8.5 13.4 5.6 10.5 2.2 13.9 1.5 13.2 4.9 9.8 2 6.9 3.4 5.5 5.3 6 8.2 3.1 7.8 2z" fill="currentColor"/></svg></button><button id="hide" aria-label="縮到工作列" title="縮到工作列；監看持續。叫回：點工作列按鈕，或按 ${privacyShortcutLabel}">−</button></div></header><nav aria-label="主選單"><button data-tab="watch" class="active">自選</button><button data-tab="daily">行情</button><button data-tab="rules">提醒 <span id="rule-count"></span></button><button data-tab="history">紀錄</button><button data-tab="settings" class="gear">外觀與設定</button></nav><div id="banner"></div><section id="content"></section><footer><span id="health"></span><span id="source">TWSE MIS</span></footer><div id="message" role="status" aria-live="polite"></div></main>`;
 const content = app.querySelector<HTMLElement>("#content")!;
 const showError = (e: unknown) => {
   const el = document.querySelector<HTMLElement>("#message")!;
@@ -321,6 +321,12 @@ function apply() {
   document.body.dataset.page = tab;
   document.body.dataset.appearance = state.settings.appearance;
   document.body.dataset.density = state.settings.rowDisplay ?? "numbers";
+  const pinned = state.settings.alwaysOnTop !== false;
+  const pin = document.querySelector<HTMLElement>("#pin");
+  if (pin) {
+    pin.setAttribute("aria-pressed", String(pinned));
+    pin.title = pinned ? "已置頂：點一下取消置頂" : "未置頂：點一下保持置頂";
+  }
   document.querySelector("#rule-count")!.textContent = String(
     state.rules.filter((r) => r.enabled).length,
   );
@@ -411,7 +417,7 @@ function watch() {
   const closed = !state.marketOpen && !state.demo;
   if (a === "terminal" || a === "txt") return disguiseMarkup(state);
   if (state.settings.rowDisplay === "minimal")
-    return `<div class="minimal-bar"><span class="minimal-grip" data-tauri-drag-region><i data-tauri-drag-region></i></span>${state.demo ? '<span class="minimal-demo-tag">示範</span>' : ""}${minimalMarkup(state)}<span class="minimal-bar-actions"><button id="minimal-cycle" aria-label="切換顯示內容" title="回到數字">≡</button><button id="minimal-settings" aria-label="極簡顯示設定" title="顯示設定">⋯</button></span></div>`;
+    return `<div class="minimal-bar"><span class="minimal-grip" data-tauri-drag-region><i data-tauri-drag-region></i></span>${state.demo ? '<span class="minimal-demo-tag">示範</span>' : ""}${minimalMarkup(state)}<span class="minimal-bar-actions"><button id="minimal-cycle" aria-label="切換顯示內容" title="回到數字">≡</button><button id="minimal-pin" class="pin-btn" aria-pressed="${state.settings.alwaysOnTop !== false}" aria-label="視窗保持置頂" title="${state.settings.alwaysOnTop !== false ? "已置頂：點一下取消置頂" : "未置頂：點一下保持置頂"}"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M9.8 1.2 14.8 6.2 13.4 7.6 12.3 7.2 9.4 10.1 9.9 12 8.5 13.4 5.6 10.5 2.2 13.9 1.5 13.2 4.9 9.8 2 6.9 3.4 5.5 5.3 6 8.2 3.1 7.8 2z" fill="currentColor"/></svg></button><button id="minimal-settings" aria-label="極簡顯示設定" title="顯示設定">⋯</button></span></div>`;
   return `<div class="quotes">${rows()}</div>${last ? `<div class="latest"><span class="latest-dot"></span><span>${esc(last.text)}</span></div>` : ""}`;
 }
 function render() {
@@ -692,8 +698,16 @@ document.querySelector("#row-display")!.addEventListener(
 );
 document.querySelector("#hide")!.addEventListener("click", () => {
   hideDetail();
-  if (desktop) void getCurrentWindow().hide();
-  else showError("桌面版可隱藏到系統匣，監看會持續。");
+  if (desktop) void getCurrentWindow().minimize();
+  else showError("桌面版可縮到工作列，監看會持續。");
+});
+const togglePin = () =>
+  void mutate("set_settings", {
+    alwaysOnTop: state.settings.alwaysOnTop === false,
+  });
+document.querySelector("#pin")!.addEventListener("click", togglePin);
+document.addEventListener("click", (e) => {
+  if ((e.target as Element).closest("#minimal-pin")) togglePin();
 });
 document.addEventListener("keydown", (e) => {
   if (privacyPressed(e)) {

@@ -71,6 +71,32 @@ fn capture_raw(text: &str) {
 pub fn bridge() {
     mcp::bridge(&data_dir());
 }
+/// The one way back from every kind of hiding (the hide button, the close box, minimizing, the
+/// privacy shortcut): the tray menu, a second launch and the shortcut all come here.
+fn show_main_window(app: &tauri::AppHandle) {
+    app.state::<mcp::Shared>()
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .notices_hidden = false;
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+    }
+}
+/// The privacy shortcut is a toggle: it hides everything, and brings the monitor back when the
+/// main window is hidden or minimized.
+#[tauri::command]
+fn privacy_toggle(app: tauri::AppHandle) {
+    let showing = app
+        .get_webview_window("main")
+        .is_some_and(|w| w.is_visible().unwrap_or(false) && !w.is_minimized().unwrap_or(false));
+    if showing {
+        privacy_hide(app);
+    } else {
+        show_main_window(&app);
+    }
+}
 #[tauri::command]
 fn privacy_hide(app: tauri::AppHandle) {
     app.state::<mcp::Shared>()
@@ -332,11 +358,7 @@ pub fn run() {
     }
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            app.state::<mcp::Shared>().lock().unwrap_or_else(PoisonError::into_inner).notices_hidden = false;
-            if let Some(w) = app.get_webview_window("main") {
-                let _ = w.show();
-                let _ = w.set_focus();
-            }
+            show_main_window(app);
         }))
         .plugin(
             tauri_plugin_window_state::Builder::default()
@@ -348,7 +370,7 @@ pub fn run() {
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _, event| {
                     if event.state() == ShortcutState::Pressed {
-                        privacy_hide(app.clone());
+                        privacy_toggle(app.clone());
                     }
                 })
                 .build(),
@@ -359,6 +381,7 @@ pub fn run() {
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             install_kind,
+            privacy_toggle,
             core_request,
             privacy_hide,
             search_stocks,
@@ -405,13 +428,7 @@ pub fn run() {
                 .tooltip("SmallStocks TW · 本機監看")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
-                    "show" => {
-                        app.state::<mcp::Shared>().lock().unwrap_or_else(PoisonError::into_inner).notices_hidden = false;
-                        if let Some(w) = app.get_webview_window("main") {
-                            let _ = w.show();
-                            let _ = w.set_focus();
-                        }
-                    }
+                    "show" => show_main_window(app),
                     "quit" => app.exit(0),
                     _ => {}
                 });

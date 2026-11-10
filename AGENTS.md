@@ -8,7 +8,7 @@
 - `src-tauri/src/mcp.rs` 為 stdio bridge 與經 token 保護的本機 RPC。不要輸出 token、開放外網或把 bridge 啟動成第二個監看核心。
 - `src/main.ts` 為 UI，`src/notify.ts` 為獨立不搶焦點的通知窗。`src/client.ts` 的 browser fallback 只供清楚標示的合成預覽。
 - 四種外觀：small 彩色、small 灰階、terminal 灰階、txt 灰階；後三者通知亦為灰階。純文字版面以文件感為主。
-- 主視窗 alwaysOnTop 預設 true，舊設定沿用，使用者可關閉並保存。UI 與 MCP 寫入同一設定，Rust 套用原生視窗狀態，啟動前從設定恢復；不要因切換外觀重新強制置頂。通知及暫時明細保留獨立浮窗行為。
+- 主視窗 alwaysOnTop 預設 true，舊設定沿用，使用者可關閉並保存；標題列「−」旁與極簡細條有釘選按鈕（同一個設定）。「−」是縮到工作列，關閉與隱私快捷鍵才隱藏；叫回全部走 lib.rs 的 show_main_window，隱私快捷鍵是切換（privacy_toggle）。UI 與 MCP 寫入同一設定，Rust 套用原生視窗狀態，啟動前從設定恢復；不要因切換外觀重新強制置頂。通知及暫時明細保留獨立浮窗行為。
 - terminal／txt 依平台區分視窗外框，隱藏共用 small 標題、導覽、來源頁尾及卡片。Windows txt 是記事本分頁／檔案編輯檢視／純文字區／狀態列；Mac txt 是 TextEdit 純文字文件窗，不放 Windows 分頁／選單列／CRLF 狀態列。terminal 分別為 Windows Terminal／PowerShell 與 Mac Terminal／zsh 外觀；平台分支共用資料、選取與輸入保存邏輯。
 - 隱私快捷鍵為 Windows Ctrl+Alt+S、macOS Command+Option+S；UI 提示與原生註冊同步。長時間測試實例設 SMALLSTOCKS_NO_GLOBAL_SHORTCUT=1，避免占用使用者自己的全域快捷鍵。失敗在設定中顯示，不能靜默忽略。快捷鍵隱藏所有視窗、抑制通知但不暫停監看；設定／縮放使用平台慣用 Ctrl／Command。Mac UI 預覽不等於 Mac 原生驗證。
 - disguise.ts 管理偽裝模式；輪詢只更新內容，不替換輸入與文字區 DOM，以保留輸入、文字選取、捲動與選單。各模式的 data 屬性須用自己的命名，避免與主頁規則按鈕共用。

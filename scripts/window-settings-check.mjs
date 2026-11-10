@@ -101,6 +101,23 @@ try {
   await start();
   assert.equal((await tool("get_status")).settings.alwaysOnTop, true);
   assert.equal(await native("is_always_on_top"), true);
+  // The pin button sits next to the hide button and must flip the real window state both ways.
+  await main.locator("#pin").click();
+  await until(
+    () => native("is_always_on_top"),
+    (v) => v === false,
+  );
+  assert.equal(
+    await main.locator("#pin").getAttribute("aria-pressed"),
+    "false",
+    "pin button shows the unpinned state",
+  );
+  await main.locator("#pin").click();
+  await until(
+    () => native("is_always_on_top"),
+    (v) => v === true,
+  );
+  assert.equal(await main.locator("#pin").getAttribute("aria-pressed"), "true");
   await main.locator('[data-tab="settings"]').click();
   await main.locator("#always-on-top").uncheck();
   await until(
@@ -206,8 +223,38 @@ try {
     false,
     "privacy hide keeps monitoring enabled",
   );
+  // Shared way back: the shortcut handler is `privacy_toggle`. Hidden -> shown, shown -> hidden,
+  // and a minimized window is brought back rather than hidden.
+  const toggle = () =>
+    main.evaluate(() => window.__TAURI_INTERNALS__.invoke("privacy_toggle"));
+  await toggle();
+  await until(
+    () => native("is_visible"),
+    (value) => value === true,
+  );
+  await toggle();
+  await until(
+    () => native("is_visible"),
+    (value) => value === false,
+  );
+  await toggle();
+  await until(
+    () => native("is_visible"),
+    (value) => value === true,
+  );
+  await native("minimize");
+  await until(
+    () => native("is_minimized"),
+    (value) => value === true,
+  );
+  await toggle();
+  await until(
+    () => native("is_minimized"),
+    (value) => value === false,
+  );
+  assert.equal(await native("is_visible"), true, "back from minimized");
   console.log(
-    "PASS: topmost UI/MCP/native persistence; three-key shortcut registered, key handling hides all windows without pausing; actual small numbers/trend/hover screenshots",
+    "PASS: topmost UI/MCP/native persistence; three-key shortcut registered, key handling hides all windows without pausing and the same toggle brings them back (also from minimized); pin button flips the real topmost state; actual small numbers/trend/hover screenshots",
   );
 } finally {
   await stop();
