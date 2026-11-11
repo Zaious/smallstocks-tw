@@ -102,7 +102,7 @@ See the [Traditional Chinese guide](docs/USAGE.zh-TW.md) for controls, data hand
 
 ## Agent / MCP, if you want it
 
-Start the desktop app, then add this to a host that supports local stdio MCP:
+Start the desktop app, then open **外觀與設定** and use the **agent (MCP)** buttons: they copy a JSON config, a `claude mcp add` command or a `codex mcp add` command with this program's real path filled in. Or add this by hand to a host that supports local stdio MCP:
 
 ```json
 {

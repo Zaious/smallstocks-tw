@@ -157,6 +157,14 @@ fn privacy_shortcut() -> &'static str {
         "Ctrl+Alt+S"
     }
 }
+/// Where this program is, for the MCP setup the settings page offers to copy.
+#[tauri::command]
+fn mcp_exe() -> Result<String, String> {
+    std::env::current_exe()
+        .map(|p| p.to_string_lossy().into_owned())
+        .map_err(|e| e.to_string())
+}
+
 /// How this copy was installed. "installed" (the Windows installer, a macOS app outside a disk
 /// image) can replace itself; "portable" (the Windows zip) and "other" (a development build) only
 /// get a link to the download page.
@@ -423,6 +431,7 @@ pub fn run() {
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             install_kind,
+            mcp_exe,
             privacy_toggle,
             quit_app,
             restart_app,

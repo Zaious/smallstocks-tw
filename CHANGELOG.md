@@ -1,5 +1,9 @@
 # 更新紀錄
 
+## 未發布
+
+- 「外觀與設定」新增「agent（MCP，選配）」三個按鈕：複製 JSON 設定、Claude Code 指令、Codex 指令，路徑自動填入這個程式實際所在位置（Windows 與 Mac 都適用）。複製內容不含連線密碼。
+
 ## 0.1.12 — 2026-11-11
 
 - 首次同時提供 Windows 與 Mac：Mac 為 Intel／Apple Silicon 通用 DMG。尚未經 Apple 公證，第一次開啟請到「系統設定 → 隱私權與安全性」按「仍要打開」。已在一台 Intel Mac 以真實行情短時間驗證；Apple Silicon、長時間使用與通知窗未實機驗證。

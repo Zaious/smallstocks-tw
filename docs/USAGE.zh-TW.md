@@ -67,7 +67,7 @@ small 彩色與灰階沿用系列的圓角膠囊、緊湊字體與棋子厚度�
 
 ## Agent / MCP（選配）
 
-先開啟桌面程式，然後在支援本機 stdio MCP 的 agent 裡加入：
+先開啟桌面程式。最簡單的方式：「外觀與設定 → agent（MCP，選配）」有三個按鈕，分別複製 JSON 設定、Claude Code 指令（claude mcp add）與 Codex 指令（codex mcp add），程式實際位置已填好，貼到對應的 agent 程式即可；內容不含連線密碼。也可以手動在支援本機 stdio MCP 的 agent 裡加入：
 
 ```json
 {
