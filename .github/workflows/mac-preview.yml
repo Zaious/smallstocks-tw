@@ -43,6 +43,16 @@ jobs:
       - name: Build the universal app and disk image
         shell: bash
         run: npm run tauri build -- --target universal-apple-darwin --bundles app,dmg --config src-tauri/tauri.release.conf.json
+      # Tauri notarizes the app inside the image but not the image itself; do the image too so a
+      # downloaded .dmg opens without a warning.
+      - name: Notarize and staple the disk image
+        if: env.APPLE_ID != ''
+        shell: bash
+        run: |
+          dmg=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$dmg"
+          xcrun stapler validate "$dmg"
       - uses: actions/upload-artifact@v4
         with:
           name: smallstocks-macos-preview

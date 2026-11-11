@@ -98,6 +98,21 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json ${{ env.UPDATER_CONFIG }}
+      # Tauri notarizes the app inside the image but not the image itself; do the image too and put
+      # it back on the draft under the name the release already uses (spaces become dots).
+      - name: Notarize and staple the macOS disk image
+        if: startsWith(matrix.os, 'macos') && env.APPLE_ID != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dmg=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --password "$APPLE_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$dmg"
+          xcrun stapler validate "$dmg"
+          name=$(basename "$dmg" | tr ' ' '.')
+          cp "$dmg" "$RUNNER_TEMP/$name"
+          gh release upload '${{ github.ref_name }}' "$RUNNER_TEMP/$name" --clobber
       - name: Windows portable zip (no install, no admin)
         if: startsWith(matrix.os, 'windows')
         shell: pwsh
