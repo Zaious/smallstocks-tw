@@ -1,0 +1,3 @@
+# The Cloudflare Web Analytics token in site/index.html. Cloudflare designs it to sit in the public page
+# source (every visitor can read it); it is a site id, not a secret. Only this one finding is allowed.
+8277ee8093aba7195caa246b0eeb12727b00f83f:site/index.html:generic-api-key:669
