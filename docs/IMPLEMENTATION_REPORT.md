@@ -264,5 +264,13 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - 未驗證：公證（沒有 Apple 憑證）、Apple Silicon 實機、Mac 長時間運作、通知窗與極簡 hover 明細、從網路下載後帶隔離屬性的實際開啟流程、Mac 上的更新並重新啟動。
 - 發布與驗證（2026-11-11）：Release 工作流程的 Windows、macOS 與 checksums 三個工作都成功；草稿的 zip、setup.exe、dmg 的 SHA256 與 `SHA256SUMS-0.1.12.txt` 相符；`latest.json` 含 windows 與 darwin（aarch64、x86_64）平台；setup.exe 與 `.app.tar.gz` 的更新簽章以設定檔公鑰驗證通過（金鑰 6A54CA31AC9F1A69），且與 `latest.json` 內的簽章相同；對 zip、安裝檔、Mac 應用程式內容掃描私人字串與測試資料，無命中（Mac 執行檔中的 "Downloads" 為相依套件的系統資料夾名稱）。已公開並設為最新版，網站已部署，真實瀏覽器載入確認三個下載按鈕指向 v0.1.12。
 - 公開版 DMG 在 Intel Mac 上：SHA256 相符、版本為 0.1.12、`lipo` 為 x86_64 與 arm64、簽章為 ad-hoc、`spctl` 回報 rejected（符合預期）；直接啟動後取得三檔真實行情，無錯誤。
-- 自動更新首次實測（Windows）：安裝 0.1.11 後啟動，程式顯示「有新版本 v0.1.12」，按「更新並重新啟動」，約 4 秒內新版已安裝（執行檔版本 0.1.12）並自動重新啟動，三檔行情與 MCP serverInfo 為 0.1.12。測試安裝已解除安裝。更新器把新版裝回預設資料夾，測試時以 `/D` 指定的暫存資料夾被忽略，與一般使用者（預設資料夾）一致。Mac 的程式內更新尚未實測。
+- 自動更新首次實測（Windows）：安裝 0.1.11 後啟動，程式顯示「有新版本 v0.1.12」，按「更新並重新啟動」，約 4 秒內新版已安裝（執行檔版本 0.1.12）並自動重新啟動，三檔行情與 MCP serverInfo 為 0.1.12。測試安裝已解除安裝。那次新版出現在預設資料夾（測試時先用 `/D` 裝到暫存資料夾）；0.1.13 的測試則直接更新了 `/D` 的暫存資料夾，兩次落點不同，原因未查明，但兩次都得到可用的新版並自動重啟。Mac 的程式內更新尚未實測。
+
+## 0.1.13 — MCP 設定複製按鈕
+
+- 「外觀與設定」新增「agent（MCP，選配）」：複製 JSON 設定、`claude mcp add` 指令、`codex mcp add` 指令，路徑由 Rust 命令 `mcp_exe`（`current_exe`）提供；文字由 `src/mcp-setup.ts` 產生，測試確認 JSON 可解析、路徑有空格時加引號、內容不含 token 或連線檔名。前端 29 個測試、Rust 28 個測試、clippy 通過。
+- Windows 真實 app（CDP 點擊）與 Intel Mac（鍵盤聚焦＋空白鍵，讀 `pbpaste`）都確認三種內容正確。Mac 實測抓到 Windows 看不到的問題：macOS 網頁元件拒絕在 `await` 之後寫剪貼簿（`NotAllowedError`）；改為啟動時先取路徑、點擊時同步複製，並以 `execCommand("copy")` 備援。
+- 發布與驗證（2026-11-11）：Release 工作流程三個工作成功；zip、setup.exe、dmg 的 SHA256 與 `SHA256SUMS-0.1.13.txt` 相符；`latest.json` 含 windows 與 darwin 平台，setup.exe 與 `.app.tar.gz` 簽章以設定檔公鑰驗證通過；內容掃描無私人字串（僅 Mac 執行檔相依套件的 "Downloads" 字樣）。已公開為最新版、網站已部署，真實瀏覽器確認三個下載按鈕指向 v0.1.13。
+- 自動更新第二次實測（Windows）：公開的 0.1.12 安裝檔（SHA256 與發布值相符）安裝後，程式顯示「有新版本」，按「更新並重新啟動」，新版安裝並自動重啟，MCP serverInfo 為 0.1.13、三檔行情正常；測試安裝已解除。Mac 的程式內更新仍未實測。
+- 未驗證：Codex 指令格式未在 Codex 上執行；複製內容在正式安裝後的 `/Applications` 路徑未驗證；Apple Silicon；Mac 公證。
 
