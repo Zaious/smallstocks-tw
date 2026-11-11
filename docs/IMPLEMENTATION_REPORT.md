@@ -282,5 +282,6 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - 驗證（Intel Mac、macOS 26.2；對 DMG 與更新包都加上瀏覽器下載的隔離屬性）：公開版 DMG 的 SHA256 與 `SHA256SUMS-0.1.14.txt` 相符；`stapler validate` 對 DMG 與 `.app` 都通過；`spctl` 對 DMG 與 `.app` 都是 `accepted`、`source=Notarized Developer ID`；`codesign --verify --deep --strict` 通過，簽署者 Developer ID Application（團隊 L3PW92ZK84），仍為 x86_64＋arm64；更新用的 `.app.tar.gz` 內的應用程式同樣 accepted 且已蓋票。
 - Windows 與 Mac 的更新簽章、`latest.json` 內容、私人字串掃描與先前版本相同結果（僅 Mac 執行檔相依套件的 "Downloads" 字樣）。已公開為最新版、網站已部署並拿掉「仍要打開」說明，真實瀏覽器確認三個下載按鈕指向 v0.1.14。
 - Mac 程式內更新（從未簽章的公開 0.1.13 到簽章公證的 0.1.14）實測成功：3 秒內換成 0.1.14 並重啟，換上的應用程式為 Developer ID 簽章、已蓋票、`spctl` accepted，MCP serverInfo 為 0.1.14、三檔行情正常。測試用應用程式已刪除。
-- 未驗證：Apple Silicon 實機；用真實瀏覽器下載、由 Finder 雙擊開啟的完整流程（上面是以隔離屬性與 `spctl` 模擬，未實際讓 Gatekeeper 跳出對話框）；Windows 版仍未簽章。
+- 首次開啟流程實測（Intel Mac、macOS 26.2）：從公開網址 `releases/latest/download/...` 下載 DMG（SHA256 與發布值相符），手動補上瀏覽器會加的隔離屬性（curl 不會加），以 `open` 交給 Finder 掛載，DMG 順利掛載、沒有警告；把 App 複製出來（同樣帶隔離屬性）後用 `open` 開啟，syspolicyd 記錄 `Prompt shown`，畫面是標準提示「『SmallStocks TW』是一個從網際網路下載的 App。確定要打開嗎？ … Apple 已進行檢查但並未偵測到惡意軟體」，只有「取消」「打開」兩個按鈕（不是需要到「隱私權與安全性」的阻擋警告）；按下「打開」後 App 開啟並顯示行情。此時 App 由 Gatekeeper 以 App Translocation 路徑執行，所以程式內更新會判定為非安裝版、只顯示下載連結；拖進「應用程式」後再開才是安裝版。
+- 未驗證：用真實瀏覽器（Safari／Chrome）下載的隔離屬性內容；Apple Silicon 實機；Windows 版仍未簽章。
 
