@@ -14,9 +14,9 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 [繁體中文使用說明](docs/USAGE.zh-TW.md)
 
-![The small watchlist with names, prices and daily changes](docs/media/small-numbers.png)
+<p align="center"><img src="docs/media/hero-desk.png" width="720" alt="A small watchlist in the corner of a work window, with an alert card above it"></p>
 
-_Synthetic demo quotes, captured from the Windows app._
+<p align="center"><em>The watchlist stays in the corner while you work; a short card appears when a threshold you set is crossed. Synthetic demo quotes, captured from the Windows app.</em></p>
 
 > **Status: 0.1.14 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The macOS build is signed and notarized by Apple; the Windows build is unsigned, so SmartScreen may ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
 
@@ -35,6 +35,10 @@ Red means up and green means down. The little triangular pieces have an equilate
 ## The small view
 
 The small series uses restrained colours, rounded capsules and compact type to keep a watchlist in the corner of your desktop. Names stay readable, values align, and each normal row is only 22 px high. Small in colour uses Taiwan's red-up, green-down convention; its greyscale companion keeps the same shapes and layout.
+
+![The small watchlist with names, prices and daily changes](docs/media/small-numbers.png)
+
+_Synthetic demo quotes, captured from the Windows app._
 
 | Display          | At a glance                                                                                       | Details                                                                                                                                                 |
 | ---------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -60,10 +64,18 @@ _All images above use labelled synthetic demo data. Normal and trend rows use th
 
 Small colour and small greyscale share the board-piece styling and single-row charts. Terminal and notepad use greyscale text and their own window frames. All four support normal and minimal content, and share watchlists, rules and the always-on-top preference.
 
+<p align="center"><img src="docs/media/windows-pair.png" width="720" alt="The watchlist as a PowerShell terminal and as a Notepad text file, overlapping on a desktop, synthetic demo data"></p>
+
+<p align="center"><em>Windows: the terminal and the text-file appearances. Synthetic demo data.</em></p>
+
+The same two in the minimal layout:
+
 <img src="docs/media/minimal-terminal.png" width="420" alt="Terminal-style minimal watchlist, synthetic demo">
 <img src="docs/media/minimal-notepad.png" width="420" alt="Notepad-style minimal watchlist, synthetic demo">
 
 The Mac UI uses left-side traffic lights, a simple document title, Menlo-style text and a zsh prompt. Its plain-text view omits Windows tabs, the in-window menu bar and CRLF status strip:
+
+<p align="center"><img src="docs/media/mac-pair.png" width="720" alt="The watchlist as a zsh Terminal and as a TextEdit document on a Mac, overlapping, synthetic demo data"></p>
 
 <img src="docs/media/mac-terminal.png" width="420" alt="Mac terminal appearance on an Intel Mac, synthetic data">
 <img src="docs/media/mac-textedit.png" width="420" alt="Mac TextEdit-style appearance on an Intel Mac, synthetic data">
