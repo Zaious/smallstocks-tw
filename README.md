@@ -18,7 +18,7 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 _Synthetic demo quotes, captured from the Windows app._
 
-> **Status: 0.1.13 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The Windows build is unsigned and the macOS build is not notarized, so both ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
+> **Status: 0.1.14 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The macOS build is signed and notarized by Apple; the Windows build is unsigned, so SmartScreen may ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
 
 ## What it does
 
@@ -68,7 +68,7 @@ The Mac UI uses left-side traffic lights, a simple document title, Menlo-style t
 <img src="docs/media/mac-terminal.png" width="420" alt="Mac terminal appearance on an Intel Mac, synthetic data">
 <img src="docs/media/mac-textedit.png" width="420" alt="Mac TextEdit-style appearance on an Intel Mac, synthetic data">
 
-_Mac appearances shown above are native window screenshots from an Intel Mac (macOS 26.2) running the demo mode with synthetic data. The released Mac build was also run there for a few minutes on live quotes (data, hide/recall with `⌘⌥S`, data folder); notarization, Apple Silicon, long-running use and the notification window are not validated._
+_Mac appearances shown above are native window screenshots from an Intel Mac (macOS 26.2) running the demo mode with synthetic data. The released Mac build was also run there for a few minutes on live quotes (data, hide/recall with `⌘⌥S`, data folder); Apple Silicon, long-running use and the notification window are not validated._
 
 | Action                                                 | Windows                  | Mac UI       |
 | ------------------------------------------------------ | ------------------------ | ------------ |
@@ -84,15 +84,15 @@ In **外觀與設定**, uncheck **視窗保持置頂** if you want other windows
 
 Download from the [Releases page](https://github.com/Zaious/smallstocks-tw/releases), or build locally into `releases/`:
 
-| Platform    | File                                    | Use                                                                                   |
-| ----------- | --------------------------------------- | ------------------------------------------------------------------------------------- |
-| Windows x64 | `SmallStocks-TW-0.1.13-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`.                                                   |
-| Windows x64 | `SmallStocks.TW_0.1.13_x64-setup.exe`   | Installs for the current user.                                                        |
-| macOS       | `SmallStocks.TW_0.1.13_universal.dmg`   | Drag to Applications. First open: System Settings → Privacy & Security → Open Anyway. |
+| Platform    | File                                    | Use                                         |
+| ----------- | --------------------------------------- | ------------------------------------------- |
+| Windows x64 | `SmallStocks-TW-0.1.14-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`.         |
+| Windows x64 | `SmallStocks.TW_0.1.14_x64-setup.exe`   | Installs for the current user.              |
+| macOS       | `SmallStocks.TW_0.1.14_universal.dmg`   | Drag to Applications. Signed and notarized. |
 
-Every download has its SHA-256 in `SHA256SUMS-0.1.13.txt` on the release page.
+Every download has its SHA-256 in `SHA256SUMS-0.1.14.txt` on the release page.
 
-The Windows app needs Microsoft WebView2. These are unsigned (Windows) and not notarized (macOS) preview builds: macOS stops the first launch of an app that Apple has not checked, so open System Settings → Privacy & Security and choose Open Anyway; workplace device policies may prevent either package from running.
+The Windows app needs Microsoft WebView2. The Windows builds are unsigned, so SmartScreen or workplace device policies may stop them; the macOS build is signed and notarized.
 
 Start with **＋ → 管理自選** to add stocks. Use **數字 / 走勢 / 極簡** to change the display, and **外觀與設定** to pick a skin. Open **提醒** to set a threshold. Click a stock to see its daily history.
 

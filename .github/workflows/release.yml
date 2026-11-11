@@ -1,4 +1,4 @@
-# A version tag (v0.1.13) builds Windows and macOS into a DRAFT release: nothing is public until the
+# A version tag (v0.1.14) builds Windows and macOS into a DRAFT release: nothing is public until the
 # maintainer reads it and presses Publish. It holds the Windows installer (per user, no admin) and a
 # portable zip, the macOS disk image, SHA256 sums and, because the maintainer's update key is in the
 # repository secrets, the signed update files and latest.json that installed copies read to learn

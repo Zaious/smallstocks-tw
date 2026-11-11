@@ -2,11 +2,11 @@
 
 台股，但小一點。沿用 Basesmall / SmalLoL 的桌面元件與安靜通知，讓少數自選股在角落持續監看。
 
-目前為 **0.1.13 預覽版**，提供 Windows x64 與 Mac（Intel／Apple Silicon 通用 DMG）。名稱暫用 SmallStocks TW。
+目前為 **0.1.14 預覽版**，提供 Windows x64 與 Mac（Intel／Apple Silicon 通用 DMG）。名稱暫用 SmallStocks TW。
 
 ## 使用
 
-Mac：開啟 `.dmg`，把程式拖進「應用程式」。這個版本尚未經 Apple 公證，第一次開啟時 macOS 會擋下，請到「系統設定 → 隱私權與安全性」捲到下方按「仍要打開」（只需一次）。
+Mac：開啟 `.dmg`，把程式拖進「應用程式」。Mac 版已用開發者憑證簽章並經 Apple 公證，雙擊開啟即可。
 
 Windows 免安裝版解壓縮後執行 `smallstocks-tw.exe`。需要 Windows WebView2；Windows 11 通常已有，缺少時需另裝 Microsoft WebView2 Runtime。執行檔尚未做程式碼簽章。
 
