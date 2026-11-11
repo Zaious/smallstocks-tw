@@ -271,6 +271,6 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - 「外觀與設定」新增「agent（MCP，選配）」：複製 JSON 設定、`claude mcp add` 指令、`codex mcp add` 指令，路徑由 Rust 命令 `mcp_exe`（`current_exe`）提供；文字由 `src/mcp-setup.ts` 產生，測試確認 JSON 可解析、路徑有空格時加引號、內容不含 token 或連線檔名。前端 29 個測試、Rust 28 個測試、clippy 通過。
 - Windows 真實 app（CDP 點擊）與 Intel Mac（鍵盤聚焦＋空白鍵，讀 `pbpaste`）都確認三種內容正確。Mac 實測抓到 Windows 看不到的問題：macOS 網頁元件拒絕在 `await` 之後寫剪貼簿（`NotAllowedError`）；改為啟動時先取路徑、點擊時同步複製，並以 `execCommand("copy")` 備援。
 - 發布與驗證（2026-11-11）：Release 工作流程三個工作成功；zip、setup.exe、dmg 的 SHA256 與 `SHA256SUMS-0.1.13.txt` 相符；`latest.json` 含 windows 與 darwin 平台，setup.exe 與 `.app.tar.gz` 簽章以設定檔公鑰驗證通過；內容掃描無私人字串（僅 Mac 執行檔相依套件的 "Downloads" 字樣）。已公開為最新版、網站已部署，真實瀏覽器確認三個下載按鈕指向 v0.1.13。
-- 自動更新第二次實測（Windows）：公開的 0.1.12 安裝檔（SHA256 與發布值相符）安裝後，程式顯示「有新版本」，按「更新並重新啟動」，新版安裝並自動重啟，MCP serverInfo 為 0.1.13、三檔行情正常；測試安裝已解除。Mac 的程式內更新仍未實測。
+- 自動更新第二次實測（Windows）：公開的 0.1.12 安裝檔（SHA256 與發布值相符）安裝後，程式顯示「有新版本」，按「更新並重新啟動」，新版安裝並自動重啟，MCP serverInfo 為 0.1.13、三檔行情正常；測試安裝已解除。
+- Mac 程式內更新首次實測（Intel Mac、macOS 26.2）：把公開 0.1.12 的 DMG（SHA256 與發布值相符）內的應用程式複製到暫存資料夾執行，設定頁顯示「有新版本 v0.1.13」與「更新並重新啟動」；以鍵盤聚焦並按下後，6 秒內 `CFBundleShortVersionString` 變為 0.1.13，新行程自動啟動，MCP serverInfo 為 0.1.13、三檔行情正常；`codesign --verify --deep --strict` 通過（ad-hoc）、仍為 x86_64＋arm64。測試用應用程式已刪除。
 - 未驗證：Codex 指令格式未在 Codex 上執行；複製內容在正式安裝後的 `/Applications` 路徑未驗證；Apple Silicon；Mac 公證。
-
