@@ -159,19 +159,25 @@ try {
       json: [
         {
           draft: false,
-          tag_name: "v0.1.11",
+          tag_name: "v0.1.12",
           assets: [
             {
-              name: "SmallStocks-TW-0.1.11-windows-x64.zip",
+              name: "SmallStocks-TW-0.1.12-windows-x64.zip",
               size: 3589319,
               browser_download_url:
-                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.11/SmallStocks-TW-0.1.11-windows-x64.zip",
+                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.12/SmallStocks-TW-0.1.12-windows-x64.zip",
             },
             {
-              name: "SmallStocks.TW_0.1.11_x64-setup.exe",
+              name: "SmallStocks.TW_0.1.12_x64-setup.exe",
               size: 2598055,
               browser_download_url:
-                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.11/SmallStocks.TW_0.1.11_x64-setup.exe",
+                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.12/SmallStocks.TW_0.1.12_x64-setup.exe",
+            },
+            {
+              name: "SmallStocks.TW_0.1.12_universal.dmg",
+              size: 9000000,
+              browser_download_url:
+                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.12/SmallStocks.TW_0.1.12_universal.dmg",
             },
           ],
         },
@@ -184,7 +190,12 @@ try {
     await releasePage.locator("#installer-download").isVisible(),
     true,
   );
-  assert.equal(await releasePage.locator("#version").innerText(), "v0.1.11");
+  assert.equal(await releasePage.locator("#mac-download").isVisible(), true);
+  assert.match(
+    await releasePage.locator("#mac-download").getAttribute("href"),
+    /universal\.dmg$/,
+  );
+  assert.equal(await releasePage.locator("#version").innerText(), "v0.1.12");
   const failed = await browser.newPage();
   await failed.route("https://api.github.com/**", (route) =>
     route.fulfill({ status: 503, body: "Unavailable" }),
@@ -201,7 +212,7 @@ try {
     await noJS
       .locator('a[href="https://github.com/Zaious/smallstocks-tw/releases"]')
       .count(),
-    3,
+    4,
   );
   assert.deepEqual(errors, []);
   const embed = async (file) =>

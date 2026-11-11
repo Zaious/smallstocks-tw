@@ -2,11 +2,13 @@
 
 台股，但小一點。沿用 Basesmall / SmalLoL 的桌面元件與安靜通知，讓少數自選股在角落持續監看。
 
-目前為 **0.1.11 預覽版**，Windows 優先。名稱暫用 SmallStocks TW。
+目前為 **0.1.12 預覽版**，提供 Windows x64 與 Mac（Intel／Apple Silicon 通用 DMG）。名稱暫用 SmallStocks TW。
 
 ## 使用
 
-免安裝版解壓縮後執行 `smallstocks-tw.exe`。需要 Windows WebView2；Windows 11 通常已有，缺少時需另裝 Microsoft WebView2 Runtime。執行檔尚未做程式碼簽章。
+Mac：開啟 `.dmg`，把程式拖進「應用程式」。這個版本尚未經 Apple 公證，第一次開啟時 macOS 會擋下，請到「系統設定 → 隱私權與安全性」捲到下方按「仍要打開」（只需一次）。
+
+Windows 免安裝版解壓縮後執行 `smallstocks-tw.exe`。需要 Windows WebView2；Windows 11 通常已有，缺少時需另裝 Microsoft WebView2 Runtime。執行檔尚未做程式碼簽章。
 
 - 自選 → 管理自選：搜尋名稱／代號，或一次貼上多個代號（最多 30 檔）。
 - 主窗：盤中、休市都維持一檔一行，預設純數字。盤中看即時價與漲跌幅；休市看最近正式收盤，共同日期只在下方顯示一次，較舊的個別標的才單獨標日期。三檔 small 預設約 360 × 148，單列高 22。
@@ -126,4 +128,4 @@ UI 檢查：先執行 `npm run dev`，再 `node scripts/ui-check.mjs`（使用�
 
 Apache-2.0。Based on Basesmall and SmalLoL by Zaious, ChronicleCore Studio，保留原作授權與 NOTICE。運動、美術與比賽資料未帶入本專案。
 
-Mac 外觀目前以瀏覽器平台分支預覽驗證，尚無 macOS 原生套件或實機驗證。Windows 使用三鍵 Ctrl+Alt+S 全域隱藏；Mac 對應 ⌘⌥S。若快捷鍵被占用，設定頁會顯示註冊失敗，程式內仍可使用快捷鍵與隱藏控制。
+Mac 版在一台 Intel Mac（macOS 26.2）以真實行情短時間驗證過：行情、休市日曆、`⌘⌥S` 隱藏與叫回、資料夾位置都正常；Apple Silicon、長時間使用與通知窗尚未實機驗證。Windows 使用三鍵 Ctrl+Alt+S 全域隱藏；Mac 對應 ⌘⌥S。若快捷鍵被占用，設定頁會顯示註冊失敗，程式內仍可使用快捷鍵與隱藏控制。

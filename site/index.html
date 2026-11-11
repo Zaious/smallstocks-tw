@@ -211,8 +211,9 @@
           </p>
         </div>
         <p class="fine">
-          畫面為合成示範行情。Mac 畫面是 Intel Mac 上的原生視窗截圖，尚無 Mac
-          試用包，真實行情與長時間使用尚未驗證。兩種外觀都不會執行系統指令或修改其他文件。
+          畫面為合成示範行情。Mac 畫面是 Intel Mac 上的原生視窗截圖。Mac
+          版只在一台 Intel Mac 上以真實行情短時間試過，長時間使用與 Apple
+          Silicon 尚未實機驗證。兩種外觀都不會執行系統指令或修改其他文件。
         </p>
       </section>
 
@@ -451,13 +452,14 @@
           <p class="eyebrow">不用把整個桌面交給股價</p>
           <h2 id="download-title">留一個小角落，<br />給你的自選股。</h2>
           <p>
-            Windows 本機預覽版
-            <b id="version">0.1.11</b>。免費、開源，提供免安裝與安裝版本。
+            Windows 與 Mac 預覽版
+            <b id="version">0.1.12</b>。免費、開源；Windows
+            有免安裝與安裝版，Mac 有 DMG。
           </p>
         </div>
         <div class="download-content">
           <p id="release-status" class="release-status" role="status">
-            Windows 預覽版在 GitHub 版本區下載。開啟 JavaScript
+            Windows 與 Mac 預覽版在 GitHub 版本區下載。開啟 JavaScript
             時，這裡會直接列出最新版的下載按鈕。
           </p>
           <div id="release-files" class="ctas" hidden>
@@ -472,7 +474,13 @@
               class="btn"
               href="https://github.com/Zaious/smallstocks-tw/releases"
               hidden
-              >Windows 安裝版 <span class="size"></span
+              >Windows 安裝版 <span class="size"></span></a
+            ><a
+              id="mac-download"
+              class="btn"
+              href="https://github.com/Zaious/smallstocks-tw/releases"
+              hidden
+              >Mac 版 DMG <span class="size"></span
             ></a>
           </div>
           <a
@@ -481,8 +489,10 @@
             >查看 GitHub 版本區 ↗</a
           >
           <p class="fine">
-            需要 WebView2；執行檔尚未簽章，Windows
-            或公司裝置管理可能攔截。尚無自動更新。Mac 尚無試用包，未開放下載。
+            Windows 需要 WebView2；執行檔尚未簽章，Windows
+            或公司裝置管理可能攔截。Mac 版同時支援 Intel 與 Apple
+            Silicon，尚未經過 Apple 公證：第一次開啟時 macOS
+            會擋下，請到「系統設定 → 隱私權與安全性」按「仍要打開」。
           </p>
           <p class="fine">
             網站只介紹這個專案，不提供即時行情；不需要提供券商帳號。

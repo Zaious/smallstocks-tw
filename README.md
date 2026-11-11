@@ -18,13 +18,13 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 _Synthetic demo quotes, captured from the Windows app._
 
-> **Status: 0.1.11 preview, Windows x64.** Portable ZIP and per-user installer on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The Windows build is unsigned; code signing and automatic updates are not included. Full-session live-market validation is still pending.
+> **Status: 0.1.12 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The Windows build is unsigned and the macOS build is not notarized, so both ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
 
 ## What it does
 
 - **A small watchlist.** Search by name or code, or paste several codes at once. Follow listed and OTC stocks, ETFs, the TAIEX and the OTC index. Up to 30 watchlist entries.
 - **Three ways to glance.** Numbers, a single-row trend, or just direction and name. The minimal small view becomes a roughly 30 px bar, wraps when narrowed, and reveals price, change and source time on hover. Stock codes are optional.
-- **Four appearances.** Small in colour, small in greyscale, terminal and plain text. On Windows the latter two resemble Windows Terminal and Notepad; the macOS UI branch uses a zsh-style Terminal and a plain-text TextEdit window. These are appearances inside this app; they do not run a shell or edit your documents. Mac UI has browser-preview checks, not native Mac validation yet.
+- **Four appearances.** Small in colour, small in greyscale, terminal and plain text. On Windows the latter two resemble Windows Terminal and Notepad; the macOS UI branch uses a zsh-style Terminal and a plain-text TextEdit window. These are appearances inside this app; they do not run a shell or edit your documents. On Mac it has been run natively only on one Intel Mac, briefly.
 - **Alerts you choose.** Trade price, percentage, or bid/ask mid price crossing a threshold, upwards or downwards; once or once each trading day. Turn a rule off, record it quietly, or show a strip or card in the corner. Notices do not take keyboard focus.
 - **Useful after the close.** The latest available official daily close, clearly dated, plus monthly open/high/low/close and volume history. Opening the app for the first time can fetch earlier daily records. Intraday trend mode can also retrieve the current day's available minute samples; gaps and partial data are labelled.
 - **An optional agent connection.** Ask your agent to summarise the watchlist, inspect recorded events or create an alert. The desktop app keeps monitoring after the agent closes. No model account or API key is needed to use the app itself.
@@ -68,7 +68,7 @@ The Mac UI uses left-side traffic lights, a simple document title, Menlo-style t
 <img src="docs/media/mac-terminal.png" width="420" alt="Mac terminal appearance on an Intel Mac, synthetic data">
 <img src="docs/media/mac-textedit.png" width="420" alt="Mac TextEdit-style appearance on an Intel Mac, synthetic data">
 
-_Mac appearances shown above are native window screenshots from an Intel Mac (macOS 26.2) running the demo mode with synthetic data. There is no macOS package yet; signing, real-market data, long-running use and the pressed-shortcut behaviour are not validated._
+_Mac appearances shown above are native window screenshots from an Intel Mac (macOS 26.2) running the demo mode with synthetic data. The released Mac build was also run there for a few minutes on live quotes (data, hide/recall with `⌘⌥S`, data folder); notarization, Apple Silicon, long-running use and the notification window are not validated._
 
 | Action                                                 | Windows                  | Mac UI       |
 | ------------------------------------------------------ | ------------------------ | ------------ |
@@ -84,12 +84,15 @@ In **外觀與設定**, uncheck **視窗保持置頂** if you want other windows
 
 Download from the [Releases page](https://github.com/Zaious/smallstocks-tw/releases), or build locally into `releases/`:
 
-| Windows x64 | File                                          | Use                                 |
-| ----------- | --------------------------------------------- | ----------------------------------- |
-| Portable    | `SmallStocks-TW-0.1.11-windows-x64.zip`       | Unzip and run `smallstocks-tw.exe`. |
-| Installer   | `SmallStocks-TW-0.1.11-windows-x64-setup.exe` | Installs for the current user.      |
+| Platform    | File                                    | Use                                                                                   |
+| ----------- | --------------------------------------- | ------------------------------------------------------------------------------------- |
+| Windows x64 | `SmallStocks-TW-0.1.12-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`.                                                   |
+| Windows x64 | `SmallStocks.TW_0.1.12_x64-setup.exe`   | Installs for the current user.                                                        |
+| macOS       | `SmallStocks.TW_0.1.12_universal.dmg`   | Drag to Applications. First open: System Settings → Privacy & Security → Open Anyway. |
 
-The app needs Microsoft WebView2. These are unsigned preview builds; workplace device policies may prevent either package from running.
+Every download has its SHA-256 in `SHA256SUMS-0.1.12.txt` on the release page.
+
+The Windows app needs Microsoft WebView2. These are unsigned (Windows) and not notarized (macOS) preview builds: macOS stops the first launch of an app that Apple has not checked, so open System Settings → Privacy & Security and choose Open Anyway; workplace device policies may prevent either package from running.
 
 Start with **＋ → 管理自選** to add stocks. Use **數字 / 走勢 / 極簡** to change the display, and **外觀與設定** to pick a skin. Open **提醒** to set a threshold. Click a stock to see its daily history.
 

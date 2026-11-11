@@ -143,8 +143,9 @@
           !item.draft &&
           (item.assets ?? []).some(
             (asset) =>
-              /windows.*x64.*\.zip$|x64.*setup\.exe$/i.test(asset.name) &&
-              safeDownload(asset.browser_download_url),
+              /windows.*x64.*\.zip$|x64.*setup\.exe$|\.dmg$/i.test(
+                asset.name,
+              ) && safeDownload(asset.browser_download_url),
           ),
       );
       if (!release) {
@@ -156,6 +157,7 @@
       for (const [id, pattern] of [
         ["portable-download", /windows.*x64.*\.zip$/i],
         ["installer-download", /x64.*setup\.exe$/i],
+        ["mac-download", /\.dmg$/i],
       ]) {
         const asset = release.assets.find(
           (item) =>
@@ -175,7 +177,7 @@
         document.querySelector("#version").textContent =
           release.tag_name ?? "最新版本";
         document.querySelector("#release-status").textContent =
-          "Windows 試用檔已公開。選擇免安裝版，或安裝到目前使用者帳號。";
+          "試用檔已公開。Windows 可選免安裝版或安裝版，Mac 下載 DMG。";
       }
     })
     .catch(() => {

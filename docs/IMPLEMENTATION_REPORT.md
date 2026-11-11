@@ -256,3 +256,10 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - 新增：官方休市日曆、自動更新（本機用測試金鑰驗證簽章檢查；實際更新流程待下一版）、第三方授權清單、買賣中間價規則、收盤輪詢與原始回應存檔（`SMALLSTOCKS_CAPTURE_RAW`）。
 - 仍未驗證：處置股約每 2 分鐘才撮合一次，現行 3 分鐘過期門檻是否合適；以伺服器時間而非本機時鐘計算資料年齡；Windows 安裝檔的實際安裝／解除安裝；從 GitHub 下載後的 SmartScreen；Mac 的新版行為（Mac 睡著連不上，也沒有 Mac 安裝包）；授權：證交所使用條款第 6 條禁止未經同意以自動化程式下載資料，MIS 本身的條款未查到，維護者決定不寄信詢問，文件維持「資料使用條件需自行確認」。
 
+## 0.1.12 — Windows 與 Mac 同時發布
+
+- 發布流程（`.github/workflows/release.yml`）同時在 Windows 與 macOS runner 建置：Windows NSIS 安裝檔加免安裝 zip，macOS universal（x86_64 + arm64）`.app` 與 `.dmg`；`checksums` 工作最後對 zip／setup.exe／dmg 產生 `SHA256SUMS`。沒有 Apple 憑證時 macOS 為 ad-hoc 簽章，Gatekeeper 會擋下第一次開啟（`spctl` 回報 rejected），需在「隱私權與安全性」按「仍要打開」。
+- 手動的 `mac-preview.yml` 可在發布前先建 Mac 預覽包。CI 的 macOS runner 上 28 個 Rust 測試通過。
+- Intel Mac（x86_64、macOS 26.2）實機驗證 CI 建出的 universal 應用程式（2026-11-11 盤中，真實行情，獨立設定資料夾）：`lipo` 為 x86_64 與 arm64；啟動後資料夾建立在指定路徑，取得 t00、2330、0050 的價格與日高低，休市日曆載入，無錯誤；`privacyShortcutError` 為空，按下 ⌘⌥S 後主視窗隱藏、再按一次叫回；視窗截圖顯示 small 數字列、釘選與完全隱藏按鈕及中文字型正常。
+- 未驗證：公證（沒有 Apple 憑證）、Apple Silicon 實機、Mac 長時間運作、通知窗與極簡 hover 明細、從網路下載後帶隔離屬性的實際開啟流程、Mac 上的更新並重新啟動。
+- 0.1.11 → 0.1.12 是自動更新的第一次真實流程。
