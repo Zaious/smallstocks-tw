@@ -13,7 +13,7 @@
 
 ## 狀態與限制
 
-預覽版 0.1.12 提供 Windows x64 與 Mac（Intel／Apple Silicon 通用 DMG）；公開下載請以 GitHub 版本區為準。Mac 版只在一台 Intel Mac 上以真實行情短時間驗證，尚未經 Apple 公證，Apple Silicon 與長時間使用未實機驗證。
+預覽版 0.1.13 提供 Windows x64 與 Mac（Intel／Apple Silicon 通用 DMG）；公開下載請以 GitHub 版本區為準。Mac 版只在一台 Intel Mac 上以真實行情短時間驗證，尚未經 Apple 公證，Apple Silicon 與長時間使用未實機驗證。
 資料由使用者電腦直接取得；不由開發者轉送行情。來源可能延遲，程式不是逐筆行情或下單工具。行情授權不包含在程式的 Apache-2.0 授權內。
 網站展示合成示範行情，不提供即時報價。
 

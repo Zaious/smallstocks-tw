@@ -18,7 +18,7 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 _Synthetic demo quotes, captured from the Windows app._
 
-> **Status: 0.1.12 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The Windows build is unsigned and the macOS build is not notarized, so both ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
+> **Status: 0.1.13 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The Windows build is unsigned and the macOS build is not notarized, so both ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
 
 ## What it does
 
@@ -86,11 +86,11 @@ Download from the [Releases page](https://github.com/Zaious/smallstocks-tw/relea
 
 | Platform    | File                                    | Use                                                                                   |
 | ----------- | --------------------------------------- | ------------------------------------------------------------------------------------- |
-| Windows x64 | `SmallStocks-TW-0.1.12-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`.                                                   |
-| Windows x64 | `SmallStocks.TW_0.1.12_x64-setup.exe`   | Installs for the current user.                                                        |
-| macOS       | `SmallStocks.TW_0.1.12_universal.dmg`   | Drag to Applications. First open: System Settings → Privacy & Security → Open Anyway. |
+| Windows x64 | `SmallStocks-TW-0.1.13-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`.                                                   |
+| Windows x64 | `SmallStocks.TW_0.1.13_x64-setup.exe`   | Installs for the current user.                                                        |
+| macOS       | `SmallStocks.TW_0.1.13_universal.dmg`   | Drag to Applications. First open: System Settings → Privacy & Security → Open Anyway. |
 
-Every download has its SHA-256 in `SHA256SUMS-0.1.12.txt` on the release page.
+Every download has its SHA-256 in `SHA256SUMS-0.1.13.txt` on the release page.
 
 The Windows app needs Microsoft WebView2. These are unsigned (Windows) and not notarized (macOS) preview builds: macOS stops the first launch of an app that Apple has not checked, so open System Settings → Privacy & Security and choose Open Anyway; workplace device policies may prevent either package from running.
 

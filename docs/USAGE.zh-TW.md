@@ -2,7 +2,7 @@
 
 台股，但小一點。沿用 Basesmall / SmalLoL 的桌面元件與安靜通知，讓少數自選股在角落持續監看。
 
-目前為 **0.1.12 預覽版**，提供 Windows x64 與 Mac（Intel／Apple Silicon 通用 DMG）。名稱暫用 SmallStocks TW。
+目前為 **0.1.13 預覽版**，提供 Windows x64 與 Mac（Intel／Apple Silicon 通用 DMG）。名稱暫用 SmallStocks TW。
 
 ## 使用
 
