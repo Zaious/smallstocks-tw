@@ -274,3 +274,13 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - 自動更新第二次實測（Windows）：公開的 0.1.12 安裝檔（SHA256 與發布值相符）安裝後，程式顯示「有新版本」，按「更新並重新啟動」，新版安裝並自動重啟，MCP serverInfo 為 0.1.13、三檔行情正常；測試安裝已解除。
 - Mac 程式內更新首次實測（Intel Mac、macOS 26.2）：把公開 0.1.12 的 DMG（SHA256 與發布值相符）內的應用程式複製到暫存資料夾執行，設定頁顯示「有新版本 v0.1.13」與「更新並重新啟動」；以鍵盤聚焦並按下後，6 秒內 `CFBundleShortVersionString` 變為 0.1.13，新行程自動啟動，MCP serverInfo 為 0.1.13、三檔行情正常；`codesign --verify --deep --strict` 通過（ad-hoc）、仍為 x86_64＋arm64。測試用應用程式已刪除。
 - 未驗證：Codex 指令格式未在 Codex 上執行；複製內容在正式安裝後的 `/Applications` 路徑未驗證；Apple Silicon；Mac 公證。
+
+## 0.1.14 — Mac 簽章與公證
+
+- 維護者以 `tools/macos-signing.ps1` 把 Developer ID 憑證與 Apple 帳號的 App 專用密碼存入儲存庫 secrets（第一次貼上的密碼不完整，公證回 `401 Invalid credentials`，重貼後通過；預覽建置失敗期間沒有發布任何東西）。
+- Tauri 只公證 `.app`；新增流程步驟在 macOS 工作中對 `.dmg` 另行公證、蓋票（`notarytool submit --wait`、`stapler staple`），並以 `--clobber` 換掉草稿裡的 DMG，之後 `checksums` 工作才計算 SHA256（所以校驗碼對應的是蓋過票的檔案）。`mac-preview.yml` 同步加了這一步，先以手動預覽驗證。
+- 驗證（Intel Mac、macOS 26.2；對 DMG 與更新包都加上瀏覽器下載的隔離屬性）：公開版 DMG 的 SHA256 與 `SHA256SUMS-0.1.14.txt` 相符；`stapler validate` 對 DMG 與 `.app` 都通過；`spctl` 對 DMG 與 `.app` 都是 `accepted`、`source=Notarized Developer ID`；`codesign --verify --deep --strict` 通過，簽署者 Developer ID Application（團隊 L3PW92ZK84），仍為 x86_64＋arm64；更新用的 `.app.tar.gz` 內的應用程式同樣 accepted 且已蓋票。
+- Windows 與 Mac 的更新簽章、`latest.json` 內容、私人字串掃描與先前版本相同結果（僅 Mac 執行檔相依套件的 "Downloads" 字樣）。已公開為最新版、網站已部署並拿掉「仍要打開」說明，真實瀏覽器確認三個下載按鈕指向 v0.1.14。
+- Mac 程式內更新（從未簽章的公開 0.1.13 到簽章公證的 0.1.14）實測成功：3 秒內換成 0.1.14 並重啟，換上的應用程式為 Developer ID 簽章、已蓋票、`spctl` accepted，MCP serverInfo 為 0.1.14、三檔行情正常。測試用應用程式已刪除。
+- 未驗證：Apple Silicon 實機；用真實瀏覽器下載、由 Finder 雙擊開啟的完整流程（上面是以隔離屬性與 `spctl` 模擬，未實際讓 Gatekeeper 跳出對話框）；Windows 版仍未簽章。
+
