@@ -69,6 +69,23 @@ let newer: Newer | null = null;
 let updateBusy = false;
 let updateMessage = "";
 let mcpMessage = "";
+let mcpExe = "";
+// navigator.clipboard first; the old selection copy covers a web view that refuses it.
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (error) {
+    const box = document.createElement("textarea");
+    box.value = text;
+    box.style.position = "fixed";
+    box.style.opacity = "0";
+    document.body.append(box);
+    box.select();
+    const ok = document.execCommand("copy");
+    box.remove();
+    if (!ok) throw error;
+  }
+}
 let appVersion = "";
 let askedForNewer = false;
 async function loadDaily() {
@@ -623,8 +640,10 @@ function bind() {
         const el = document.querySelector("#mcp-status");
         if (el) el.textContent = text;
       };
-      void invoke<string>("mcp_exe")
-        .then((exe) => navigator.clipboard.writeText(mcpSetup(kind, exe)))
+      // Copy inside the click itself: macOS's web view refuses a clipboard write that comes after
+      // an await. The program's path is fetched at start-up for that reason.
+      if (!mcpExe) return note("複製失敗：還沒取得程式位置，請稍後再試");
+      void copyText(mcpSetup(kind, mcpExe))
         .then(() =>
           note(
             "已複製。貼到 agent 程式的 MCP 設定；設定內不含密碼，連線密碼只存在本機。",
@@ -881,6 +900,10 @@ async function poll() {
 void poll();
 setInterval(() => void poll(), 1000);
 if (desktop) void getVersion().then((v) => (appVersion = v));
+if (desktop)
+  void invoke<string>("mcp_exe")
+    .then((e) => (mcpExe = e))
+    .catch(() => {});
 // One question to GitHub per launch, after the monitor has had time to settle (setting updateCheck).
 // Never in demo mode, so test runs make no outside calls.
 setTimeout(() => {
