@@ -755,6 +755,101 @@ details[open] > summary {
   font-size: 11px;
   font-weight: 400;
 }
+.vote-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+.vote-section > div:first-child {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+.vote-section > div:first-child p:not(.eyebrow) {
+  color: var(--muted);
+}
+#vote-form {
+  display: grid;
+  gap: 16px;
+  align-content: center;
+}
+#vote-form fieldset {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.vote-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  font-size: 15px;
+  cursor: pointer;
+}
+.vote-option:has(input:checked) {
+  border-color: var(--accent);
+}
+.vote-option input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+.vote-enough {
+  margin-top: 6px;
+}
+.hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.vote-results {
+  display: grid;
+  gap: 8px;
+}
+.vote-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  font-size: 14px;
+}
+.vote-row .vote-bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.vote-row .vote-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.vote-row b {
+  font-weight: 650;
+}
+main.done {
+  max-width: 480px;
+  margin: 20vh auto;
+  padding: 0 16px;
+  font-size: 17px;
+  line-height: 1.8;
+}
 .faq {
   display: grid;
   grid-template-columns: 1fr 1.25fr;
@@ -851,6 +946,7 @@ footer a {
   .after-close,
   .agent-section,
   .download-section,
+  .vote-section,
   .faq {
     grid-template-columns: 1fr;
     gap: 30px;
@@ -1038,6 +1134,7 @@ footer a {
   }
   .after-close,
   .agent-section,
+  .vote-section,
   .download-section {
     gap: 25px;
   }

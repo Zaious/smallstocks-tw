@@ -205,6 +205,81 @@ try {
     document.querySelector("#release-status").textContent.includes("暫時無法"),
   );
   assert.equal(await failed.locator("#release-files").isVisible(), false);
+  // The anonymous vote: the page sends only the chosen options, and shows totals afterwards.
+  const voteContext = await browser.newContext();
+  const votePage = await voteContext.newPage();
+  const posted = [];
+  await votePage.route("https://api.github.com/**", (route) =>
+    route.fulfill({ json: [] }),
+  );
+  await votePage.route("**/api/vote", async (route) => {
+    const request = route.request();
+    if (request.method() === "POST") {
+      posted.push({
+        body: JSON.parse(request.postData()),
+        headers: request.headers(),
+      });
+      return route.fulfill({
+        json: {
+          result: "thanks",
+          ballots: 25,
+          options: { mobile: 10, us: 5, alerts: 2, looks: 1, enough: 7 },
+        },
+      });
+    }
+    return route.fulfill({
+      json: {
+        ballots: 25,
+        options: { mobile: 10, us: 5, alerts: 2, looks: 1, enough: 7 },
+      },
+    });
+  });
+  await votePage.goto(url);
+  assert.equal(await votePage.locator("#vote-results").isVisible(), false);
+  await votePage.locator("#vote-submit").click();
+  assert.ok(
+    (await votePage.locator("#vote-msg").innerText()).includes("請先選"),
+  );
+  assert.equal(posted.length, 0);
+  const box = (value) => votePage.locator(`input[value="${value}"]`);
+  await box("mobile").check();
+  await box("us").check();
+  await box("alerts").check();
+  await box("looks").click();
+  assert.equal(
+    await box("looks").isChecked(),
+    false,
+    "at most three directions",
+  );
+  await box("enough").check();
+  assert.equal(
+    await box("mobile").isChecked(),
+    false,
+    "enough excludes the rest",
+  );
+  await box("mobile").check();
+  assert.equal(await box("enough").isChecked(), false);
+  await box("us").check();
+  await votePage.locator("#vote-submit").click();
+  await votePage.locator("#vote-results").waitFor({ state: "visible" });
+  assert.deepEqual(posted[0].body.choices.sort(), ["mobile", "us"]);
+  assert.equal(posted[0].body.website, "");
+  assert.ok(
+    !JSON.stringify(posted[0]).match(/cookie|email|@/i),
+    "nothing personal is sent",
+  );
+  assert.ok(
+    (await votePage.locator("#vote-results").innerText()).includes("40%"),
+  );
+  assert.equal(await votePage.locator("#vote-submit").isDisabled(), true);
+  await votePage.reload();
+  await votePage.locator("#vote-results").waitFor({ state: "visible" });
+  assert.equal(
+    await votePage.locator("#vote-submit").isDisabled(),
+    true,
+    "remembered in this browser",
+  );
+  await voteContext.close();
   const noJS = await browser.newPage({ javaScriptEnabled: false });
   await noJS.goto(url);
   assert.ok((await noJS.locator("h1").innerText()).includes("台股"));

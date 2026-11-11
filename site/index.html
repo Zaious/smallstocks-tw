@@ -499,6 +499,69 @@
         </div>
       </section>
 
+      <section
+        id="vote"
+        class="section vote-section"
+        aria-labelledby="vote-title"
+      >
+        <div>
+          <p class="eyebrow">接下來往哪走，你來說</p>
+          <h2 id="vote-title">你最希望它接下來做什麼？</h2>
+          <p>
+            這個專案要不要繼續往前，要看有多少人真的想要。選一到三個方向，投一票。不用登入、不留
+            Email，也不記你是誰，只是在票數上加一。
+          </p>
+        </div>
+        <form id="vote-form" method="post" action="/api/vote">
+          <fieldset>
+            <legend class="sr-only">希望接下來做什麼（最多三個）</legend>
+            <label class="vote-option"
+              ><input type="checkbox" name="choice" value="mobile" /><span
+                >手機版（iOS／Android）</span
+              ></label
+            >
+            <label class="vote-option"
+              ><input type="checkbox" name="choice" value="us" /><span
+                >美股版</span
+              ></label
+            >
+            <label class="vote-option"
+              ><input type="checkbox" name="choice" value="alerts" /><span
+                >更多種類的提醒</span
+              ></label
+            >
+            <label class="vote-option"
+              ><input type="checkbox" name="choice" value="looks" /><span
+                >更多外觀與使用上的小改進</span
+              ></label
+            >
+            <label class="vote-option vote-enough"
+              ><input type="checkbox" name="choice" value="enough" /><span
+                >現在這樣就夠了</span
+              ></label
+            >
+          </fieldset>
+          <input
+            class="hp"
+            type="text"
+            name="website"
+            tabindex="-1"
+            autocomplete="off"
+            aria-hidden="true"
+          />
+          <div class="ctas">
+            <button class="btn primary" type="submit" id="vote-submit">
+              投這一票
+            </button>
+          </div>
+          <p id="vote-msg" class="fine" role="status"></p>
+          <div id="vote-results" class="vote-results" hidden></div>
+          <p class="fine">
+            不認人，所以只擋最簡單的重複：你的瀏覽器會記得你投過，網站不記得你是誰。這是看大家想要什麼的粗略訊號，不是承諾，也不是正式投票。
+          </p>
+        </form>
+      </section>
+
       <section class="section faq" aria-labelledby="faq-title">
         <h2 id="faq-title">開始之前，可能會想問</h2>
         <div>
@@ -543,8 +606,8 @@
             <summary>免費嗎？會收集使用資料嗎？</summary>
             <p>
               程式免費開源，不需帳號，也沒有分析追蹤。行情資料受各來源條件限制，不包含在程式授權內。網站不放分析工具或追蹤
-              Cookie；為取得最新下載連結，會向 GitHub
-              查詢公開版本資訊。程式每次啟動會向 GitHub
+              Cookie；網站上的「接下來做什麼」投票只存各選項的票數，不記是誰投的；為取得最新下載連結，會向
+              GitHub 查詢公開版本資訊。程式每次啟動會向 GitHub
               詢問一次有沒有新版本（可在設定關閉），不傳送任何關於你的資料，開發者只看得到
               GitHub 公布的下載次數。
             </p>

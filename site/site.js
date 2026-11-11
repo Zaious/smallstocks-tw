@@ -99,6 +99,126 @@
       updatePlatform(button.dataset.platform),
     ),
   );
+  // ---------- the anonymous vote ----------
+  // Nothing identifies the voter: the page sends the chosen options, the server adds one to each.
+  // This browser remembers that it voted (a note only here), so the form is not offered twice.
+  const voteForm = document.querySelector("#vote-form");
+  if (voteForm) {
+    const labels = {
+      mobile: "手機版（iOS／Android）",
+      us: "美股版",
+      alerts: "更多種類的提醒",
+      looks: "更多外觀與使用上的小改進",
+      enough: "現在這樣就夠了",
+    };
+    const msg = document.querySelector("#vote-msg"),
+      results = document.querySelector("#vote-results"),
+      submit = document.querySelector("#vote-submit"),
+      boxes = [...voteForm.querySelectorAll('input[name="choice"]')];
+    const remembered = () => {
+      try {
+        return localStorage.getItem("smallstocks-voted") === "1";
+      } catch {
+        return false;
+      }
+    };
+    const remember = () => {
+      try {
+        localStorage.setItem("smallstocks-voted", "1");
+      } catch {}
+    };
+    const showResults = (data) => {
+      results.replaceChildren();
+      const ballots = Number(data.ballots) || 0;
+      for (const key of Object.keys(labels)) {
+        const n = Number(data.options?.[key]) || 0;
+        const row = document.createElement("div");
+        row.className = "vote-row";
+        const name = document.createElement("span");
+        name.textContent = labels[key];
+        const count = document.createElement("b");
+        count.textContent =
+          ballots >= 20
+            ? `${Math.round((n / ballots) * 100)}%（${n}）`
+            : `${n} 票`;
+        const bar = document.createElement("div");
+        bar.className = "vote-bar";
+        const fill = document.createElement("i");
+        fill.style.width = ballots
+          ? `${Math.round((n / ballots) * 100)}%`
+          : "0%";
+        bar.append(fill);
+        row.append(name, count, bar);
+        results.append(row);
+      }
+      results.hidden = false;
+    };
+    const done = (data) => {
+      boxes.forEach((box) => (box.disabled = true));
+      submit.disabled = true;
+      submit.textContent = "已投票";
+      if (data) showResults(data);
+    };
+    // "just enough" excludes the others; at most three directions.
+    boxes.forEach((box) =>
+      box.addEventListener("change", () => {
+        const enough = boxes.find((b) => b.value === "enough");
+        if (box === enough && box.checked)
+          boxes.forEach((b) => b !== enough && (b.checked = false));
+        else if (box.checked) enough.checked = false;
+        const picked = boxes.filter((b) => b.checked && b !== enough);
+        if (picked.length > 3) {
+          box.checked = false;
+          msg.textContent = "最多選三個方向。";
+        } else msg.textContent = "";
+      }),
+    );
+    voteForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const choices = boxes.filter((b) => b.checked).map((b) => b.value);
+      if (!choices.length) {
+        msg.textContent = "請先選一個方向。";
+        return;
+      }
+      submit.disabled = true;
+      msg.textContent = "送出中…";
+      try {
+        const response = await fetch("/api/vote", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json",
+          },
+          body: JSON.stringify({
+            choices,
+            website: voteForm.elements.website.value,
+          }),
+        });
+        const data = await response.json();
+        if (data.result === "thanks") {
+          remember();
+          msg.textContent = "收到了，謝謝。不會記錄你是誰，只是在票數上加一。";
+          done(data);
+        } else {
+          submit.disabled = false;
+          msg.textContent =
+            data.result === "busy"
+              ? "同時投票的人太多，請過一分鐘再試。"
+              : "沒有送出，請稍後再試。";
+        }
+      } catch {
+        submit.disabled = false;
+        msg.textContent = "沒有送出，請稍後再試。";
+      }
+    });
+    if (remembered()) {
+      msg.textContent = "這個瀏覽器已經投過了，謝謝。";
+      fetch("/api/vote", { headers: { accept: "application/json" } })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((data) => done(data && data.options ? data : null))
+        .catch(() => done(null));
+    }
+  }
   document.querySelector("#copy-config").addEventListener("click", async () => {
     const result = document.querySelector("#copy-result"),
       code = document.querySelector("#mcp-config");
