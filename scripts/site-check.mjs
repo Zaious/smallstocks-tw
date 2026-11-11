@@ -293,6 +293,41 @@ try {
   );
   assert.ok(!html.includes("網站不放分析工具"), "no stale no-analytics claim");
   assert.equal(await page.locator('nav a[href="#vote"]').count(), 1);
+  // Search and AI answers read the structured data: it must say what the visible page says.
+  const ld = await page.evaluate(() =>
+    [...document.querySelectorAll('script[type="application/ld+json"]')].map(
+      (n) => JSON.parse(n.textContent),
+    ),
+  );
+  const app = ld.find((d) => d["@type"] === "SoftwareApplication");
+  assert.ok(
+    app.operatingSystem.includes("Windows") &&
+      app.operatingSystem.includes("macOS"),
+  );
+  assert.equal(app.offers.price, "0");
+  const faqLd = ld.find((d) => d["@type"] === "FAQPage");
+  const visibleFaq = await page.evaluate(() =>
+    [...document.querySelectorAll(".faq details")].map((d) => ({
+      q: d.querySelector("summary").textContent,
+      a: d.querySelector("p").textContent,
+    })),
+  );
+  const squash = (t) => t.replace(/\s+/g, "");
+  assert.equal(
+    faqLd.mainEntity.length,
+    visibleFaq.length,
+    "every visible question is in the data",
+  );
+  faqLd.mainEntity.forEach((entry, i) => {
+    assert.equal(squash(entry.name), squash(visibleFaq[i].q));
+    assert.equal(squash(entry.acceptedAnswer.text), squash(visibleFaq[i].a));
+  });
+  for (const tag of [
+    'meta[name="twitter:card"]',
+    'meta[property="og:image:width"]',
+    'link[rel="canonical"]',
+  ])
+    assert.equal(await page.locator(tag).count(), 1, tag);
   const noJS = await browser.newPage({ javaScriptEnabled: false });
   await noJS.goto(url);
   assert.ok((await noJS.locator("h1").innerText()).includes("台股"));

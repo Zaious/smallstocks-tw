@@ -11,6 +11,7 @@
     />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="zh_TW" />
+    <meta property="og:site_name" content="SmallStocks TW" />
     <meta property="og:title" content="SmallStocks TW｜台股，縮小著看。" />
     <meta
       property="og:description"
@@ -20,6 +21,13 @@
       property="og:image"
       content="https://smallstocks.chroniclecore.com/media/share.png"
     />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="螢幕角落的台股小視窗：名稱、價格與漲跌幅，旁邊是提醒卡片。"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta property="og:url" content="https://smallstocks.chroniclecore.com/" />
     <link rel="canonical" href="https://smallstocks.chroniclecore.com/" />
     <link rel="icon" href="media/icon.svg" type="image/svg+xml" />
@@ -31,19 +39,117 @@
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
         "name": "SmallStocks TW",
-        "description": "免費開源的台股桌面自選與事件提醒小工具。",
+        "url": "https://smallstocks.chroniclecore.com/",
+        "description": "免費開源的台股桌面自選與事件提醒小工具，Windows 與 Mac。",
         "applicationCategory": "FinanceApplication",
-        "operatingSystem": "Windows",
+        "operatingSystem": "Windows, macOS",
         "inLanguage": "zh-Hant",
         "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "TWD"
+        },
+        "downloadUrl": "https://github.com/Zaious/smallstocks-tw/releases",
+        "screenshot": "https://smallstocks.chroniclecore.com/media/hero-desk.png",
+        "featureList": [
+          "台股自選股監看，最多 30 檔",
+          "價格或漲跌幅跨過門檻才提醒",
+          "收盤與每日歷史行情",
+          "數字、單行走勢、極簡三種顯示，終端機與記事本外觀",
+          "選配本機 MCP，讓 AI 助理查詢與設定提醒"
+        ],
         "license": "https://www.apache.org/licenses/LICENSE-2.0",
         "codeRepository": "https://github.com/Zaious/smallstocks-tw",
-        "author": { "@type": "Person", "name": "Zaious" },
+        "author": {
+          "@type": "Person",
+          "name": "Zaious"
+        },
         "publisher": {
           "@type": "Organization",
           "name": "編年史記工作室 ChronicleCore Studio",
           "url": "https://studio.chroniclecore.com"
         }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "不用 AI 助理，也可以正常使用嗎？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "可以。自選股、監看、提醒與歷史都由獨立桌面程式提供。MCP 只是讓 agent 也能操作同一份設定。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "價格會即時到什麼程度？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "一般模式預設約每 15 秒批次取得行情，錯誤時會退避重試。這不是逐筆報價，也不保證零延遲或不漏報。過期、缺成交價與亂序資料不會觸發提醒；分鐘線僅供顯示，不參與提醒判定。盤中證交所常常不給個股成交價，個股資料也約每 1 至 2 分鐘才更新；這時畫面會顯示買賣價的平均，並以「委」明確標示是委託價、不是成交價。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "會經過你們的伺服器嗎？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "不會由開發者轉送行情。桌面程式由使用者電腦直接請求資料來源，設定與事件保存在本機。若讓雲端模型讀取 MCP，內容可能會傳給你選用的模型服務。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "可以下單、看券商庫存，或提醒爆量嗎？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "目前不提供下單或券商庫存，也沒有爆量、大單、封板／開板或公告提醒。首版以自選股、價格與漲跌幅跨越規則為主。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "支援哪些標的？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "支援來源可取得的上市、上櫃股票與 ETF，以及加權／櫃買指數。可搜尋名稱、代號，或一次貼上多個代號；目前最多 30 檔自選。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "資料從哪裡來？需要券商帳號嗎？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "不需要券商帳號，也不套任何券商。行情由使用者的電腦直接向證交所公開的行情介面取得，歷史日線來自證交所與櫃買中心的官方公開資料。盤中個股約每 1 至 2 分鐘才更新，不是券商那種逐筆報價。行情的使用條件請自行確認。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "支援哪些作業系統？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "有 Windows 免安裝版與安裝版；Mac 版同時支援 Intel 與 Apple Silicon，已簽章並經 Apple 公證，目前只在一台 Intel Mac 實測過。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "有手機版或美股版嗎？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "目前沒有，只有 Windows 與 Mac 桌面版。想要哪個方向，可以在本頁的「接下來做什麼」投一票；投票不用登入，也不記你是誰。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "免費嗎？會收集使用資料嗎？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "程式免費開源，不需帳號，程式本身也沒有分析追蹤。行情資料受各來源條件限制，不包含在程式授權內。網站使用 Cloudflare Web Analytics 統計瀏覽次數、來源網站與國家：不用 Cookie，不記錄個別訪客；網站上的「接下來做什麼」投票只存各選項的票數，不記是誰投的；為取得最新下載連結，會向 GitHub 查詢公開版本資訊。程式每次啟動會向 GitHub 詢問一次有沒有新版本（可在設定關閉），不傳送任何關於你的資料，開發者只看得到 GitHub 公布的下載次數。"
+            }
+          }
+        ]
       }
     </script>
   </head>
@@ -601,6 +707,28 @@
               支援來源可取得的上市、上櫃股票與
               ETF，以及加權／櫃買指數。可搜尋名稱、代號，或一次貼上多個代號；目前最多
               30 檔自選。
+            </p>
+          </details>
+          <details>
+            <summary>資料從哪裡來？需要券商帳號嗎？</summary>
+            <p>
+              不需要券商帳號，也不套任何券商。行情由使用者的電腦直接向證交所公開的行情介面取得，歷史日線來自證交所與櫃買中心的官方公開資料。盤中個股約每
+              1 至 2
+              分鐘才更新，不是券商那種逐筆報價。行情的使用條件請自行確認。
+            </p>
+          </details>
+          <details>
+            <summary>支援哪些作業系統？</summary>
+            <p>
+              有 Windows 免安裝版與安裝版；Mac 版同時支援 Intel 與 Apple
+              Silicon，已簽章並經 Apple 公證，目前只在一台 Intel Mac 實測過。
+            </p>
+          </details>
+          <details>
+            <summary>有手機版或美股版嗎？</summary>
+            <p>
+              目前沒有，只有 Windows 與 Mac
+              桌面版。想要哪個方向，可以在本頁的「接下來做什麼」投一票；投票不用登入，也不記你是誰。
             </p>
           </details>
           <details>
