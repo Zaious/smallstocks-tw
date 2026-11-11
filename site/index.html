@@ -57,6 +57,7 @@
       >
       <nav aria-label="主要導覽">
         <a href="#looks">看外觀</a><a href="#download">取得試用版</a
+        ><a href="#vote">投票</a
         ><a href="https://github.com/Zaious/smallstocks-tw">原始碼 ↗</a>
       </nav>
     </header>
@@ -605,8 +606,9 @@
           <details>
             <summary>免費嗎？會收集使用資料嗎？</summary>
             <p>
-              程式免費開源，不需帳號，也沒有分析追蹤。行情資料受各來源條件限制，不包含在程式授權內。網站不放分析工具或追蹤
-              Cookie；網站上的「接下來做什麼」投票只存各選項的票數，不記是誰投的；為取得最新下載連結，會向
+              程式免費開源，不需帳號，程式本身也沒有分析追蹤。行情資料受各來源條件限制，不包含在程式授權內。網站使用
+              Cloudflare Web Analytics 統計瀏覽次數、來源網站與國家：不用
+              Cookie，不記錄個別訪客；網站上的「接下來做什麼」投票只存各選項的票數，不記是誰投的；為取得最新下載連結，會向
               GitHub 查詢公開版本資訊。程式每次啟動會向 GitHub
               詢問一次有沒有新版本（可在設定關閉），不傳送任何關於你的資料，開發者只看得到
               GitHub 公布的下載次數。
@@ -660,5 +662,12 @@
         </p>
       </div>
     </footer>
+    <!-- Cloudflare Web Analytics -->
+    <script
+      type="module"
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "03b445f4bfea41fd8a12056b16e88bf3"}'
+    ></script>
+    <!-- End Cloudflare Web Analytics -->
   </body>
 </html>

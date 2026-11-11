@@ -141,6 +141,7 @@ footer {
 .top nav a {
   color: var(--muted);
   text-decoration: none;
+  white-space: nowrap;
 }
 .top nav a:hover {
   color: var(--text);
@@ -1009,7 +1010,8 @@ footer a {
     gap: 14px;
     font-size: 12px;
   }
-  .top nav a:first-child {
+  .top nav a:first-child,
+  .top nav a:last-child {
     display: none;
   }
   .hero {

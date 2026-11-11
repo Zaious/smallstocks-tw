@@ -280,6 +280,19 @@ try {
     "remembered in this browser",
   );
   await voteContext.close();
+  const html = await (await fetch(url)).text();
+  assert.equal(
+    (html.match(/static\.cloudflareinsights\.com\/beacon\.min\.js/g) ?? [])
+      .length,
+    1,
+    "one analytics beacon",
+  );
+  assert.ok(
+    html.includes("Cloudflare Web Analytics"),
+    "the privacy text says it",
+  );
+  assert.ok(!html.includes("網站不放分析工具"), "no stale no-analytics claim");
+  assert.equal(await page.locator('nav a[href="#vote"]').count(), 1);
   const noJS = await browser.newPage({ javaScriptEnabled: false });
   await noJS.goto(url);
   assert.ok((await noJS.locator("h1").innerText()).includes("台股"));
