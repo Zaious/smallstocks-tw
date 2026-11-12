@@ -223,14 +223,21 @@ try {
         json: {
           result: "thanks",
           ballots: 25,
-          options: { mobile: 10, us: 5, alerts: 2, looks: 1, enough: 7 },
+          options: {
+            mobile: 10,
+            us: 5,
+            esb: 3,
+            alerts: 2,
+            looks: 1,
+            enough: 4,
+          },
         },
       });
     }
     return route.fulfill({
       json: {
         ballots: 25,
-        options: { mobile: 10, us: 5, alerts: 2, looks: 1, enough: 7 },
+        options: { mobile: 10, us: 5, esb: 3, alerts: 2, looks: 1, enough: 4 },
       },
     });
   });

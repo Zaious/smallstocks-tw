@@ -107,6 +107,7 @@
     const labels = {
       mobile: "手機版（iOS／Android）",
       us: "美股版",
+      esb: "興櫃股票",
       alerts: "更多種類的提醒",
       looks: "更多外觀與使用上的小改進",
       enough: "現在這樣就夠了",
