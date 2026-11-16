@@ -3,6 +3,7 @@ mod core;
 mod daily;
 mod intraday;
 mod mcp;
+mod us;
 use core::{now, Core};
 use serde_json::{json, Value};
 use std::{
@@ -379,28 +380,54 @@ async fn search_stocks(query: String) -> Result<Value, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(15))
+            .user_agent(concat!("SmallStocks-TW/", env!("CARGO_PKG_VERSION")))
             .build()
             .map_err(|e| e.to_string())?;
-        let v: Value = client
+        let q = query.trim();
+        let tw: Result<Vec<Value>, String> = client
             .get("https://mis.twse.com.tw/stock/api/getStockNames.jsp")
-            .query(&[("n", query.trim())])
+            .query(&[("n", q)])
             .send()
             .and_then(|r| r.error_for_status())
-            .and_then(|r| r.json())
-            .map_err(|e| e.to_string())?;
-        let mut list: Vec<Value> = v["datas"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter_map(|r| {
-                let c = r["c"].as_str().and_then(core::symbol)?;
-                Some(json!({"symbol":c,"name":r["n"].as_str().unwrap_or("")}))
-            })
-            .collect();
+            .and_then(|r| r.json::<Value>())
+            .map_err(|e| e.to_string())
+            .map(|v| {
+                v["datas"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|r| {
+                        let c = r["c"].as_str().and_then(core::symbol)?;
+                        Some(json!({"symbol":c,"name":r["n"].as_str().unwrap_or("")}))
+                    })
+                    .collect()
+            });
+        // Latin letters: also US listings from Yahoo's public search (unofficial).
+        let latin = q.is_ascii() && q.chars().any(|c| c.is_ascii_alphabetic());
+        let us: Vec<Value> = if latin {
+            client
+                .get(us::search_url(q))
+                .send()
+                .and_then(|r| r.error_for_status())
+                .and_then(|r| r.json::<Value>())
+                .map(|v| {
+                    us::parse_search(&v)
+                        .into_iter()
+                        .map(|(c, n)| json!({"symbol":c,"name":n,"market":"us"}))
+                        .collect()
+                })
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+        if us.is_empty() {
+            tw.as_ref().map_err(|e| e.clone())?;
+        }
+        let mut list: Vec<Value> = tw.unwrap_or_default();
+        list.extend(us);
+        let wanted = q.to_uppercase().replace('.', "-");
         list.sort_by_key(|r| {
-            if r["name"].as_str() == Some(query.trim())
-                || r["symbol"].as_str() == Some(query.trim())
-            {
+            if r["name"].as_str() == Some(q) || r["symbol"].as_str() == Some(wanted.as_str()) {
                 0
             } else if r["symbol"].as_str().is_some_and(|c| c.len() == 4) {
                 1
@@ -572,7 +599,17 @@ pub fn run() {
                             continue;
                         }
                         s.next_poll = at + s.saved.settings.refresh_seconds as i64 * 1000;
-                        (s.saved.watchlist.clone(), s.demo, s.config_revision)
+                        let codes: Vec<String> = s
+                            .saved
+                            .watchlist
+                            .iter()
+                            .filter(|c| s.demo || !core::is_us(c))
+                            .cloned()
+                            .collect();
+                        if codes.is_empty() {
+                            continue;
+                        }
+                        (codes, s.demo, s.config_revision)
                     };
                     let result = if is_demo {
                         tick += 1;
@@ -618,6 +655,74 @@ pub fn run() {
                                     .min(300) as i64)
                                     * 1000;
                             s.reset_baselines();
+                        }
+                    }
+                }
+            });
+            // US quotes: their own polling, clock and health, so a slow or failed US reply never
+            // touches the Taiwan side. Nothing is asked when the watchlist has no US symbol.
+            let us_state = setup_state.clone();
+            let us_handle = app.handle().clone();
+            supervise(setup_state.clone(), "美股輪詢", move || {
+                let client = reqwest::blocking::Client::builder()
+                    .timeout(Duration::from_secs(15))
+                    .user_agent(concat!("SmallStocks-TW/", env!("CARGO_PKG_VERSION")))
+                    .build()
+                    .unwrap();
+                loop {
+                    std::thread::sleep(Duration::from_millis(500));
+                    let (codes, revision) = {
+                        let mut s = us_state.lock().unwrap_or_else(PoisonError::into_inner);
+                        let at = now();
+                        let codes: Vec<String> = s
+                            .saved
+                            .watchlist
+                            .iter()
+                            .filter(|c| core::is_us(c))
+                            .cloned()
+                            .collect();
+                        if s.demo || s.saved.settings.paused || codes.is_empty() || at < s.us_next_poll
+                        {
+                            continue;
+                        }
+                        s.us_next_poll = at + s.us_interval(at);
+                        (codes, s.config_revision)
+                    };
+                    let result = client
+                        .get(us::spark_url(&codes))
+                        .send()
+                        .and_then(|r| r.error_for_status())
+                        .and_then(|r| r.text())
+                        .map_err(|e| e.to_string())
+                        .and_then(|text| {
+                            serde_json::from_str::<Value>(&text).map_err(|e| {
+                                format!(
+                                    "美股報價格式錯誤：{e}（開頭：{}）",
+                                    text.chars().take(160).collect::<String>()
+                                )
+                            })
+                        })
+                        .and_then(|v| us::parse_spark(&v, now()));
+                    let mut s = us_state.lock().unwrap_or_else(PoisonError::into_inner);
+                    if s.config_revision != revision || s.saved.settings.paused {
+                        continue;
+                    }
+                    match result {
+                        Ok(spark) => {
+                            let events = s.ingest_us(spark, now());
+                            if !s.notices_hidden {
+                                for e in events {
+                                    let _ = us_handle.emit("stock-notice", &e);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            s.us_error = Some(format!("美股連線失敗：{e}"));
+                            s.us_failures = (s.us_failures + 1).min(6);
+                            s.us_next_poll = now()
+                                + ((s.saved.settings.refresh_seconds * 2u64.pow(s.us_failures))
+                                    .min(300) as i64)
+                                    * 1000;
                         }
                     }
                 }

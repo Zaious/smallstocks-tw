@@ -25,6 +25,13 @@ fn num(v: &Value) -> Option<f64> {
     let n = v.as_f64().or_else(|| v.as_str()?.parse().ok())?;
     (n.is_finite() && n > 0.).then_some(n)
 }
+/// US tickers start with a letter; Taiwan codes start with a digit and the two index codes are
+/// lowercase (t00, o00).
+pub fn is_us(code: &str) -> bool {
+    code.as_bytes()
+        .first()
+        .is_some_and(|b| b.is_ascii_uppercase())
+}
 pub fn symbol(s: &str) -> Option<String> {
     let s = s.trim().to_uppercase();
     if matches!(s.as_str(), "大盤" | "加權" | "加權指數" | "T00") {
@@ -35,10 +42,22 @@ pub fn symbol(s: &str) -> Option<String> {
     }
     let s = s.trim_end_matches(".TWO").trim_end_matches(".TW");
     let digits = s.chars().take_while(|c| c.is_ascii_digit()).count();
-    ((4..=6).contains(&digits)
-        && (s.len() == digits
-            || s.len() == digits + 1 && s.as_bytes()[digits].is_ascii_uppercase()))
-    .then(|| s.to_owned())
+    if digits > 0 {
+        return ((4..=6).contains(&digits)
+            && (s.len() == digits
+                || s.len() == digits + 1 && s.as_bytes()[digits].is_ascii_uppercase()))
+        .then(|| s.to_owned());
+    }
+    // A US ticker: 1-5 letters, optionally a share class (BRK.B or BRK-B, kept as Yahoo's BRK-B).
+    let us = s.replace('.', "-");
+    let mut parts = us.split('-');
+    let base = parts.next().unwrap_or("");
+    let letters = |p: &str, max: usize| {
+        (1..=max).contains(&p.len()) && p.bytes().all(|b| b.is_ascii_uppercase())
+    };
+    let class = parts.next();
+    (letters(base, 5) && class.is_none_or(|c| letters(c, 2)) && parts.next().is_none())
+        .then_some(us)
 }
 pub fn mis_url(codes: &[String]) -> String {
     let channels: Vec<String> = codes
@@ -81,6 +100,27 @@ pub struct Quote {
     pub received_at: i64,
     pub date: String,
     pub source: String,
+    /// "tw" or "us". Older saved quotes have none: Taiwan.
+    #[serde(default = "tw_market")]
+    pub market: String,
+    /// The exchange's UTC offset in seconds: whose calendar day `date` and the freshness check use.
+    #[serde(default = "tw_offset")]
+    pub utc_offset: i32,
+}
+fn tw_market() -> String {
+    "tw".into()
+}
+fn tw_offset() -> i32 {
+    8 * 3600
+}
+/// The calendar day at `ms` on the quote's own exchange (Taipei, or New York for US quotes).
+pub fn exchange_day(ms: i64, q: &Quote) -> String {
+    FixedOffset::east_opt(q.utc_offset)
+        .unwrap_or_else(|| FixedOffset::east_opt(8 * 3600).unwrap())
+        .timestamp_millis_opt(ms)
+        .single()
+        .map(|t| t.format("%Y%m%d").to_string())
+        .unwrap_or_default()
 }
 /// Stock snapshots from the source arrive about every one to two minutes, so a quote stays usable
 /// for three minutes; older than that it is stale and cannot start or complete a crossing.
@@ -155,6 +195,8 @@ pub fn parse_mis(v: &Value, received: i64) -> Result<Vec<Quote>, String> {
             received_at: received,
             date: date.into(),
             source: "TWSE MIS".into(),
+            market: "tw".into(),
+            utc_offset: 8 * 3600,
         });
     }
     Ok(out)
@@ -284,6 +326,12 @@ pub struct Core {
     /// The trade prices this app saw in about the last hour, per symbol: what rapid-move rules
     /// measure against. Memory only, so after a start a rule waits until it has a full window.
     pub recent: HashMap<String, std::collections::VecDeque<(i64, f64)>>,
+    /// The US regular session the source last reported; None until the first US reply.
+    pub us_session: Option<crate::us::Session>,
+    pub us_next_poll: i64,
+    pub us_last_fetch: Option<i64>,
+    pub us_error: Option<String>,
+    pub us_failures: u32,
     pub path: PathBuf,
     pub demo: bool,
     pub error: Option<String>,
@@ -325,6 +373,11 @@ impl Core {
             saved,
             quotes: HashMap::new(),
             recent: HashMap::new(),
+            us_session: None,
+            us_next_poll: 0,
+            us_last_fetch: None,
+            us_error: None,
+            us_failures: 0,
             path,
             demo,
             error: None,
@@ -355,6 +408,22 @@ impl Core {
             .closures
             .iter()
             .find(|c| c.date == day.format("%Y-%m-%d").to_string())
+    }
+    /// Whether the US regular session the source reported is running at `ms`.
+    pub fn us_open(&self, ms: i64) -> bool {
+        self.us_session.is_some_and(|s| s.start <= ms && ms < s.end)
+    }
+    /// When to ask for US quotes again: every refresh during the session (and the ten minutes
+    /// before it), every ten minutes otherwise, so the close and the next session stay known.
+    pub fn us_interval(&self, ms: i64) -> i64 {
+        let near = self
+            .us_session
+            .is_some_and(|s| s.start - 10 * 60_000 <= ms && ms < s.end + 5 * 60_000);
+        if near || self.us_session.is_none() {
+            self.saved.settings.refresh_seconds as i64 * 1000
+        } else {
+            600_000
+        }
     }
     /// Session hours on a weekday that the official calendar does not mark as closed.
     pub fn market_open(&self, ms: i64) -> bool {
@@ -431,7 +500,7 @@ impl Core {
             .iter()
             .map(|c| (c.clone(), self.intraday_view(c)))
             .collect();
-        json!({"watchlist":self.saved.watchlist,"settings":self.saved.settings,"privacyShortcutError":self.privacy_shortcut_error,"rules":self.saved.rules,"events":self.saved.events,"quotes":self.quotes,"demo":self.demo,"error":self.error,"lastFetch":self.last_fetch,"nextPoll":self.next_poll,"marketOpen":self.market_open(now()),"marketClosedReason":self.closed_reason(now()),"calendar":self.calendar_view(),"revision":self.revision,"now":now(),"dailySummaries":summaries,"intraday":intraday})
+        json!({"watchlist":self.saved.watchlist,"settings":self.saved.settings,"privacyShortcutError":self.privacy_shortcut_error,"rules":self.saved.rules,"events":self.saved.events,"quotes":self.quotes,"demo":self.demo,"error":self.error,"lastFetch":self.last_fetch,"nextPoll":self.next_poll,"marketOpen":self.market_open(now()),"marketClosedReason":self.closed_reason(now()),"usMarketOpen":self.us_open(now()),"usSession":self.us_session.map(|s| json!({"start":s.start,"end":s.end})),"usLastFetch":self.us_last_fetch,"usError":self.us_error,"calendar":self.calendar_view(),"revision":self.revision,"now":now(),"dailySummaries":summaries,"intraday":intraday})
     }
     pub fn queue_intraday(&mut self, code: &str) {
         let at = now();
@@ -459,7 +528,7 @@ impl Core {
             .saved
             .intraday_cache
             .get(code)
-            .filter(|s| s.date == date);
+            .filter(|s| s.date == date || is_us(code));
         let series = external.or_else(|| {
             self.saved
                 .local_intraday
@@ -569,12 +638,17 @@ impl Core {
             if self.saved.settings.row_display == "trend" && (self.market_open(now()) || self.demo)
             {
                 for c in self.saved.watchlist.clone() {
-                    self.queue_intraday(&c)
+                    if !is_us(&c) {
+                        self.queue_intraday(&c)
+                    }
                 }
             }
             if !self.market_open(now()) || self.demo {
                 let months = daily::months(now());
                 for c in self.saved.watchlist.clone() {
+                    if is_us(&c) {
+                        continue;
+                    }
                     for m in &months {
                         self.queue_daily(&c, m)
                     }
@@ -590,6 +664,9 @@ impl Core {
             if !self.saved.watchlist.contains(&code) {
                 return Err("請先將標的加入自選，再讀取分鐘線".into());
             }
+            if is_us(&code) {
+                return Ok(self.intraday_view(&code));
+            }
             self.queue_intraday(&code);
             return Ok(self.intraday_view(&code));
         }
@@ -598,6 +675,9 @@ impl Core {
                 .as_str()
                 .and_then(symbol)
                 .ok_or("需要台股代號")?;
+            if is_us(&code) {
+                return Err("美股暫不提供日線歷史".into());
+            }
             let month = args["month"].as_str().ok_or("需要 YYYY-MM 月份")?;
             if !daily::valid_month(month) {
                 return Err("月份需介於 2000-01 與本月之間".into());
@@ -748,8 +828,24 @@ impl Core {
     /// Applies a poll result. A failed save never discards live quotes or detected events:
     /// state stays in memory, the failure is surfaced in `error`, and saving is retried next poll.
     pub fn ingest(&mut self, quotes: Vec<Quote>, at: i64) -> Vec<Event> {
+        self.ingest_market(quotes, at, "tw")
+    }
+    /// A US reply: keeps the session it reported and the latest five-minute line per symbol.
+    pub fn ingest_us(&mut self, spark: crate::us::Spark, at: i64) -> Vec<Event> {
+        if spark.session.is_some() {
+            self.us_session = spark.session;
+        }
+        for s in spark.series {
+            if self.saved.watchlist.contains(&s.symbol) {
+                self.saved.intraday_cache.insert(s.symbol.clone(), s);
+            }
+        }
+        self.ingest_market(spark.quotes, at, "us")
+    }
+    fn ingest_market(&mut self, quotes: Vec<Quote>, at: i64, market: &str) -> Vec<Event> {
         let mut next = self.clone();
-        let open = next.market_open(at);
+        let tw_open = next.market_open(at);
+        let us_open = next.us_open(at);
         let mut emitted = Vec::new();
         for q in quotes {
             if !next.saved.watchlist.contains(&q.symbol) {
@@ -786,6 +882,7 @@ impl Core {
                 .iter_mut()
                 .filter(|r| r.symbol == q.symbol && r.enabled)
             {
+                let open = if q.market == "us" { us_open } else { tw_open };
                 let event = if rule.metric == "move" {
                     evaluate_move(rule, &q, &samples, at, self.demo, open)
                 } else {
@@ -799,9 +896,15 @@ impl Core {
             next.quotes.insert(q.symbol.clone(), q);
         }
         next.saved.events.truncate(500);
-        next.last_fetch = Some(at);
-        next.error = None;
-        next.failures = 0;
+        if market == "us" {
+            next.us_last_fetch = Some(at);
+            next.us_error = None;
+            next.us_failures = 0;
+        } else {
+            next.last_fetch = Some(at);
+            next.error = None;
+            next.failures = 0;
+        }
         if !emitted.is_empty() || at - next.last_intraday_save >= 60_000 {
             next.revision += 1;
             match next.persist() {
@@ -816,9 +919,8 @@ impl Core {
 
 /// `open` is whether the session is open now (hours and official calendar), decided by the caller.
 pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool, open: bool) -> Option<Event> {
-    let fresh = q.source_at <= at + 5000
-        && at - q.source_at <= FRESH_MS
-        && q.date == local(at).format("%Y%m%d").to_string();
+    let fresh =
+        q.source_at <= at + 5000 && at - q.source_at <= FRESH_MS && q.date == exchange_day(at, q);
     if !fresh || (!demo && !open) || r.channel == "off" {
         r.last_value = None;
         r.last_at = None;
@@ -891,10 +993,12 @@ pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool, open: bool) -> Opt
     } else {
         "降至"
     };
-    let unit = if matches!(r.metric.as_str(), "price" | "mid") {
-        "元"
-    } else {
+    let unit = if !matches!(r.metric.as_str(), "price" | "mid") {
         "%"
+    } else if q.market == "us" {
+        "美元"
+    } else {
+        "元"
     };
     let (text, value) = if via_touch {
         let (extreme, side) = if r.direction == "above" {
@@ -968,6 +1072,8 @@ pub fn demo_quotes(codes: &[String], tick: u64) -> Vec<Quote> {
                 received_at: at,
                 date: local(at).format("%Y%m%d").to_string(),
                 source: "合成示範資料".into(),
+                market: if is_us(c) { "us" } else { "tw" }.into(),
+                utc_offset: 8 * 3600,
             }
         })
         .collect()
@@ -985,9 +1091,8 @@ pub fn evaluate_move(
     demo: bool,
     open: bool,
 ) -> Option<Event> {
-    let fresh = q.source_at <= at + 5000
-        && at - q.source_at <= FRESH_MS
-        && q.date == local(at).format("%Y%m%d").to_string();
+    let fresh =
+        q.source_at <= at + 5000 && at - q.source_at <= FRESH_MS && q.date == exchange_day(at, q);
     if !fresh || (!demo && !open) || r.channel == "off" {
         return None;
     }
@@ -1131,6 +1236,9 @@ fn apply_rule(next: &mut Core, args: &Value) -> Result<(), String> {
     if matches!(metric, "price" | "mid") && threshold <= 0. {
         return Err("價格門檻必須大於零".into());
     }
+    if is_us(&code) && matches!(metric, "mid" | "midChangePercent") {
+        return Err("美股來源沒有買賣價，請改用成交價、漲跌幅或急漲急跌".into());
+    }
     let window_minutes = if metric == "move" {
         if !(threshold > 0. && threshold <= 30.) {
             return Err("急漲急跌的幅度需介於 0 與 30%".into());
@@ -1227,6 +1335,8 @@ mod tests {
             received_at: t,
             date: local(t).format("%Y%m%d").to_string(),
             source: "test".into(),
+            market: "tw".into(),
+            utc_offset: 8 * 3600,
         }
     }
     fn rule() -> Rule {
@@ -2413,5 +2523,110 @@ mod tests {
             );
         }
         assert_eq!(differ, 0, "live alerts and the replay disagree");
+    }
+
+    #[test]
+    fn us_tickers_are_told_apart_from_taiwan_codes() {
+        for (input, want) in [
+            ("aapl", Some("AAPL")),
+            ("BRK.B", Some("BRK-B")),
+            ("brk-b", Some("BRK-B")),
+            ("QQQ", Some("QQQ")),
+            ("2330", Some("2330")),
+            ("00878", Some("00878")),
+            ("t00", Some("t00")),
+            ("2330.TW", Some("2330")),
+            ("TOOLONG", None),
+            ("A1", None),
+            ("BRK.BBB", None),
+            ("台積電", None),
+            ("", None),
+        ] {
+            assert_eq!(symbol(input).as_deref(), want, "{input}");
+        }
+        assert!(is_us("AAPL") && is_us("BRK-B"));
+        assert!(!is_us("2330") && !is_us("t00") && !is_us("o00"));
+    }
+    #[test]
+    fn us_quotes_use_new_york_days_and_the_us_session() {
+        let dir = std::env::temp_dir().join(format!("smallstocks-us-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut c = Core::load(dir.join("state.json"), false).unwrap();
+        c.execute("set_watchlist", json!({"symbols":["AAPL","2330"]}))
+            .unwrap();
+        // The book mid does not exist for US quotes.
+        assert!(c
+            .execute(
+                "upsert_rule",
+                json!({"symbol":"AAPL","metric":"mid","direction":"above","threshold":200})
+            )
+            .is_err());
+        c.execute(
+            "upsert_rule",
+            json!({"symbol":"AAPL","metric":"price","direction":"above","threshold":200,"channel":"log"}),
+        )
+        .unwrap();
+        // Wednesday 2026-11-11 10:00 New York (EST, UTC-5) = 23:00 Taipei: a Taipei evening.
+        let open_at = Utc
+            .with_ymd_and_hms(2026, 11, 11, 15, 0, 0)
+            .unwrap()
+            .timestamp_millis();
+        let session = crate::us::Session {
+            start: open_at - 30 * 60_000,
+            end: open_at + 6 * 3_600_000,
+            offset: -5 * 3600,
+        };
+        let us = |price: f64, at: i64| Quote {
+            symbol: "AAPL".into(),
+            name: "Apple Inc.".into(),
+            price: Some(price),
+            bid: None,
+            ask: None,
+            previous: Some(190.),
+            change_percent: Some((price / 190. - 1.) * 100.),
+            mid: None,
+            mid_change_percent: None,
+            trade_at: Some(at),
+            day_high: Some(price),
+            day_low: Some(price),
+            source_at: at,
+            received_at: at,
+            date: "20261111".into(),
+            source: crate::us::SOURCE.into(),
+            market: "us".into(),
+            utc_offset: -5 * 3600,
+        };
+        let spark = |price: f64, at: i64| crate::us::Spark {
+            quotes: vec![us(price, at)],
+            session: Some(session),
+            series: vec![],
+        };
+        // Before the first US reply the session is unknown: closed, nothing is judged.
+        assert!(!c.us_open(open_at));
+        assert!(c.ingest_us(spark(199., open_at), open_at).is_empty());
+        assert!(c.us_open(open_at), "the reply told the session");
+        assert_eq!(c.us_last_fetch, Some(open_at));
+        assert_eq!(c.last_fetch, None, "the Taiwan side is untouched");
+        // Taipei is already on the 12th after midnight, New York still on the 11th: still fresh.
+        let late = Utc
+            .with_ymd_and_hms(2026, 11, 11, 16, 30, 0)
+            .unwrap()
+            .timestamp_millis();
+        assert!(c
+            .ingest_us(spark(199.5, late - 60_000), late - 60_000)
+            .is_empty());
+        let fired = c.ingest_us(spark(201., late), late);
+        assert_eq!(fired.len(), 1, "a crossing in the US session fires");
+        assert!(fired[0].text.contains("美元"), "{}", fired[0].text);
+        // After the session: no judging.
+        let mut after = c.clone();
+        after.saved.rules[0].fired_day = None;
+        let closed = session.end + 60_000;
+        assert!(after
+            .ingest_us(spark(180., closed - 30_000), closed)
+            .is_empty());
+        assert!(!after.us_open(closed));
+        // A US failure is the US side's own error.
+        assert!(c.error.is_none());
     }
 }

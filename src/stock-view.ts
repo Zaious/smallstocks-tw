@@ -9,6 +9,9 @@ import {
   closeDay,
   ageSeconds,
   BOOK_NOTE,
+  closedFor,
+  isUs,
+  marketOf,
 } from "./model.ts";
 import type { Snapshot } from "./model.ts";
 export interface StockDetail {
@@ -29,7 +32,7 @@ export interface StockDetail {
 }
 export function stockDetail(s: Snapshot, c: string): StockDetail {
   const q = s.quotes[c],
-    closed = !s.marketOpen && !s.demo,
+    closed = closedFor(s, c),
     d = closed ? closeDay(s, c) : undefined;
   const name =
       q?.name || (c === "t00" ? "加權指數" : c === "o00" ? "櫃買指數" : c),
@@ -38,7 +41,7 @@ export function stockDetail(s: Snapshot, c: string): StockDetail {
     price = (closed ? d?.close : live.price) ?? null,
     pct = (closed ? d?.changePercent : live.pct) ?? null;
   const old = closed
-    ? Boolean(d && d.date !== latestCloseDate(s))
+    ? Boolean(d && d.date !== latestCloseDate(s, marketOf(c)))
     : stale(q, s.now);
   const valid =
     price != null &&
@@ -64,7 +67,9 @@ export function stockDetail(s: Snapshot, c: string): StockDetail {
     date,
     sourceTime: closed ? "收盤" : time(q?.sourceAt),
     source: closed
-      ? s.dailySummaries[c]?.sources.join(" / ") || "日資料"
+      ? isUs(c)
+        ? q?.source || "Yahoo Finance（非官方）"
+        : s.dailySummaries[c]?.sources.join(" / ") || "日資料"
       : q?.source || "TWSE MIS",
     status:
       (s.settings.paused ? "已暫停監看 · " : "") +
@@ -73,11 +78,13 @@ export function stockDetail(s: Snapshot, c: string): StockDetail {
         : !valid
           ? "資料未確認"
           : closed
-            ? d?.kind === "final"
-              ? "今日收盤（待官方日資料）"
-              : d?.kind === "previous"
-                ? "上一交易日收盤"
-                : "最近收盤"
+            ? d?.kind === "us"
+              ? "美股最近收盤"
+              : d?.kind === "final"
+                ? "今日收盤（待官方日資料）"
+                : d?.kind === "previous"
+                  ? "上一交易日收盤"
+                  : "最近收盤"
             : live.basis === "book"
               ? BOOK_NOTE
               : age != null && age > 60

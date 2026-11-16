@@ -36,6 +36,9 @@ import {
   aging,
   oldestDataAt,
   BOOK_NOTE,
+  closedFor,
+  isUs,
+  marketOf,
 } from "./model.ts";
 import { historyBody } from "./daily-view.ts";
 import { trendCell } from "./inline-trend.ts";
@@ -408,7 +411,20 @@ function apply() {
     ? '<span class="demo-label">示範資料</span><span>合成行情 · 不代表真實市場</span>'
     : "";
   const missing = state.watchlist.filter((c) => !state.quotes[c]).length;
-  const old = state.watchlist.some((c) => stale(state.quotes[c], state.now));
+  const old = state.watchlist.some(
+    (c) => !closedFor(state, c) && stale(state.quotes[c], state.now),
+  );
+  const usCodes = state.watchlist.filter(isUs);
+  const twCount = state.watchlist.length - usCodes.length;
+  const usDate = latestCloseDate(state, "us");
+  const usPart =
+    usCodes.length && !state.demo
+      ? state.usError
+        ? " · 美股異常"
+        : state.usMarketOpen
+          ? " · 美股盤中"
+          : ` · 美股${usDate ? " " + usDate.slice(5).replace("-", "/") : ""} 收`
+      : "";
   document.querySelector("#health")!.textContent = state.settings.paused
     ? "Ⅱ 已暫停監看"
     : state.error
@@ -427,15 +443,15 @@ function apply() {
     "成交價規則只依新鮮成交資料；買賣中間價規則依委託價（非成交價）。首次觀測只建立基準";
   document.querySelector("#source")!.textContent = state.demo
     ? "DEMO"
-    : state.marketOpen && oldestDataAt(state)
-      ? `TWSE MIS · 資料 ${time(oldestDataAt(state)!)}`
+    : state.marketOpen && oldestDataAt(state, "tw")
+      ? `TWSE MIS · 資料 ${time(oldestDataAt(state, "tw")!)}`
       : `TWSE MIS · 取得 ${time(state.lastFetch)}`;
   document.querySelector<HTMLElement>("#source")!.title =
-    state.marketOpen && oldestDataAt(state)
+    state.marketOpen && oldestDataAt(state, "tw")
       ? `各檔資料時間不同，顯示最舊的一筆（最新取得於 ${time(state.lastFetch)}）。證交所個股約每 1 至 2 分鐘更新一次。`
       : "";
   if (!state.demo && !state.marketOpen) {
-    const date = latestCloseDate(state);
+    const date = latestCloseDate(state, "tw");
     const label = date
       ? (date.startsWith(
           new Date(state.now)
@@ -452,6 +468,33 @@ function apply() {
       `${state.settings.paused ? "Ⅱ 已暫停" : state.marketClosedReason ? `○ 休市（${state.marketClosedReason}）` : "○ 休市"} · ${label}`;
     document.querySelector("#source")!.textContent = "TWSE / TPEx · 日資料";
   }
+  // US symbols: their own session and source. Only US on the list: the status is theirs alone.
+  if (usCodes.length && !state.demo) {
+    const health = document.querySelector("#health")!;
+    const source = document.querySelector("#source")!;
+    if (!twCount) {
+      const usOld = usCodes.some((c) => stale(state.quotes[c], state.now));
+      health.textContent = state.settings.paused
+        ? "Ⅱ 已暫停監看"
+        : state.usError
+          ? "○ 美股連線異常 · 正在重試"
+          : usCodes.some((c) => !state.quotes[c])
+            ? "○ 部分行情尚未取得"
+            : state.usMarketOpen
+              ? usOld
+                ? "○ 來源資料已過期"
+                : "● 本機監看中 · 美股"
+              : `○ 美股休市${usDate ? ` · ${usDate.slice(5).replace("-", "/")} 收盤` : ""}`;
+      source.textContent = oldestDataAt(state, "us")
+        ? `Yahoo（非官方）· 資料 ${time(oldestDataAt(state, "us")!)}`
+        : "Yahoo Finance（非官方）";
+    } else {
+      health.textContent += usPart;
+      (source as HTMLElement).title += (source as HTMLElement).title
+        ? " 美股來自 Yahoo Finance（非官方）。"
+        : "美股來自 Yahoo Finance（非官方）。";
+    }
+  }
   if (
     state.settings.rowDisplay === "trend" &&
     ["small", "gray"].includes(state.settings.appearance)
@@ -463,12 +506,12 @@ function apply() {
         : "分鐘線 · 可能延遲";
 }
 function rows() {
-  const commonDate = latestCloseDate(state);
   return (
     state.watchlist
       .map((c) => {
         const q = state.quotes[c];
-        const closed = !state.marketOpen && !state.demo;
+        const closed = closedFor(state, c);
+        const commonDate = latestCloseDate(state, marketOf(c));
         const d = closed ? closeDay(state, c) : undefined;
         const live = livePrice(q);
         const pct = closed ? d?.changePercent : live.pct;
@@ -480,7 +523,7 @@ function rows() {
         const sign = (pct ?? 0) > 0 ? "up" : (pct ?? 0) < 0 ? "down" : "flat";
         const trend =
           state.settings.rowDisplay === "trend" ? trendCell(state, c) : null;
-        return `<button class="quote ${sign}${!closed && stale(q, state.now) ? " stale" : !closed && aging(q, state.now) ? " aging" : ""}" data-quote="${esc(c)}" title="${esc(name && name !== c ? `${name}（${c}）` : c)} · ${closed ? "正式收盤" : "來源時間"} ${esc(stamp)} · ${!closed && live.basis === "book" ? BOOK_NOTE : "價格"} ${number(closed ? d?.close : live.price)}${trend ? " · " + esc(trend.title) : ""} · 點擊查看行情"><span class="stock-name">${state.settings.showCodes || !name ? `<span class="stock-code">${esc(c)}</span>` : ""}<strong>${esc(name)}</strong></span>${trend ? `<span class="trend-slot">${trend.html}</span>` : `<span class="price${!closed && live.basis === "book" ? " book" : ""}">${number(closed ? d?.close : live.price)}</span>`}<span class="change">${change(pct)}</span>${closed && d && d.date !== commonDate ? `<span class="as-of">${d.date.slice(5).replace("-", "/")}</span>` : ""}</button>`;
+        return `<button class="quote ${sign}${!closed && stale(q, state.now) ? " stale" : !closed && aging(q, state.now) ? " aging" : ""}" data-quote="${esc(c)}" title="${esc(name && name !== c ? `${name}（${c}）` : c)} · ${closed ? (isUs(c) ? "美股最近收盤" : "正式收盤") : "來源時間"} ${esc(stamp)} · ${!closed && live.basis === "book" ? BOOK_NOTE : "價格"} ${number(closed ? d?.close : live.price)}${trend ? " · " + esc(trend.title) : ""} · 點擊查看行情"><span class="stock-name">${state.settings.showCodes || !name ? `<span class="stock-code">${esc(c)}</span>` : ""}<strong>${esc(name)}</strong></span>${trend ? `<span class="trend-slot">${trend.html}</span>` : `<span class="price${!closed && live.basis === "book" ? " book" : ""}">${number(closed ? d?.close : live.price)}</span>`}<span class="change">${change(pct)}</span>${closed && d && d.date !== commonDate ? `<span class="as-of">${d.date.slice(5).replace("-", "/")}</span>` : ""}</button>`;
       })
       .join("") || '<div class="empty">加入第一檔自選，讓重要變化來找你。</div>'
   );
@@ -566,7 +609,7 @@ function render() {
 function manage() {
   document.body.dataset.page = "manage";
   apply();
-  content.innerHTML = `<div class="pane"><h1>你的自選清單</h1><p class="intro">貼上多檔代號，以空白、逗號或換行分隔。最多 30 檔。</p><label>搜尋名稱或代號<input id="search" placeholder="例如：台積電、0050" autocomplete="off"></label><div id="results"></div><label>目前自選<textarea id="symbols" rows="5">${esc(state.watchlist.join(", "))}</textarea></label><button id="save-symbols" class="primary">儲存自選</button><button id="back-watch">返回</button><p class="note">有啟用中規則的標的，請先停用規則再移除。<br>加權：t00　櫃買：o00</p></div>`;
+  content.innerHTML = `<div class="pane"><h1>你的自選清單</h1><p class="intro">貼上多檔代號，以空白、逗號或換行分隔。最多 30 檔。</p><label>搜尋名稱或代號<input id="search" placeholder="例如：台積電、0050、AAPL" autocomplete="off"></label><div id="results"></div><label>目前自選<textarea id="symbols" rows="5">${esc(state.watchlist.join(", "))}</textarea></label><button id="save-symbols" class="primary">儲存自選</button><button id="back-watch">返回</button><p class="note">有啟用中規則的標的，請先停用規則再移除。<br>加權：t00　櫃買：o00　美股：直接輸入代號，例如 AAPL、BRK.B（Yahoo Finance，非官方）</p></div>`;
   if (desktop) void getCurrentWindow().setSize(new LogicalSize(500, 460));
   document.querySelector("#save-symbols")!.addEventListener("click", () => {
     tab = "watch";
@@ -591,7 +634,7 @@ function manage() {
       document.querySelector("#results")!.innerHTML = results
         .map(
           (r) =>
-            `<button type="button" data-add="${esc(r.symbol)}">＋ ${esc(r.name)} <small>${esc(r.symbol)}</small></button>`,
+            `<button type="button" data-add="${esc(r.symbol)}">＋ ${esc(r.name)} <small>${esc(r.symbol)}${r.market === "us" ? " · 美股" : ""}</small></button>`,
         )
         .join("");
       document.querySelectorAll<HTMLButtonElement>("[data-add]").forEach(

@@ -8,6 +8,9 @@ import {
   livePrice,
   closeDay,
   oldestDataAt,
+  allClosed,
+  closedFor,
+  marketOf,
 } from "./model.ts";
 import type { Snapshot } from "./model.ts";
 import { minimalMarkup, bindMinimal, updateMinimal } from "./minimal.ts";
@@ -46,7 +49,7 @@ const pad = (text: string, cells: number) => {
 };
 function values(s: Snapshot, c: string) {
   const q = s.quotes[c],
-    closed = !s.marketOpen && !s.demo,
+    closed = closedFor(s, c),
     d = closed ? closeDay(s, c) : undefined,
     live = livePrice(q);
   return {
@@ -58,11 +61,13 @@ function values(s: Snapshot, c: string) {
     pct: closed ? d?.changePercent : live.pct,
     status: closed
       ? d
-        ? d.date !== latestCloseDate(s)
+        ? d.date !== latestCloseDate(s, marketOf(c))
           ? d.date.slice(5).replace("-", "/")
           : d.kind === "final"
             ? "CLOSED(MIS)"
-            : "CLOSED"
+            : d.kind === "us"
+              ? "CLOSED(US)"
+              : "CLOSED"
         : "WAITING"
       : stale(q, s.now)
         ? "STALE"
@@ -75,7 +80,7 @@ function values(s: Snapshot, c: string) {
 }
 function dateLabel(s: Snapshot) {
   const d = latestCloseDate(s);
-  return !s.marketOpen && !s.demo
+  return allClosed(s)
     ? d
       ? d.replaceAll("-", "/") + " 收盤"
       : "等待收盤資料"
@@ -86,7 +91,7 @@ function dateLabel(s: Snapshot) {
 export function notepadText(s: Snapshot): string {
   const lines = [
     "資料紀錄",
-    `${!s.marketOpen && !s.demo ? "資料日期" : "更新"}：${dateLabel(s)}`,
+    `${allClosed(s) ? "資料日期" : "更新"}：${dateLabel(s)}`,
     ...(s.demo ? ["示範資料（非真實行情）"] : []),
     "",
     (s.settings.showCodes ? pad("代號", 7) : "") +
@@ -101,7 +106,7 @@ export function notepadText(s: Snapshot): string {
         ((v.book ? "~" : "") + number(v.price)).padStart(10) +
         "  " +
         change(v.pct).padStart(8) +
-        (v.date && v.date !== latestCloseDate(s)
+        (v.date && v.date !== latestCloseDate(s, marketOf(c))
           ? `  (${v.date.slice(5).replace("-", "/")})`
           : "")
       );
@@ -109,7 +114,7 @@ export function notepadText(s: Snapshot): string {
     "",
     s.settings.paused
       ? "狀態：已暫停"
-      : !s.marketOpen && !s.demo
+      : allClosed(s)
         ? "狀態：已收盤"
         : "狀態：追蹤中",
   ];
@@ -129,7 +134,7 @@ function terminalText(s: Snapshot): string {
     `> refresh=${s.settings.refreshSeconds}s  streams=${s.watchlist.length}  rules=${s.rules.filter((r) => r.enabled).length}`,
     ...(s.demo ? ["[demo] synthetic data — not market quotes"] : []),
     "",
-    `[${time(s.lastFetch)}] ${s.settings.paused ? "PAUSED" : !s.marketOpen && !s.demo ? "CLOSED" : "RUNNING"}${!s.marketOpen && !s.demo ? "  " + dateLabel(s) : ""}`,
+    `[${time(s.lastFetch)}] ${s.settings.paused ? "PAUSED" : allClosed(s) ? "CLOSED" : "RUNNING"}${allClosed(s) ? "  " + dateLabel(s) : ""}`,
     "",
     (s.settings.showCodes ? pad("ID", 7) : "") +
       pad("NAME", 14) +

@@ -36,6 +36,8 @@ export interface Quote {
   tradeAt?: number | null;
   date: string;
   source: string;
+  /** "us" for US tickers (Yahoo Finance, unofficial); Taiwan otherwise. */
+  market?: "tw" | "us";
 }
 export interface Rule {
   id: string;
@@ -87,6 +89,10 @@ export interface Snapshot {
   marketOpen: boolean;
   /** Holiday name when the official calendar closes a weekday session. */
   marketClosedReason?: string | null;
+  /** The US regular session, as the US source last reported it. */
+  usMarketOpen?: boolean;
+  usLastFetch?: number | null;
+  usError?: string | null;
   now: number;
   revision: number;
 }
@@ -150,8 +156,10 @@ export const ageSeconds = (q: Quote | undefined, now: number) =>
 /** The oldest snapshot time among the watched symbols: the data is at least this fresh. */
 export function oldestDataAt(
   s: Pick<Snapshot, "watchlist" | "quotes">,
+  market?: "tw" | "us",
 ): number | null {
   const times = s.watchlist
+    .filter((c) => !market || marketOf(c) === market)
     .map((c) => s.quotes[c]?.sourceAt)
     .filter((t): t is number => typeof t === "number");
   return times.length ? Math.min(...times) : null;
@@ -169,6 +177,22 @@ export function livePrice(q: Quote | undefined): {
   return { price: null, pct: null, basis: "none" };
 }
 export const BOOK_NOTE = "委託價（買賣中間價），非成交價";
+/** US tickers start with a letter; Taiwan codes start with a digit (indices are t00 / o00). */
+export const isUs = (c: string) => /^[A-Z]/.test(c);
+export const marketOf = (c: string): "tw" | "us" => (isUs(c) ? "us" : "tw");
+/** Whether this symbol's own market is closed now (Taiwan or US). Demo is never closed. */
+export const closedFor = (
+  s: Pick<Snapshot, "marketOpen" | "demo" | "usMarketOpen">,
+  c: string,
+) => !s.demo && (isUs(c) ? !s.usMarketOpen : !s.marketOpen);
+/** Every watched symbol's market is closed (the header of the text views). */
+export const allClosed = (
+  s: Pick<Snapshot, "marketOpen" | "demo" | "usMarketOpen" | "watchlist">,
+) =>
+  !s.demo &&
+  (s.watchlist.length
+    ? s.watchlist.every((c) => closedFor(s, c))
+    : !s.marketOpen);
 /**
  * The close a closed-session view shows for one symbol.
  *  - "official": the official daily row for today (published after 15:00).
@@ -181,7 +205,8 @@ export interface CloseDay {
   date: string;
   close: number;
   changePercent: number | null;
-  kind: "official" | "final" | "previous";
+  /** "us": a US symbol's last regular-session price from the US source (no official daily file). */
+  kind: "official" | "final" | "previous" | "us";
 }
 const taipeiDay = (ms: number) =>
   new Date(ms).toLocaleDateString("sv-SE", { timeZone: "Asia/Taipei" });
@@ -190,6 +215,17 @@ export function closeDay(
     Partial<Pick<Snapshot, "quotes" | "now">>,
   c: string,
 ): CloseDay | undefined {
+  if (isUs(c)) {
+    const q = s.quotes?.[c];
+    return q?.price != null
+      ? {
+          date: q.date.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3"),
+          close: q.price,
+          changePercent: q.changePercent,
+          kind: "us",
+        }
+      : undefined;
+  }
   const d = s.dailySummaries[c]?.days.at(-1);
   const q = s.quotes?.[c];
   if (s.now && q && q.price != null) {
@@ -227,8 +263,10 @@ export function closeDay(
 export function latestCloseDate(
   s: Pick<Snapshot, "watchlist" | "dailySummaries"> &
     Partial<Pick<Snapshot, "quotes" | "now">>,
+  market?: "tw" | "us",
 ): string | null {
   const dates = s.watchlist
+    .filter((c) => !market || marketOf(c) === market)
     .map((c) => closeDay(s, c)?.date)
     .filter((d): d is string => Boolean(d));
   return dates.sort().at(-1) ?? null;
@@ -236,7 +274,7 @@ export function latestCloseDate(
 export const ruleText = (r: Rule) =>
   r.metric === "move"
     ? `${r.symbol} · ${r.windowMinutes ?? 5} 分鐘內${r.direction === "above" ? "急漲" : "急跌"} ${number(r.threshold)}%`
-    : `${r.symbol} · ${METRIC_LABEL[r.metric] ?? r.metric}${r.direction === "above" ? "升至" : "降至"} ${number(r.threshold)}${r.metric === "price" || r.metric === "mid" ? " 元" : "%"}`;
+    : `${r.symbol} · ${METRIC_LABEL[r.metric] ?? r.metric}${r.direction === "above" ? "升至" : "降至"} ${number(r.threshold)}${r.metric === "price" || r.metric === "mid" ? (isUs(r.symbol) ? " 美元" : " 元") : "%"}`;
 const METRIC_LABEL: Record<string, string> = {
   price: "成交價",
   changePercent: "漲跌幅",
@@ -249,7 +287,7 @@ export function terminalRows(s: Snapshot): string {
   return s.watchlist
     .map((c) => {
       const q = s.quotes[c];
-      const d = !s.marketOpen && !s.demo ? closeDay(s, c) : undefined;
+      const d = closedFor(s, c) ? closeDay(s, c) : undefined;
       const name = [...(q?.name ?? "等待資料")].slice(0, 8).join("");
       const cells = [...name].reduce(
         (n, c) => n + (/[^\u0000-\u00ff]/.test(c) ? 2 : 1),

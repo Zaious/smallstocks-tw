@@ -1,4 +1,4 @@
-import { esc } from "./model.ts";
+import { closedFor, esc, isUs } from "./model.ts";
 import type { IntradayPoint, Snapshot } from "./model.ts";
 export function line(
   points: IntradayPoint[],
@@ -40,7 +40,7 @@ export function trendCell(
   s: Snapshot,
   code: string,
 ): { html: string; title: string } {
-  if (!s.marketOpen && !s.demo) {
+  if (closedFor(s, code) && !isUs(code)) {
     const v = s.dailySummaries[code];
     const days = v?.days ?? [];
     const title = `最近 ${days.length} 個交易日收盤走勢（未還原價格）${days.length ? ` · ${days[0]!.date} 至 ${days.at(-1)!.date}` : ""}`;
@@ -60,6 +60,13 @@ export function trendCell(
     : (v?.error ?? "正在取得當天分鐘線");
   if (!series)
     return { html: '<span class="trend-empty">待資料</span>', title };
+  if (isUs(code)) {
+    const usTitle = `${series.source} · 美東 ${series.date.replace(/^(\d{4})(\d{2})(\d{2})$/, "$2/$3")} 交易時段`;
+    return {
+      html: `<span class="line-slot">${line(series.points, usTitle, undefined, 900_000)}</span>`,
+      title: usTitle,
+    };
+  }
   const start = series.points[0]?.at ?? s.now;
   const dayStart =
     Math.floor((start + 28800000) / 86400000) * 86400000 - 28800000;

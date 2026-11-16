@@ -19,6 +19,7 @@
 - minimal.ts 管理極簡項目與 hover 控制，stock-view.ts 是四種外觀共用的明細模型。細節在獨立不搶焦點的 detail 視窗，不把主窗撐大。small 極簡會隱藏共用外框成細條；Native 外框保留。寬度由使用者控制，自動調高不得把寬度改回預設。
 - 來源時間與取得時間分開；委託價不能冒充成交價。盤中個股常無成交價（z 為 -），畫面退到「最佳買價與賣價的平均」並一律標示為委託價（委／淡箭頭／~），成交價規則只認成交價，另設獨立的 mid／midChangePercent 規則並在通知寫明非成交價；新鮮度為 180 秒（個股約 1 至 2 分鐘才更新）；超過 60 秒的列變灰，頁尾顯示最舊的資料時間。成交價與漲跌幅規則用來源的當日最高／最低補抓兩次更新之間的穿越，通知寫明「期間內曾觸及、非即時價」，mid 規則不適用。缺值、過期與亂序資料不可觸發事件。新增事件要先確認所需欄位與語義。
 - 急漲急跌（metric move）只用本程式記憶體裡最近約一小時看到的成交價（不存檔、不用委託價），需有涵蓋整個期間的資料才判斷，從期間內最高（急跌）或最低（急漲）成交價算幅度；過期、休市不判斷，每日一次／一次性與其他規則相同。視窗透明度只作用於主窗（--idle-opacity），滑鼠移上或輸入時恢復不透明；Mac 未啟用 macOSPrivateApi，故 Mac 不提供此設定。
+- 美股（us.rs）：英文字母開頭的代號是美股（台股為數字、指數為小寫 t00／o00）。lib.rs 另有「美股輪詢」，用 Yahoo spark 一次取全部美股，台股輪詢不送美股代號；健康狀態與錯誤分開（us_last_fetch／us_error），美股失敗不得影響台股。Quote 帶 market 與 utc_offset：新鮮度與每日一次的「日」用該市場自己的日期；開盤與否用來源回報的 currentTradingPeriod（us_session），不自行維護美國日曆。美股沒有買賣價，拒絕 mid 規則；日線歷史不提供。UI 每列依 closedFor(s, c) 決定即時或收盤，美股收盤 kind 為 "us"，日期比較用同市場（latestCloseDate(s, market)）。
 - 測試使用獨立 SMALLSTOCKS_CONFIG_DIR；不改動使用者實際設定或其他兩個專案。不要在執行檔仍運行時覆寫同一路徑建置。
 - 常用檢查：npm run build、npm test、cargo test --manifest-path src-tauri/Cargo.toml --lib。UI 檢查見 README。
 - Windows 首版可用，未宣稱盤中長時間驗證、逐筆資料或其他平台完成。發布前依實際測試更新 docs/IMPLEMENTATION_REPORT.md。

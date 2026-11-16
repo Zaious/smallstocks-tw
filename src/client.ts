@@ -148,7 +148,7 @@ export async function daily(symbol: string, month: string): Promise<DailyView> {
 }
 export async function search(
   query: string,
-): Promise<{ symbol: string; name: string }[]> {
+): Promise<{ symbol: string; name: string; market?: "tw" | "us" }[]> {
   if (desktop) return invoke("search_stocks", { query });
   return [
     { symbol: "2330", name: "台積電" },
