@@ -40,7 +40,9 @@ export interface Quote {
 export interface Rule {
   id: string;
   symbol: string;
-  metric: "price" | "changePercent" | "mid" | "midChangePercent";
+  metric: "price" | "changePercent" | "mid" | "midChangePercent" | "move";
+  /** Rapid-move rules only: minutes the move is measured over. */
+  windowMinutes?: number | null;
   direction: "above" | "below";
   threshold: number;
   channel: "off" | "log" | "strip" | "card";
@@ -68,6 +70,8 @@ export interface Snapshot {
     appearance: Appearance;
     paused: boolean;
     refreshSeconds: number;
+    /** Main window opacity in percent while the pointer is away. */
+    opacity?: number;
     rowDisplay?: "numbers" | "trend" | "minimal";
     showCodes?: boolean;
     updateCheck?: boolean;
@@ -230,12 +234,15 @@ export function latestCloseDate(
   return dates.sort().at(-1) ?? null;
 }
 export const ruleText = (r: Rule) =>
-  `${r.symbol} · ${METRIC_LABEL[r.metric] ?? r.metric}${r.direction === "above" ? "升至" : "降至"} ${number(r.threshold)}${r.metric === "price" || r.metric === "mid" ? " 元" : "%"}`;
+  r.metric === "move"
+    ? `${r.symbol} · ${r.windowMinutes ?? 5} 分鐘內${r.direction === "above" ? "急漲" : "急跌"} ${number(r.threshold)}%`
+    : `${r.symbol} · ${METRIC_LABEL[r.metric] ?? r.metric}${r.direction === "above" ? "升至" : "降至"} ${number(r.threshold)}${r.metric === "price" || r.metric === "mid" ? " 元" : "%"}`;
 const METRIC_LABEL: Record<string, string> = {
   price: "成交價",
   changePercent: "漲跌幅",
   mid: "買賣中間價（委託價）",
   midChangePercent: "漲跌幅（買賣中間價）",
+  move: "急漲急跌",
 };
 // Adapted from Terminalol's escaped fixed-width rows; stock-specific data stays separate.
 export function terminalRows(s: Snapshot): string {

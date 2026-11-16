@@ -175,6 +175,9 @@ pub struct Settings {
     pub appearance: String,
     pub paused: bool,
     pub refresh_seconds: u64,
+    /// Main window opacity in percent while the pointer is elsewhere; 100 is solid.
+    #[serde(default = "default_opacity")]
+    pub opacity: u8,
 }
 fn default_row_display() -> String {
     "numbers".into()
@@ -184,6 +187,9 @@ fn default_always_on_top() -> bool {
 }
 fn default_update_check() -> bool {
     true
+}
+fn default_opacity() -> u8 {
+    100
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -195,6 +201,7 @@ impl Default for Settings {
             appearance: "small".into(),
             paused: false,
             refresh_seconds: 15,
+            opacity: 100,
         }
     }
 }
@@ -223,6 +230,10 @@ pub struct Rule {
     pub last_low: Option<f64>,
     #[serde(default)]
     pub fired_day: Option<String>,
+    /// Rapid-move rules (metric "move"): how many minutes back the move is measured. None for
+    /// every other metric.
+    #[serde(default)]
+    pub window_minutes: Option<u32>,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -270,6 +281,9 @@ pub struct Core {
     pub calendar_errors: HashMap<i32, (String, i64)>,
     pub saved: Saved,
     pub quotes: HashMap<String, Quote>,
+    /// The trade prices this app saw in about the last hour, per symbol: what rapid-move rules
+    /// measure against. Memory only, so after a start a rule waits until it has a full window.
+    pub recent: HashMap<String, std::collections::VecDeque<(i64, f64)>>,
     pub path: PathBuf,
     pub demo: bool,
     pub error: Option<String>,
@@ -310,6 +324,7 @@ impl Core {
             calendar_errors: Default::default(),
             saved,
             quotes: HashMap::new(),
+            recent: HashMap::new(),
             path,
             demo,
             error: None,
@@ -605,7 +620,7 @@ impl Core {
                 .map(|r| {
                     json!({"symbol":r.symbol,"metric":r.metric,"direction":r.direction,
                         "threshold":r.threshold,"channel":r.channel,"repeat":r.repeat,
-                        "enabled":r.enabled})
+                        "enabled":r.enabled,"windowMinutes":r.window_minutes})
                 })
                 .collect();
             return Ok(json!({
@@ -748,13 +763,35 @@ impl Core {
                 continue;
             }
             next.record_intraday(&q, at);
+            if let Some(p) = q.price {
+                let list = next.recent.entry(q.symbol.clone()).or_default();
+                if list.back().is_none_or(|&(t, _)| q.source_at > t) {
+                    list.push_back((q.source_at, p));
+                }
+                while list
+                    .front()
+                    .is_some_and(|&(t, _)| t < q.source_at - 61 * 60_000)
+                {
+                    list.pop_front();
+                }
+            }
+            let samples: Vec<(i64, f64)> = next
+                .recent
+                .get(&q.symbol)
+                .map(|l| l.iter().copied().collect())
+                .unwrap_or_default();
             for rule in next
                 .saved
                 .rules
                 .iter_mut()
                 .filter(|r| r.symbol == q.symbol && r.enabled)
             {
-                if let Some(e) = evaluate(rule, &q, at, self.demo, open) {
+                let event = if rule.metric == "move" {
+                    evaluate_move(rule, &q, &samples, at, self.demo, open)
+                } else {
+                    evaluate(rule, &q, at, self.demo, open)
+                };
+                if let Some(e) = event {
                     next.saved.events.insert(0, e.clone());
                     emitted.push(e)
                 }
@@ -936,6 +973,88 @@ pub fn demo_quotes(codes: &[String], tick: u64) -> Vec<Quote> {
         .collect()
 }
 
+/// A rapid move: the trade price moved by `threshold` percent or more within the rule's window,
+/// measured from the highest trade price in it (a drop) or the lowest (a rise). Uses only trade
+/// prices this app saw itself, so it needs a full window of them first, and stocks refresh only
+/// every one to two minutes; never the book mid. Fires once a day, or once.
+pub fn evaluate_move(
+    r: &mut Rule,
+    q: &Quote,
+    samples: &[(i64, f64)],
+    at: i64,
+    demo: bool,
+    open: bool,
+) -> Option<Event> {
+    let fresh = q.source_at <= at + 5000
+        && at - q.source_at <= FRESH_MS
+        && q.date == local(at).format("%Y%m%d").to_string();
+    if !fresh || (!demo && !open) || r.channel == "off" {
+        return None;
+    }
+    let price = q.price?;
+    if r.last_at.is_some_and(|t| q.source_at <= t) {
+        return None;
+    }
+    r.last_at = Some(q.source_at);
+    let minutes = r.window_minutes.unwrap_or(5);
+    let from = q.source_at - i64::from(minutes) * 60_000;
+    // History reaching back a whole window, with one minute of slack for slow stock updates.
+    if !samples.iter().any(|&(t, _)| t <= from + 60_000) {
+        return None;
+    }
+    let inside = samples
+        .iter()
+        .filter(|&&(t, _)| t >= from && t <= q.source_at)
+        .map(|&(_, p)| p)
+        .chain(std::iter::once(price));
+    let drop = r.direction == "below";
+    let base = if drop {
+        inside.fold(f64::MIN, f64::max)
+    } else {
+        inside.fold(f64::MAX, f64::min)
+    };
+    if base <= 0. {
+        return None;
+    }
+    let change = (price - base) / base * 100.;
+    let hit = if drop {
+        change <= -r.threshold
+    } else {
+        change >= r.threshold
+    };
+    if !hit
+        || r.fired_day.as_deref() == Some(&q.date)
+        || r.repeat == "once" && r.fired_day.is_some()
+    {
+        return None;
+    }
+    r.fired_day = Some(q.date.clone());
+    if r.repeat == "once" {
+        r.enabled = false;
+    }
+    let text = format!(
+        "{} {} · {} 分鐘內{} {:.2}%（{:.2} → {:.2}；依本程式看到的成交價計算，個股約 1 至 2 分鐘才更新）",
+        q.symbol,
+        q.name,
+        minutes,
+        if drop { "急跌" } else { "急漲" },
+        change.abs(),
+        base,
+        price
+    );
+    Some(Event {
+        id: uuid::Uuid::new_v4().to_string(),
+        rule_id: r.id.clone(),
+        symbol: q.symbol.clone(),
+        text,
+        source_at: q.source_at,
+        detected_at: at,
+        channel: r.channel.clone(),
+        value: change,
+        threshold: r.threshold,
+    })
+}
+
 /// What a backup file says it is; import refuses anything else.
 pub const BACKUP_FORMAT: &str = "smallstocks-tw-backup";
 
@@ -953,6 +1072,13 @@ fn apply_settings(next: &mut Core, args: &Value) -> Result<(), String> {
     }
     if let Some(v) = args.get("updateCheck") {
         next.saved.settings.update_check = v.as_bool().ok_or("更新檢查需為布林值")?;
+    }
+    if let Some(v) = args.get("opacity") {
+        let v = v.as_u64().ok_or("透明度需為整數")?;
+        if !(40..=100).contains(&v) {
+            return Err("透明度需介於 40% 與 100%".into());
+        }
+        next.saved.settings.opacity = v as u8;
     }
     if let Some(v) = args.get("showCodes") {
         next.saved.settings.show_codes = v.as_bool().ok_or("代號顯示需為布林值")?;
@@ -993,7 +1119,7 @@ fn apply_rule(next: &mut Core, args: &Value) -> Result<(), String> {
         .ok_or("門檻必須是有限數字")?;
     let channel = args["channel"].as_str().unwrap_or("strip");
     let repeat = args["repeat"].as_str().unwrap_or("daily");
-    if !["price", "changePercent", "mid", "midChangePercent"].contains(&metric)
+    if !["price", "changePercent", "mid", "midChangePercent", "move"].contains(&metric)
         || !["above", "below"].contains(&dir)
         || !["off", "log", "strip", "card"].contains(&channel)
         || !["once", "daily"].contains(&repeat)
@@ -1003,6 +1129,21 @@ fn apply_rule(next: &mut Core, args: &Value) -> Result<(), String> {
     if matches!(metric, "price" | "mid") && threshold <= 0. {
         return Err("價格門檻必須大於零".into());
     }
+    let window_minutes = if metric == "move" {
+        if !(threshold > 0. && threshold <= 30.) {
+            return Err("急漲急跌的幅度需介於 0 與 30%".into());
+        }
+        let w = match args.get("windowMinutes") {
+            None | Some(Value::Null) => 5,
+            Some(v) => v.as_u64().ok_or("期間需為整數分鐘")?,
+        };
+        if !(1..=60).contains(&w) {
+            return Err("期間需為 1 到 60 分鐘".into());
+        }
+        Some(w as u32)
+    } else {
+        None
+    };
     if next.saved.rules.len() >= 100 && args.get("id").is_none() {
         return Err("規則上限為 100".into());
     }
@@ -1052,6 +1193,7 @@ fn apply_rule(next: &mut Core, args: &Value) -> Result<(), String> {
         last_high: None,
         last_low: None,
         fired_day: fired,
+        window_minutes,
     };
     next.saved.rules.retain(|r| r.id != id);
     next.saved.rules.push(rule);
@@ -1101,6 +1243,7 @@ mod tests {
             last_high: None,
             last_low: None,
             fired_day: None,
+            window_minutes: None,
         }
     }
     fn ts() -> i64 {
@@ -1726,5 +1869,224 @@ mod tests {
         }
         assert_eq!(serde_json::to_string(&new.saved).unwrap(), before);
         assert_eq!(std::fs::read(&new.path).unwrap(), on_disk);
+    }
+
+    #[test]
+    fn rapid_move_waits_for_a_full_window_then_fires_once_a_day() {
+        let m = 60_000;
+        let t = ts();
+        let drop = || Rule {
+            metric: "move".into(),
+            direction: "below".into(),
+            threshold: 2.,
+            window_minutes: Some(5),
+            ..rule()
+        };
+        let seen = [
+            (t, 100.),
+            (t + 2 * m, 100.5),
+            (t + 4 * m, 99.8),
+            (t + 6 * m, 98.4),
+        ];
+        // Just started: less than a window of history, so nothing is judged yet.
+        assert!(evaluate_move(
+            &mut drop(),
+            &q(Some(98.4), t + 3 * m),
+            &seen[..2],
+            t + 3 * m,
+            true,
+            true
+        )
+        .is_none());
+        // A full window: 100.5 (the peak) to 98.4 is -2.09%, past the 2% threshold.
+        let mut r = drop();
+        let e = evaluate_move(
+            &mut r,
+            &q(Some(98.4), t + 6 * m),
+            &seen,
+            t + 6 * m,
+            true,
+            true,
+        )
+        .expect("a 2.09% drop within five minutes");
+        assert!(e.text.contains("5 分鐘內急跌 2.09%"), "{}", e.text);
+        assert!(e.text.contains("100.50 → 98.40"));
+        assert!((e.value + 2.0896).abs() < 0.001);
+        // Once a day.
+        let more = [seen.as_slice(), &[(t + 7 * m, 97.)]].concat();
+        assert!(evaluate_move(
+            &mut r,
+            &q(Some(97.), t + 7 * m),
+            &more,
+            t + 7 * m,
+            true,
+            true
+        )
+        .is_none());
+        // Once ever: a once rule switches itself off.
+        let mut once = Rule {
+            repeat: "once".into(),
+            ..drop()
+        };
+        assert!(evaluate_move(
+            &mut once,
+            &q(Some(98.4), t + 6 * m),
+            &seen,
+            t + 6 * m,
+            true,
+            true
+        )
+        .is_some());
+        assert!(!once.enabled);
+    }
+    #[test]
+    fn rapid_move_ignores_slow_drift_stale_and_missing_trades() {
+        let m = 60_000;
+        let t = ts();
+        let drop = || Rule {
+            metric: "move".into(),
+            direction: "below".into(),
+            threshold: 2.,
+            window_minutes: Some(5),
+            ..rule()
+        };
+        // -2.8% over thirty minutes, but not within any five.
+        let drift = [
+            (t, 100.),
+            (t + 10 * m, 99.),
+            (t + 20 * m, 98.),
+            (t + 30 * m, 97.2),
+        ];
+        assert!(evaluate_move(
+            &mut drop(),
+            &q(Some(97.2), t + 30 * m),
+            &drift,
+            t + 30 * m,
+            true,
+            true
+        )
+        .is_none());
+        let seen = [(t, 100.), (t + 2 * m, 100.5), (t + 6 * m, 98.4)];
+        // A snapshot older than three minutes is stale.
+        assert!(evaluate_move(
+            &mut drop(),
+            &q(Some(98.4), t + 6 * m),
+            &seen,
+            t + 10 * m,
+            true,
+            true
+        )
+        .is_none());
+        // No trade price (only the book): no judgement.
+        assert!(evaluate_move(
+            &mut drop(),
+            &q(None, t + 6 * m),
+            &seen,
+            t + 6 * m,
+            true,
+            true
+        )
+        .is_none());
+        // Market closed and not demo: nothing.
+        assert!(evaluate_move(
+            &mut drop(),
+            &q(Some(98.4), t + 6 * m),
+            &seen,
+            t + 6 * m,
+            false,
+            false
+        )
+        .is_none());
+        // A rise rule measures from the lowest price in the window.
+        let mut up = Rule {
+            direction: "above".into(),
+            threshold: 1.5,
+            ..drop()
+        };
+        let rising = [(t, 100.), (t + 2 * m, 99.5), (t + 6 * m, 101.1)];
+        let e = evaluate_move(
+            &mut up,
+            &q(Some(101.1), t + 6 * m),
+            &rising,
+            t + 6 * m,
+            true,
+            true,
+        )
+        .expect("+1.61% from the low");
+        assert!(e.text.contains("急漲"));
+    }
+    #[test]
+    fn rapid_move_rules_are_checked_and_run_from_live_quotes() {
+        let dir = std::env::temp_dir().join(format!("smallstocks-move-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut c = Core::load(dir.join("state.json"), true).unwrap();
+        let rule = |extra: Value| {
+            let mut a = json!({"symbol":"2330","metric":"move","direction":"below","threshold":2});
+            for (k, v) in extra.as_object().unwrap() {
+                a[k] = v.clone();
+            }
+            a
+        };
+        for bad in [
+            json!({"threshold":0}),
+            json!({"threshold":31}),
+            json!({"windowMinutes":0}),
+            json!({"windowMinutes":61}),
+            json!({"windowMinutes":"five"}),
+        ] {
+            assert!(c.execute("upsert_rule", rule(bad)).is_err());
+        }
+        c.execute("upsert_rule", rule(json!({}))).unwrap();
+        assert_eq!(
+            c.saved.rules[0].window_minutes,
+            Some(5),
+            "five minutes by default"
+        );
+        c.execute(
+            "upsert_rule",
+            json!({"symbol":"0050","metric":"price","direction":"above","threshold":200,"windowMinutes":9}),
+        )
+        .unwrap();
+        assert_eq!(
+            c.saved.rules[1].window_minutes, None,
+            "only rapid-move rules keep a window"
+        );
+
+        let m = 60_000;
+        let t = ts();
+        assert!(c.ingest(vec![q(Some(100.), t)], t).is_empty());
+        assert!(c
+            .ingest(vec![q(Some(100.5), t + 2 * m)], t + 2 * m)
+            .is_empty());
+        let fired = c.ingest(vec![q(Some(98.4), t + 6 * m)], t + 6 * m);
+        assert_eq!(fired.len(), 1);
+        assert!(fired[0].text.contains("急跌"));
+        // The window survives in a backup.
+        let backup = c.execute("export_backup", json!({})).unwrap();
+        assert_eq!(backup["rules"][0]["windowMinutes"], 5);
+    }
+
+    #[test]
+    fn opacity_is_checked_saved_and_older_files_stay_solid() {
+        let dir =
+            std::env::temp_dir().join(format!("smallstocks-opacity-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("state.json");
+        std::fs::write(
+            &path,
+            r#"{"watchlist":["2330"],"settings":{"appearance":"small","paused":false,"refreshSeconds":15}}"#,
+        )
+        .unwrap();
+        let mut c = Core::load(path.clone(), true).unwrap();
+        assert_eq!(
+            c.saved.settings.opacity, 100,
+            "a settings file from before stays solid"
+        );
+        for bad in [json!(39), json!(101), json!("70"), json!(-5)] {
+            assert!(c.execute("set_settings", json!({"opacity": bad})).is_err());
+        }
+        assert_eq!(c.saved.settings.opacity, 100);
+        c.execute("set_settings", json!({"opacity": 70})).unwrap();
+        assert_eq!(Core::load(path, true).unwrap().saved.settings.opacity, 70);
     }
 }
