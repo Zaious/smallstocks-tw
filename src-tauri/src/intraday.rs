@@ -46,7 +46,11 @@ pub fn parse(v: &Value, code: &str, yahoo_code: &str, at: i64) -> Result<Series,
         let Some(t) = stamp.as_i64().and_then(|t| t.checked_mul(1000)) else {
             continue;
         };
-        if t < 0 || t > at.saturating_add(5000) || day(t) != date || !session(t) {
+        if t < 0
+            || t > at.saturating_add(crate::core::CLOCK_SLACK_MS)
+            || day(t) != date
+            || !session(t)
+        {
             continue;
         }
         points.push(Point {

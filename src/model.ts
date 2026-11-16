@@ -139,8 +139,10 @@ export const time = (n: number | null | undefined) =>
     : "尚未取得";
 // Stock snapshots arrive about every one to two minutes; the core uses the same three minutes.
 export const FRESH_MS = 180_000;
+/** A source time may be this far ahead of this computer's clock (clocks drift); as in the core. */
+export const CLOCK_SLACK_MS = 60_000;
 export const stale = (q: Quote | undefined, now: number) =>
-  !q || now - q.sourceAt > FRESH_MS || q.sourceAt > now + 5000;
+  !q || now - q.sourceAt > FRESH_MS || q.sourceAt > now + CLOCK_SLACK_MS;
 /**
  * The number a live quote shows. The last trade when the source gave one; otherwise the average of
  * the best bid and ask, which is marked as an order price wherever it is drawn and is never called

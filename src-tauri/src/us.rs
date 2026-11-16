@@ -31,7 +31,10 @@ pub fn spark_url(codes: &[String]) -> String {
     url.query_pairs_mut()
         .append_pair("symbols", &codes.join(","))
         .append_pair("range", "1d")
-        .append_pair("interval", "5m");
+        .append_pair("interval", "5m")
+        // The reply may be cached for five minutes (max-age=300): without a fresh URL the app
+        // was handed the same snapshot for five minutes at a time. Same trick as the MIS URL.
+        .append_pair("_", &crate::core::now().to_string());
     url.into()
 }
 
@@ -161,7 +164,7 @@ pub fn parse_spark(v: &Value, received: i64) -> Result<Spark, String> {
                         price: num(p),
                     })
                 })
-                .filter(|p| p.at <= received + 5000)
+                .filter(|p| p.at <= received + crate::core::CLOCK_SLACK_MS)
                 .collect();
             if points.iter().filter(|p| p.price.is_some()).count() >= 2 {
                 series.push(Series {

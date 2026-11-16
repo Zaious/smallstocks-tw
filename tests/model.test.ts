@@ -28,7 +28,10 @@ describe("display truthfulness", () => {
     expect(stale({ sourceAt: 1000 } as Quote, 500000)).toBe(true);
     expect(stale({ sourceAt: 1000 } as Quote, 100000)).toBe(false);
     expect(stale({ sourceAt: 100000 } as Quote, 100000)).toBe(false);
-    expect(stale({ sourceAt: 106000 } as Quote, 100000)).toBe(true);
+    // A computer clock a little slow (the source ten seconds ahead) still counts...
+    expect(stale({ sourceAt: 110000 } as Quote, 100000)).toBe(false);
+    // ...but more than a minute ahead is not a slow clock.
+    expect(stale({ sourceAt: 161000 } as Quote, 100000)).toBe(true);
   });
   it("shows the last trade first, then the bid/ask average marked as a book price, never a trade", () => {
     const quote = (o: Partial<Quote>) =>

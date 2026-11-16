@@ -125,6 +125,10 @@ pub fn exchange_day(ms: i64, q: &Quote) -> String {
 /// Stock snapshots from the source arrive about every one to two minutes, so a quote stays usable
 /// for three minutes; older than that it is stale and cannot start or complete a crossing.
 pub const FRESH_MS: i64 = 180_000;
+/// How far a source time may lie ahead of this computer's clock and still count. Computer clocks
+/// drift (one test machine ran ten seconds slow), and a few seconds' difference must not stop
+/// monitoring; a minute is still far too little for a wrong day or an out-of-order reply.
+pub const CLOCK_SLACK_MS: i64 = 60_000;
 pub fn parse_mis(v: &Value, received: i64) -> Result<Vec<Quote>, String> {
     if v["rtcode"].as_str() != Some("0000") {
         return Err("行情來源未回傳成功狀態".into());
@@ -542,7 +546,7 @@ impl Core {
             && (!intraday::session(q.source_at)
                 || q.date != intraday::day(at)
                 || at - q.source_at > 60_000
-                || q.source_at > at + 5000)
+                || q.source_at > at + CLOCK_SLACK_MS)
         {
             return;
         }
@@ -919,8 +923,9 @@ impl Core {
 
 /// `open` is whether the session is open now (hours and official calendar), decided by the caller.
 pub fn evaluate(r: &mut Rule, q: &Quote, at: i64, demo: bool, open: bool) -> Option<Event> {
-    let fresh =
-        q.source_at <= at + 5000 && at - q.source_at <= FRESH_MS && q.date == exchange_day(at, q);
+    let fresh = q.source_at <= at + CLOCK_SLACK_MS
+        && at - q.source_at <= FRESH_MS
+        && q.date == exchange_day(at, q);
     if !fresh || (!demo && !open) || r.channel == "off" {
         r.last_value = None;
         r.last_at = None;
@@ -1091,8 +1096,9 @@ pub fn evaluate_move(
     demo: bool,
     open: bool,
 ) -> Option<Event> {
-    let fresh =
-        q.source_at <= at + 5000 && at - q.source_at <= FRESH_MS && q.date == exchange_day(at, q);
+    let fresh = q.source_at <= at + CLOCK_SLACK_MS
+        && at - q.source_at <= FRESH_MS
+        && q.date == exchange_day(at, q);
     if !fresh || (!demo && !open) || r.channel == "off" {
         return None;
     }
@@ -2254,7 +2260,7 @@ mod tests {
                             seen.push((q.source_at, p));
                         }
                     }
-                    let fresh = q.source_at <= at + 5000
+                    let fresh = q.source_at <= at + CLOCK_SLACK_MS
                         && at - q.source_at <= FRESH_MS
                         && q.date == local(*at).format("%Y%m%d").to_string();
                     if !fresh || !open {
@@ -2628,5 +2634,26 @@ mod tests {
         assert!(!after.us_open(closed));
         // A US failure is the US side's own error.
         assert!(c.error.is_none());
+    }
+
+    #[test]
+    fn a_computer_clock_ten_seconds_slow_still_monitors() {
+        let t = ts();
+        let mut r = rule();
+        // Baseline, then a crossing whose source time is ten seconds ahead of this clock.
+        assert!(ev(&mut r, &q(Some(100.), t + 10_000), t, false).is_none());
+        assert!(ev(&mut r, &q(Some(106.), t + 70_000), t + 60_000, false).is_some());
+        // Two minutes ahead is not a slow clock: refused.
+        let mut far = rule();
+        assert!(ev(&mut far, &q(Some(100.), t + 120_000), t, false).is_none());
+        assert!(far.last_value.is_none());
+    }
+    #[test]
+    fn every_us_request_is_a_new_url() {
+        let a = crate::us::spark_url(&["AAPL".into()]);
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        let b = crate::us::spark_url(&["AAPL".into()]);
+        assert_ne!(a, b, "a repeated URL is served from a five-minute cache");
+        assert!(a.contains("symbols=AAPL") && a.contains("_="));
     }
 }
