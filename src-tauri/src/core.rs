@@ -998,8 +998,10 @@ pub fn evaluate_move(
     r.last_at = Some(q.source_at);
     let minutes = r.window_minutes.unwrap_or(5);
     let from = q.source_at - i64::from(minutes) * 60_000;
-    // History reaching back a whole window, with one minute of slack for slow stock updates.
-    if !samples.iter().any(|&(t, _)| t <= from + 60_000) {
+    // History reaching back a whole window, with slack for slow stock updates: one minute, or
+    // half the window when that is shorter, so a one-minute window still needs history.
+    let slack = (i64::from(minutes) * 60_000 / 2).min(60_000);
+    if !samples.iter().any(|&(t, _)| t <= from + slack) {
         return None;
     }
     let inside = samples
@@ -1033,7 +1035,7 @@ pub fn evaluate_move(
         r.enabled = false;
     }
     let text = format!(
-        "{} {} · {} 分鐘內{} {:.2}%（{:.2} → {:.2}；依本程式看到的成交價計算，個股約 1 至 2 分鐘才更新）",
+        "{} {} · {} 分鐘內{} {:.2}%（{:.2} → {:.2}，依本程式看到的成交價）",
         q.symbol,
         q.name,
         minutes,
@@ -2155,7 +2157,8 @@ mod tests {
                     last_eval = Some(q.source_at);
                     let from = q.source_at - minutes * 60_000;
                     let kept = |t: i64| t >= q.source_at - 61 * 60_000;
-                    if !seen.iter().any(|&(t, _)| kept(t) && t <= from + 60_000) {
+                    let slack = (minutes * 60_000 / 2).min(60_000);
+                    if !seen.iter().any(|&(t, _)| kept(t) && t <= from + slack) {
                         continue;
                     }
                     let window = seen
@@ -2284,5 +2287,131 @@ mod tests {
             mismatches, 0,
             "the app and the brute-force reading disagree"
         );
+    }
+
+    #[test]
+    fn a_one_minute_window_still_needs_half_a_minute_of_history() {
+        let t = ts();
+        let one = || Rule {
+            metric: "move".into(),
+            direction: "below".into(),
+            threshold: 2.,
+            window_minutes: Some(1),
+            ..rule()
+        };
+        let seen = [(t, 100.), (t + 20_000, 97.)];
+        // Only 20 seconds seen: not enough for a one-minute window.
+        assert!(evaluate_move(
+            &mut one(),
+            &q(Some(97.), t + 20_000),
+            &seen,
+            t + 20_000,
+            true,
+            true
+        )
+        .is_none());
+        // 40 seconds seen: judged, and -3% fires.
+        let later = [(t, 100.), (t + 40_000, 97.)];
+        assert!(evaluate_move(
+            &mut one(),
+            &q(Some(97.), t + 40_000),
+            &later,
+            t + 40_000,
+            true,
+            true
+        )
+        .is_some());
+    }
+
+    /// After a live session (scripts/rapid-move-session.mjs): replays its raw capture with the same
+    /// rapid-move rules and checks every rule fired at the same snapshot live and in the replay.
+    ///   SMALLSTOCKS_REPLAY_LIVE=<session folder> cargo test --lib replay_live -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn replay_live_session_matches_what_fired_live() {
+        let Some(dir) = std::env::var_os("SMALLSTOCKS_REPLAY_LIVE").map(PathBuf::from) else {
+            return;
+        };
+        let live: Saved =
+            serde_json::from_slice(&std::fs::read(dir.join("state.json")).unwrap()).unwrap();
+        let key = |r: &Rule| {
+            format!(
+                "{:<4} {:<5} {:>4}% {:>2} 分",
+                r.symbol,
+                if r.direction == "below" {
+                    "急跌"
+                } else {
+                    "急漲"
+                },
+                r.threshold,
+                r.window_minutes.unwrap_or(5)
+            )
+        };
+        let moves: Vec<&Rule> = live.rules.iter().filter(|r| r.metric == "move").collect();
+        // Events are kept newest first: walk them oldest first for each rule's first alert.
+        let mut live_first: HashMap<String, i64> = HashMap::new();
+        for e in live.events.iter().rev() {
+            if let Some(r) = moves.iter().find(|r| r.id == e.rule_id) {
+                live_first.entry(key(r)).or_insert(e.source_at);
+            }
+        }
+
+        let tmp =
+            std::env::temp_dir().join(format!("smallstocks-replay-live-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&tmp).unwrap();
+        let mut c = Core::load(tmp.join("state.json"), false).unwrap();
+        c.execute("set_watchlist", json!({"symbols": live.watchlist}))
+            .unwrap();
+        let mut keys: HashMap<String, String> = HashMap::new();
+        for r in &moves {
+            c.execute(
+                "upsert_rule",
+                json!({"symbol":r.symbol,"metric":"move","direction":r.direction,"threshold":r.threshold,
+                    "windowMinutes":r.window_minutes,"channel":"log","repeat":r.repeat}),
+            )
+            .unwrap();
+            keys.insert(c.saved.rules.last().unwrap().id.clone(), key(r));
+        }
+        let raw = std::fs::read_to_string(dir.join("raw").join("mis-raw.ndjson")).unwrap();
+        let mut replay_first: HashMap<String, i64> = HashMap::new();
+        let mut responses = 0;
+        for line in raw.lines() {
+            let v: Value = serde_json::from_str(line).unwrap();
+            let at = v["receivedAt"].as_i64().unwrap();
+            let Ok(body) = serde_json::from_str::<Value>(v["body"].as_str().unwrap().trim()) else {
+                continue;
+            };
+            let Ok(qs) = parse_mis(&body, at) else {
+                continue;
+            };
+            responses += 1;
+            for e in c.ingest(qs, at) {
+                replay_first
+                    .entry(keys[&e.rule_id].clone())
+                    .or_insert(e.source_at);
+            }
+        }
+        let hm = |t: Option<&i64>| {
+            t.map_or("未觸發".to_string(), |t| {
+                local(*t).format("%H:%M:%S").to_string()
+            })
+        };
+        println!("{responses} responses replayed; {} rules", moves.len());
+        let mut all: Vec<String> = moves.iter().map(|r| key(r)).collect();
+        all.sort();
+        let mut differ = 0;
+        for k in &all {
+            let (l, r) = (live_first.get(k), replay_first.get(k));
+            if l != r {
+                differ += 1;
+            }
+            println!(
+                "{k}  盤中 {:<8}  重播 {:<8}  {}",
+                hm(l),
+                hm(r),
+                if l == r { "一致" } else { "不一致" }
+            );
+        }
+        assert_eq!(differ, 0, "live alerts and the replay disagree");
     }
 }
