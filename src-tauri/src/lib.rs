@@ -310,10 +310,53 @@ fn core_request(
         .lock()
         .unwrap_or_else(PoisonError::into_inner)
         .execute(&tool, args)?;
-    if tool == "set_settings" {
+    // An imported backup can change always-on-top too.
+    if tool == "set_settings" || tool == "import_backup" {
         sync_main_window(&app)?;
     }
     Ok(result)
+}
+/// Name every backup file starts with; reveal_backup only shows files named like this.
+const BACKUP_PREFIX: &str = "SmallStocks-TW-backup-";
+/// Writes the backup (watchlist, rules, settings, events) as a JSON file in the Downloads folder
+/// and returns its path. Never overwrites: a second export in the same minute gets "-2".
+#[tauri::command]
+fn export_backup_file(state: tauri::State<mcp::Shared>) -> Result<String, String> {
+    let backup = state
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .execute("export_backup", serde_json::json!({}))?;
+    let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" });
+    let dir = home
+        .map(|h| PathBuf::from(h).join("Downloads"))
+        .filter(|d| d.is_dir())
+        .unwrap_or_else(data_dir);
+    let stamp = chrono::Local::now().format("%Y%m%d-%H%M");
+    let mut path = dir.join(format!("{BACKUP_PREFIX}{stamp}.json"));
+    let mut n = 2;
+    while path.exists() {
+        path = dir.join(format!("{BACKUP_PREFIX}{stamp}-{n}.json"));
+        n += 1;
+    }
+    let text = serde_json::to_string_pretty(&backup).map_err(|e| e.to_string())?;
+    std::fs::write(&path, text).map_err(|e| format!("無法寫入備份檔：{e}"))?;
+    Ok(path.to_string_lossy().into_owned())
+}
+/// Shows an exported backup in the file manager.
+#[tauri::command]
+fn reveal_backup(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let p = PathBuf::from(&path);
+    let named = p
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(|n| n.starts_with(BACKUP_PREFIX) && n.ends_with(".json"));
+    if !named || !p.is_file() {
+        return Err("找不到這個備份檔".into());
+    }
+    app.opener()
+        .reveal_item_in_dir(p)
+        .map_err(|e| e.to_string())
 }
 fn sync_main_window(app: &tauri::AppHandle) -> Result<(), String> {
     let enabled = app
@@ -432,6 +475,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             install_kind,
             mcp_exe,
+            export_backup_file,
+            reveal_backup,
             privacy_toggle,
             quit_app,
             restart_app,

@@ -596,6 +596,29 @@ impl Core {
         if tool == "list_rules" {
             return Ok(json!(self.saved.rules));
         }
+        if tool == "export_backup" {
+            // The user's own choices only; quotes, charts and calendars are fetched again.
+            let rules: Vec<Value> = self
+                .saved
+                .rules
+                .iter()
+                .map(|r| {
+                    json!({"symbol":r.symbol,"metric":r.metric,"direction":r.direction,
+                        "threshold":r.threshold,"channel":r.channel,"repeat":r.repeat,
+                        "enabled":r.enabled})
+                })
+                .collect();
+            return Ok(json!({
+                "format": BACKUP_FORMAT,
+                "version": 1,
+                "app": env!("CARGO_PKG_VERSION"),
+                "exportedAt": now(),
+                "watchlist": self.saved.watchlist,
+                "settings": self.saved.settings,
+                "rules": rules,
+                "events": self.saved.events,
+            }));
+        }
         let mut next = self.clone();
         match tool {
             "set_watchlist" => {
@@ -627,119 +650,61 @@ impl Core {
                 next.quotes.retain(|c, _| watched.contains(c));
                 next.next_poll = 0;
             }
-            "set_settings" => {
-                if let Some(v) = args.get("alwaysOnTop") {
-                    next.saved.settings.always_on_top = v.as_bool().ok_or("置頂格式錯誤")?;
+            "set_settings" => apply_settings(&mut next, &args)?,
+            "upsert_rule" => apply_rule(&mut next, &args)?,
+            // Desktop only: mcp.rs refuses it, so an agent cannot replace the user's setup.
+            "import_backup" => {
+                if args["format"] != BACKUP_FORMAT {
+                    return Err("這不是 SmallStocks TW 的備份檔".into());
                 }
-                if let Some(v) = args.get("rowDisplay") {
-                    let v = v.as_str().ok_or("列顯示格式錯誤")?;
-                    if !["numbers", "trend", "minimal"].contains(&v) {
-                        return Err("列顯示需為 numbers、trend 或 minimal".into());
-                    }
-                    next.saved.settings.row_display = v.into();
+                match args["version"].as_u64() {
+                    Some(1) => {}
+                    Some(_) => return Err("備份檔來自較新的版本，請先更新程式".into()),
+                    None => return Err("備份檔缺少版本".into()),
                 }
-                if let Some(v) = args.get("updateCheck") {
-                    next.saved.settings.update_check = v.as_bool().ok_or("更新檢查需為布林值")?;
+                let list = args["watchlist"].as_array().ok_or("備份檔缺少自選清單")?;
+                if list.len() > 30 {
+                    return Err("備份檔的自選超過 30 檔".into());
                 }
-                if let Some(v) = args.get("showCodes") {
-                    next.saved.settings.show_codes = v.as_bool().ok_or("代號顯示需為布林值")?;
-                }
-                if let Some(a) = args.get("appearance") {
-                    let a = a.as_str().ok_or("外觀格式錯誤")?;
-                    if !["small", "gray", "terminal", "txt"].contains(&a) {
-                        return Err("未知外觀".into());
-                    };
-                    next.saved.settings.appearance = a.into();
-                }
-                if let Some(p) = args.get("paused") {
-                    next.saved.settings.paused = p.as_bool().ok_or("暫停格式錯誤")?;
-                    next.reset_baselines();
-                }
-                if let Some(s) = args.get("refreshSeconds") {
-                    let s = s.as_u64().ok_or("更新秒數錯誤")?;
-                    if !(5..=300).contains(&s) {
-                        return Err("更新間隔為 5–300 秒".into());
-                    };
-                    next.saved.settings.refresh_seconds = s;
-                }
-                next.next_poll = 0;
-            }
-            "upsert_rule" => {
-                let code = args["symbol"]
-                    .as_str()
-                    .and_then(symbol)
-                    .ok_or("請指定股票代號")?;
-                let metric = args["metric"].as_str().ok_or("需要 metric")?;
-                let dir = args["direction"].as_str().ok_or("需要 direction")?;
-                let threshold = args["threshold"]
-                    .as_f64()
-                    .filter(|n| n.is_finite())
-                    .ok_or("門檻必須是有限數字")?;
-                let channel = args["channel"].as_str().unwrap_or("strip");
-                let repeat = args["repeat"].as_str().unwrap_or("daily");
-                if !["price", "changePercent", "mid", "midChangePercent"].contains(&metric)
-                    || !["above", "below"].contains(&dir)
-                    || !["off", "log", "strip", "card"].contains(&channel)
-                    || !["once", "daily"].contains(&repeat)
-                {
-                    return Err("不支援的規則欄位".into());
-                }
-                if matches!(metric, "price" | "mid") && threshold <= 0. {
-                    return Err("價格門檻必須大於零".into());
-                }
-                if next.saved.rules.len() >= 100 && args.get("id").is_none() {
-                    return Err("規則上限為 100".into());
-                }
-                let supplied = args
-                    .get("id")
-                    .map(|v| v.as_str().ok_or("規則 ID 格式錯誤"))
-                    .transpose()?;
-                if let Some(id) = supplied {
-                    if !next.saved.rules.iter().any(|r| r.id == id) {
-                        return Err("找不到規則".into());
+                let mut codes = Vec::new();
+                for s in list {
+                    let c = s
+                        .as_str()
+                        .and_then(symbol)
+                        .ok_or("備份檔裡有無效的股票代號")?;
+                    if !codes.contains(&c) {
+                        codes.push(c)
                     }
                 }
-                if !next.saved.watchlist.contains(&code) {
-                    if next.saved.watchlist.len() >= 30 {
-                        return Err("自選清單已滿".into());
-                    };
-                    next.saved.watchlist.push(code.clone());
-                    next.last_fetch = None;
+                next.saved.watchlist = codes;
+                next.saved.rules.clear();
+                let rules = args["rules"].as_array().cloned().unwrap_or_default();
+                if rules.len() > 100 {
+                    return Err("備份檔的提醒超過 100 條".into());
                 }
-                let id = supplied
-                    .map(str::to_owned)
-                    .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-                let enabled = args
-                    .get("enabled")
-                    .map(|v| v.as_bool().ok_or("enabled 格式錯誤"))
-                    .transpose()?
-                    .unwrap_or(true);
-                // Editing preserves today's fire latch: no duplicate alert through edits/restarts.
-                // A spent one-time rule that the user turns back on is a new one-time request.
-                let previous = next.saved.rules.iter().find(|r| r.id == id);
-                let rearmed = repeat == "once" && enabled && previous.is_some_and(|r| !r.enabled);
-                let fired = previous
-                    .filter(|_| !rearmed)
-                    .and_then(|r| r.fired_day.clone());
-                let rule = Rule {
-                    id: id.clone(),
-                    symbol: code,
-                    metric: metric.into(),
-                    direction: dir.into(),
-                    threshold,
-                    channel: channel.into(),
-                    repeat: repeat.into(),
-                    enabled,
-                    last_value: None,
-                    last_at: None,
-                    last_day: None,
-                    last_high: None,
-                    last_low: None,
-                    fired_day: fired,
-                };
-                next.saved.rules.retain(|r| r.id != id);
-                next.saved.rules.push(rule);
+                for mut r in rules {
+                    // A fresh id each: the old fire latch belongs to the old machine's day.
+                    if let Some(o) = r.as_object_mut() {
+                        o.remove("id");
+                    }
+                    apply_rule(&mut next, &r).map_err(|e| format!("備份檔裡的提醒無效：{e}"))?;
+                }
+                if let Some(v) = args.get("settings") {
+                    apply_settings(&mut next, v).map_err(|e| format!("備份檔裡的設定無效：{e}"))?;
+                }
+                if let Some(v) = args.get("events") {
+                    let mut events: Vec<Event> = serde_json::from_value(v.clone())
+                        .map_err(|_| "備份檔裡的事件紀錄格式不符".to_string())?;
+                    events.truncate(500);
+                    next.saved.events = events;
+                }
+                let watched = next.saved.watchlist.clone();
+                next.saved.intraday_cache.retain(|c, _| watched.contains(c));
+                next.saved.local_intraday.retain(|c, _| watched.contains(c));
+                next.quotes.retain(|c, _| watched.contains(c));
+                next.last_fetch = None;
                 next.next_poll = 0;
+                next.reset_baselines();
             }
             "delete_rule" => {
                 let id = args["id"].as_str().ok_or("需要規則 ID")?;
@@ -969,6 +934,129 @@ pub fn demo_quotes(codes: &[String], tick: u64) -> Vec<Quote> {
             }
         })
         .collect()
+}
+
+/// What a backup file says it is; import refuses anything else.
+pub const BACKUP_FORMAT: &str = "smallstocks-tw-backup";
+
+/// set_settings: checks every field before changing it. Shared by the tool and backup import.
+fn apply_settings(next: &mut Core, args: &Value) -> Result<(), String> {
+    if let Some(v) = args.get("alwaysOnTop") {
+        next.saved.settings.always_on_top = v.as_bool().ok_or("置頂格式錯誤")?;
+    }
+    if let Some(v) = args.get("rowDisplay") {
+        let v = v.as_str().ok_or("列顯示格式錯誤")?;
+        if !["numbers", "trend", "minimal"].contains(&v) {
+            return Err("列顯示需為 numbers、trend 或 minimal".into());
+        }
+        next.saved.settings.row_display = v.into();
+    }
+    if let Some(v) = args.get("updateCheck") {
+        next.saved.settings.update_check = v.as_bool().ok_or("更新檢查需為布林值")?;
+    }
+    if let Some(v) = args.get("showCodes") {
+        next.saved.settings.show_codes = v.as_bool().ok_or("代號顯示需為布林值")?;
+    }
+    if let Some(a) = args.get("appearance") {
+        let a = a.as_str().ok_or("外觀格式錯誤")?;
+        if !["small", "gray", "terminal", "txt"].contains(&a) {
+            return Err("未知外觀".into());
+        };
+        next.saved.settings.appearance = a.into();
+    }
+    if let Some(p) = args.get("paused") {
+        next.saved.settings.paused = p.as_bool().ok_or("暫停格式錯誤")?;
+        next.reset_baselines();
+    }
+    if let Some(s) = args.get("refreshSeconds") {
+        let s = s.as_u64().ok_or("更新秒數錯誤")?;
+        if !(5..=300).contains(&s) {
+            return Err("更新間隔為 5–300 秒".into());
+        };
+        next.saved.settings.refresh_seconds = s;
+    }
+    next.next_poll = 0;
+    Ok(())
+}
+
+/// upsert_rule: checks the rule and adds its symbol to the watchlist. Shared by the tool and import.
+fn apply_rule(next: &mut Core, args: &Value) -> Result<(), String> {
+    let code = args["symbol"]
+        .as_str()
+        .and_then(symbol)
+        .ok_or("請指定股票代號")?;
+    let metric = args["metric"].as_str().ok_or("需要 metric")?;
+    let dir = args["direction"].as_str().ok_or("需要 direction")?;
+    let threshold = args["threshold"]
+        .as_f64()
+        .filter(|n| n.is_finite())
+        .ok_or("門檻必須是有限數字")?;
+    let channel = args["channel"].as_str().unwrap_or("strip");
+    let repeat = args["repeat"].as_str().unwrap_or("daily");
+    if !["price", "changePercent", "mid", "midChangePercent"].contains(&metric)
+        || !["above", "below"].contains(&dir)
+        || !["off", "log", "strip", "card"].contains(&channel)
+        || !["once", "daily"].contains(&repeat)
+    {
+        return Err("不支援的規則欄位".into());
+    }
+    if matches!(metric, "price" | "mid") && threshold <= 0. {
+        return Err("價格門檻必須大於零".into());
+    }
+    if next.saved.rules.len() >= 100 && args.get("id").is_none() {
+        return Err("規則上限為 100".into());
+    }
+    let supplied = args
+        .get("id")
+        .map(|v| v.as_str().ok_or("規則 ID 格式錯誤"))
+        .transpose()?;
+    if let Some(id) = supplied {
+        if !next.saved.rules.iter().any(|r| r.id == id) {
+            return Err("找不到規則".into());
+        }
+    }
+    if !next.saved.watchlist.contains(&code) {
+        if next.saved.watchlist.len() >= 30 {
+            return Err("自選清單已滿".into());
+        };
+        next.saved.watchlist.push(code.clone());
+        next.last_fetch = None;
+    }
+    let id = supplied
+        .map(str::to_owned)
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let enabled = args
+        .get("enabled")
+        .map(|v| v.as_bool().ok_or("enabled 格式錯誤"))
+        .transpose()?
+        .unwrap_or(true);
+    // Editing preserves today's fire latch: no duplicate alert through edits/restarts.
+    // A spent one-time rule that the user turns back on is a new one-time request.
+    let previous = next.saved.rules.iter().find(|r| r.id == id);
+    let rearmed = repeat == "once" && enabled && previous.is_some_and(|r| !r.enabled);
+    let fired = previous
+        .filter(|_| !rearmed)
+        .and_then(|r| r.fired_day.clone());
+    let rule = Rule {
+        id: id.clone(),
+        symbol: code,
+        metric: metric.into(),
+        direction: dir.into(),
+        threshold,
+        channel: channel.into(),
+        repeat: repeat.into(),
+        enabled,
+        last_value: None,
+        last_at: None,
+        last_day: None,
+        last_high: None,
+        last_low: None,
+        fired_day: fired,
+    };
+    next.saved.rules.retain(|r| r.id != id);
+    next.saved.rules.push(rule);
+    next.next_poll = 0;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1534,5 +1622,109 @@ mod tests {
         let monday = t + 3 * 86400000;
         c.record_intraday(&q(Some(110.), monday), monday);
         assert_eq!(c.saved.local_intraday["2330"].points.len(), 1);
+    }
+
+    #[test]
+    fn backup_round_trip_and_bad_files_change_nothing() {
+        let file = |name: &str| {
+            let d = std::env::temp_dir().join(format!(
+                "smallstocks-backup-{name}-{}",
+                uuid::Uuid::new_v4()
+            ));
+            std::fs::create_dir_all(&d).unwrap();
+            d.join("state.json")
+        };
+        let mut old = Core::load(file("old"), true).unwrap();
+        old.execute("set_watchlist", json!({"symbols":["t00","2330","0050"]}))
+            .unwrap();
+        old.execute(
+            "upsert_rule",
+            json!({"symbol":"6488","metric":"changePercent","direction":"below",
+                "threshold":-3,"channel":"card","repeat":"once"}),
+        )
+        .unwrap();
+        old.execute(
+            "upsert_rule",
+            json!({"symbol":"2330","metric":"price","direction":"above","threshold":105}),
+        )
+        .unwrap();
+        old.execute(
+            "set_settings",
+            json!({"rowDisplay":"trend","alwaysOnTop":false,"appearance":"terminal"}),
+        )
+        .unwrap();
+        let t = ts();
+        old.ingest(vec![q(Some(100.), t)], t);
+        old.ingest(vec![q(Some(106.), t + 5000)], t + 5000);
+        assert_eq!(old.saved.events.len(), 1);
+
+        let backup = old.execute("export_backup", json!({})).unwrap();
+        assert_eq!(backup["format"], BACKUP_FORMAT);
+        assert!(
+            backup.get("dailyCache").is_none(),
+            "caches stay out of a backup"
+        );
+        assert!(backup["rules"][0].get("lastValue").is_none());
+        assert!(backup["rules"][0].get("id").is_none());
+
+        let mut new = Core::load(file("new"), true).unwrap();
+        new.execute("import_backup", backup.clone()).unwrap();
+        assert_eq!(new.saved.watchlist, old.saved.watchlist);
+        let key = |c: &Core| {
+            let mut v: Vec<String> = c
+                .saved
+                .rules
+                .iter()
+                .map(|r| {
+                    format!(
+                        "{} {} {} {} {} {} {}",
+                        r.symbol,
+                        r.metric,
+                        r.direction,
+                        r.threshold,
+                        r.channel,
+                        r.repeat,
+                        r.enabled
+                    )
+                })
+                .collect();
+            v.sort();
+            v
+        };
+        assert_eq!(key(&new), key(&old));
+        assert_eq!(new.saved.settings.row_display, "trend");
+        assert_eq!(new.saved.settings.appearance, "terminal");
+        assert!(!new.saved.settings.always_on_top);
+        assert_eq!(new.saved.events.len(), 1);
+        let reloaded = Core::load(new.path.clone(), true).unwrap();
+        assert_eq!(reloaded.saved.watchlist, old.saved.watchlist);
+        assert_eq!(key(&reloaded), key(&old));
+
+        // A wrong or damaged file is refused whole: nothing changes, nothing is saved.
+        let before = serde_json::to_string(&new.saved).unwrap();
+        let on_disk = std::fs::read(&new.path).unwrap();
+        let with = |field: &str, value: Value| {
+            let mut b = backup.clone();
+            b[field] = value;
+            b
+        };
+        let mut bad_rule = backup.clone();
+        bad_rule["rules"][0]["metric"] = json!("volume");
+        let mut bad_setting = backup.clone();
+        bad_setting["settings"]["refreshSeconds"] = json!(1);
+        let too_many: Vec<String> = (0..31).map(|i| format!("{}", 1101 + i)).collect();
+        for bad in [
+            json!({"format":"something-else","version":1,"watchlist":[]}),
+            with("version", json!(2)),
+            with("watchlist", json!(["not a code!"])),
+            with("watchlist", json!(too_many)),
+            with("events", json!("garbage")),
+            bad_rule,
+            bad_setting,
+        ] {
+            assert!(new.execute("import_backup", bad).is_err());
+        }
+        assert_eq!(serde_json::to_string(&new.saved).unwrap(), before);
+        assert_eq!(std::fs::read(&new.path).unwrap(), on_disk);
     }
 }

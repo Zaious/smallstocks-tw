@@ -82,7 +82,7 @@ small 彩色與灰階沿用系列的圓角膠囊、緊湊字體與棋子厚度�
 
 連接示範實例時 args 改為 `["--mcp", "--demo"]`。這個 stdio bridge 連到已啟動本體，不另啟行情輪詢。本體關閉時會回報無法連線。
 
-工具：`get_status`、`get_daily_history`、`get_intraday_history`、`list_events`、`list_rules`、`set_watchlist`、`set_settings`、`upsert_rule`、`delete_rule`。桌面與 MCP 讀寫相同規則，寫入後立即生效。自然語言由使用者自己的 agent 轉成工具欄位，程式不內建 LLM 或模型金鑰。
+工具：`get_status`、`get_daily_history`、`get_intraday_history`、`list_events`、`list_rules`、`set_watchlist`、`set_settings`、`upsert_rule`、`delete_rule`、`export_backup`（唯讀；還原備份只能在桌面程式操作）。桌面與 MCP 讀寫相同規則，寫入後立即生效。自然語言由使用者自己的 agent 轉成工具欄位，程式不內建 LLM 或模型金鑰。
 
 `get_daily_history` 以 `symbol` 和 `month`（YYYY-MM）讀取每日歷史；第一次回應可能為 `pending=true`，等待背景取得後再讀。`get_status` 亦提供休市摘要 `dailySummaries`。Agent 應報告資料日期、來源及是否快取／示範，不能把收盤資料稱作即時報價。
 
@@ -119,6 +119,8 @@ UI 檢查：先執行 `npm run dev`，再 `node scripts/ui-check.mjs`（使用�
 更新檢查：每次啟動會向 GitHub 詢問一次是否有新版本，可在「外觀與設定」關閉。不會傳送任何關於你的資料；GitHub 看到的是一般下載請求，開發者只看得到 GitHub 公布的發布檔下載次數。安裝版只有在你按下「更新並重新啟動」才會下載並安裝，並先驗證簽章；免安裝版只顯示下載頁連結。
 
 資料預設存於 `%APPDATA%\SmallStocks-TW`（macOS 為 `~/Library/Application Support/SmallStocks-TW`），示範為 `%APPDATA%\SmallStocks-TW-demo`。測試可設定 `SMALLSTOCKS_CONFIG_DIR` 為獨立資料夾，桌面與 bridge 必須使用相同設定。
+
+換電腦：在舊電腦按「外觀與設定 → 資料備份 → 匯出備份」，會在「下載」資料夾產生 `SmallStocks-TW-backup-日期-時間.json`（自選、提醒、設定與事件紀錄，不含可重抓的行情暫存）。在新電腦按「從備份匯入」選這個檔，確認摘要後才會取代目前的設定；檔案不對就整份不採用。匯入後提醒會重新建立比較基準：第一筆行情只記錄、不提醒。
 
 指定獨立測試資料夾時，程式會為該路徑使用獨立的實例鎖，讓測試不會喚起或操作正在使用的正式實例。
 

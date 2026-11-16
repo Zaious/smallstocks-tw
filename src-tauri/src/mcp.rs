@@ -33,6 +33,7 @@ pub fn tools() -> Value {
         {"name":"get_status","description":"Read local watchlist, quotes with source times, health and settings. marketOpen follows session hours and the official TWSE holiday calendar (marketClosedReason names the holiday; calendar says whether this year's table is loaded, otherwise only weekday hours apply). price is the last trade only and is null when the source gave none; mid (with midChangePercent) is the average of the best bid and ask: an order price, never a trade. Quotes older than three minutes are stale. Check demo and freshness before reporting. Does not fetch separately.","inputSchema":{"type":"object","properties":{},"additionalProperties":false}},
         {"name":"list_events","description":"Read up to 500 recent locally detected events, newest first.","inputSchema":{"type":"object","properties":{},"additionalProperties":false}},
         {"name":"list_rules","description":"Read persistent monitoring rules. Rules run without the agent.","inputSchema":{"type":"object","properties":{},"additionalProperties":false}},
+        {"name":"export_backup","description":"Read a backup of the user's own setup: watchlist, rules, settings and recorded events (no quotes or chart caches). Read only. Importing a backup is done by the user in the desktop app (Settings > 資料備份); agents cannot import.","inputSchema":{"type":"object","properties":{},"additionalProperties":false}},
         {"name":"set_watchlist","description":"Replace the watchlist (up to 30 Taiwan symbols). Enabled rules must be disabled or deleted before removing their symbol.","inputSchema":{"type":"object","properties":{"symbols":{"type":"array","items":{"type":"string"},"maxItems":30}},"required":["symbols"],"additionalProperties":false}},
         {"name":"set_settings","description":"Change appearance, main-window always-on-top preference, the start-up update check (updateCheck), pause monitoring or set refresh interval. Hidden windows continue monitoring. Pausing resets crossing baselines.","inputSchema":{"type":"object","properties":{"appearance":{"enum":["small","gray","terminal","txt"]},"rowDisplay":{"enum":["numbers","trend","minimal"]},"alwaysOnTop":{"type":"boolean"},"updateCheck":{"type":"boolean"},"showCodes":{"type":"boolean"},"paused":{"type":"boolean"},"refreshSeconds":{"type":"integer","minimum":5,"maximum":300}},"additionalProperties":false}},
         {"name":"upsert_rule","description":"Create or replace a persistent crossing rule. metric price and changePercent use the last trade (no trade, no alert); mid and midChangePercent use the bid/ask average and say so in the notice. price and changePercent rules also fire when the day high (above) or day low (below) reaches the threshold between two updates, and the notice says so (a touch, not a live price); First valid fresh observation establishes a baseline without alerting; subsequent crossing triggers once daily or once ever. Editing preserves today's fired latch. No volume/big-order rules. Returns current state including rule ID. Omit id to create, supply existing id to replace. Symbol automatically added to watchlist.","inputSchema":{"type":"object","properties":{"id":{"type":"string"},"symbol":{"type":"string"},"metric":{"enum":["price","changePercent","mid","midChangePercent"]},"direction":{"enum":["above","below"]},"threshold":{"type":"number"},"channel":{"enum":["off","log","strip","card"]},"repeat":{"enum":["once","daily"]},"enabled":{"type":"boolean"}},"required":["symbol","metric","direction","threshold"],"additionalProperties":false}},
@@ -50,6 +51,14 @@ pub fn rpc(state: &Shared, req: Value) -> Option<Value> {
         "tools/list" => json!({"tools":tools()}),
         "tools/call" => {
             let tool = req["params"]["name"].as_str().unwrap_or("");
+            // Only the listed tools: the core also runs desktop-only operations (backup import)
+            // that an agent must not reach by guessing a name.
+            let listed = tools()
+                .as_array()
+                .is_some_and(|t| t.iter().any(|d| d["name"] == tool));
+            if !listed {
+                return Some(error(-32602, "Unknown tool"));
+            }
             let args = req["params"].get("arguments").cloned().unwrap_or(json!({}));
             let result = state
                 .lock()
@@ -205,5 +214,35 @@ mod tests {
         assert!(v["intraday"]["2330"]["series"].get("points").is_none());
         assert_eq!(v["intraday"]["2330"]["series"]["pointCount"], 2);
         assert_eq!(v["intraday"]["2330"]["series"]["source"], "test");
+    }
+
+    #[test]
+    fn agents_can_export_but_never_import_a_backup() {
+        let dir = std::env::temp_dir().join(format!("smallstocks-mcp-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let state: Shared = Arc::new(Mutex::new(
+            Core::load(dir.join("state.json"), true).unwrap(),
+        ));
+        let call = |name: &str| {
+            rpc(
+                &state,
+                json!({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":name,
+                    "arguments":{"format":"smallstocks-tw-backup","version":1,"watchlist":[]}}}),
+            )
+            .unwrap()
+        };
+        assert_eq!(call("import_backup")["error"]["code"], -32602);
+        assert_eq!(call("made_up_tool")["error"]["code"], -32602);
+        assert_eq!(call("export_backup")["result"]["isError"], false);
+        let names: Vec<Value> = tools()
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["name"].clone())
+            .collect();
+        assert!(names.contains(&json!("export_backup")));
+        assert!(!names.contains(&json!("import_backup")));
+        // the watchlist was not replaced by the refused call
+        assert!(!state.lock().unwrap().saved.watchlist.is_empty());
     }
 }

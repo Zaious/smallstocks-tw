@@ -360,6 +360,31 @@ small {
 .setting-row input {
   width: 80px;
 }
+.update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.update-actions button {
+  white-space: nowrap;
+}
+/* The backup row carries long text (a file path, a summary): text above, buttons below. */
+.setting-row.backup-row {
+  flex-direction: column;
+  align-items: stretch;
+}
+.setting-row.backup-row .update-actions {
+  justify-content: flex-start;
+}
+.setting-row.backup-row small {
+  overflow-wrap: anywhere;
+}
+.setting-row small.backup-confirm {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text);
+}
 label {
   display: flex;
   flex-direction: column;

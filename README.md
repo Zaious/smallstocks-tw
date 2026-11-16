@@ -129,7 +129,7 @@ Start the desktop app, then open **外觀與設定** and use the **agent (MCP)**
 
 For example: “Watch 2330. When its traded price crosses below NT$1,000, show a grey strip, once per day.” Your agent can update the app's settings and create that rule. This is a configuration example, not a suggested trade.
 
-The nine tools read status, daily and intraday history, events and rules, and manage the watchlist, settings and rules. Both the desktop interface and MCP use one local monitoring core. A rule continues without the agent; scheduled agent reports must be arranged in your agent host. The app does not bundle an LLM.
+The ten tools read status, daily and intraday history, events, rules and a backup of your setup, and manage the watchlist, settings and rules. Restoring a backup is only possible in the desktop app, never through MCP. Both the desktop interface and MCP use one local monitoring core. A rule continues without the agent; scheduled agent reports must be arranged in your agent host. The app does not bundle an LLM.
 
 MCP connects over stdio to a token-protected loopback endpoint. Do not share `mcp-connection.json`. If your agent uses a cloud model, the information it reads may be sent to that model service. The [guide](docs/USAGE.zh-TW.md) includes the tool names and example rule fields.
 

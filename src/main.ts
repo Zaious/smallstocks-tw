@@ -18,6 +18,8 @@ import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { findNewer, installNewer } from "./updates.ts";
 import { mcpSetup } from "./mcp-setup.ts";
+import { describeBackup, readBackup } from "./backup.ts";
+import type { BackupSummary } from "./backup.ts";
 import type { McpKind } from "./mcp-setup.ts";
 import type { Newer } from "./updates.ts";
 import { desktop, request, search, daily } from "./client.ts";
@@ -69,6 +71,12 @@ let newer: Newer | null = null;
 let updateBusy = false;
 let updateMessage = "";
 let mcpMessage = "";
+let backupMessage = "";
+let backupPath = "";
+let pendingImport: {
+  data: Record<string, unknown>;
+  summary: BackupSummary;
+} | null = null;
 let mcpExe = "";
 // navigator.clipboard first; the old selection copy covers a web view that refuses it.
 async function copyText(text: string) {
@@ -514,7 +522,7 @@ function render() {
       )
       .join(
         "",
-      )}</div><div class="setting-row"><label>顯示內容<select id="display-mode"><option value="numbers" ${state.settings.rowDisplay === "numbers" || !state.settings.rowDisplay ? "selected" : ""}>純數字</option><option value="trend" ${state.settings.rowDisplay === "trend" ? "selected" : ""}>單行走勢</option><option value="minimal" ${state.settings.rowDisplay === "minimal" ? "selected" : ""}>極簡：方向與名稱</option></select></label><label class="setting-check"><input id="show-codes" type="checkbox" ${state.settings.showCodes ? "checked" : ""}> 顯示代號</label></div><div class="note density-note">極簡方向為當日漲跌；— 平盤，○ 資料未確認。名稱尚未取得時會使用代號。</div><div class="setting-row"><label class="setting-check"><input id="always-on-top" type="checkbox" ${state.settings.alwaysOnTop !== false ? "checked" : ""}> 視窗保持置頂</label></div><div class="setting-row"><div><strong>監看狀態</strong><small>隱藏視窗仍會監看，暫停則停止判定。</small></div><button id="pause" class="secondary">${state.settings.paused ? "繼續監看" : "暫停監看"}</button></div>${desktop ? `<div class="setting-row"><div><strong>程式</strong><small>找不到系統匣時，從這裡重新啟動或結束。結束後就不再監看。</small></div><span class="update-actions"><button id="restart-app" class="secondary">重新啟動</button><button id="quit-app" class="secondary">結束程式</button></span></div>` : ""}<label class="setting-row">更新間隔（秒）<input id="refresh" type="number" min="5" max="300" value="${state.settings.refreshSeconds}"></label><button id="save-refresh" class="secondary">儲存更新間隔</button>${desktop ? `<div class="setting-row"><label class="setting-check"><input id="update-check" type="checkbox" ${state.settings.updateCheck !== false ? "checked" : ""}> 啟動時檢查新版本</label></div><div class="setting-row"><div><strong>版本 ${esc(appVersion)}</strong><small id="update-status">${esc(updateMessage || "只會連到 GitHub 詢問有沒有新版本")}</small></div><span class="update-actions"><button id="check-update" class="secondary" ${updateBusy ? "disabled" : ""}>檢查更新</button>${newer ? (newer.update ? `<button id="install-update" class="primary">更新並重新啟動</button>` : `<button id="open-release" class="secondary">前往下載頁</button>`) : ""}</span></div>` : ""}${desktop ? `<div class="setting-row"><div><strong>agent（MCP，選配）</strong><small id="mcp-status">${esc(mcpMessage || "複製後貼到 Claude、Codex 或其他支援本機 MCP 的程式；基本監看不需要它")}</small></div><span class="update-actions"><button id="mcp-json" class="secondary">複製 JSON 設定</button><button id="mcp-claude" class="secondary">Claude Code 指令</button><button id="mcp-codex" class="secondary">Codex 指令</button></span></div>` : ""}<div class="note">所有外觀預設無聲。灰階通知跟隨外觀。<br>${privacyShortcutLabel} 隱藏全部視窗，從系統匣恢復。<br>${state.privacyShortcutError ? esc(state.privacyShortcutError) + "<br>" : ""}資料：TWSE MIS；來源時間與取得時間分開顯示。<br>更新檢查只向 GitHub 詢問版本，不傳送任何使用資料；要更新時由你按下按鈕才會下載安裝。<br>首次觀測只建立基準；過期或缺少成交價時不觸發。<br>${desktop ? "agent：上方按鈕複製連接設定，說明見 README。" : "瀏覽器僅顯示合成預覽；桌面版才會實際監看與提供 MCP。"}</div></div>`;
+      )}</div><div class="setting-row"><label>顯示內容<select id="display-mode"><option value="numbers" ${state.settings.rowDisplay === "numbers" || !state.settings.rowDisplay ? "selected" : ""}>純數字</option><option value="trend" ${state.settings.rowDisplay === "trend" ? "selected" : ""}>單行走勢</option><option value="minimal" ${state.settings.rowDisplay === "minimal" ? "selected" : ""}>極簡：方向與名稱</option></select></label><label class="setting-check"><input id="show-codes" type="checkbox" ${state.settings.showCodes ? "checked" : ""}> 顯示代號</label></div><div class="note density-note">極簡方向為當日漲跌；— 平盤，○ 資料未確認。名稱尚未取得時會使用代號。</div><div class="setting-row"><label class="setting-check"><input id="always-on-top" type="checkbox" ${state.settings.alwaysOnTop !== false ? "checked" : ""}> 視窗保持置頂</label></div><div class="setting-row"><div><strong>監看狀態</strong><small>隱藏視窗仍會監看，暫停則停止判定。</small></div><button id="pause" class="secondary">${state.settings.paused ? "繼續監看" : "暫停監看"}</button></div>${desktop ? `<div class="setting-row"><div><strong>程式</strong><small>找不到系統匣時，從這裡重新啟動或結束。結束後就不再監看。</small></div><span class="update-actions"><button id="restart-app" class="secondary">重新啟動</button><button id="quit-app" class="secondary">結束程式</button></span></div>` : ""}<label class="setting-row">更新間隔（秒）<input id="refresh" type="number" min="5" max="300" value="${state.settings.refreshSeconds}"></label><button id="save-refresh" class="secondary">儲存更新間隔</button>${desktop ? `<div class="setting-row"><label class="setting-check"><input id="update-check" type="checkbox" ${state.settings.updateCheck !== false ? "checked" : ""}> 啟動時檢查新版本</label></div><div class="setting-row"><div><strong>版本 ${esc(appVersion)}</strong><small id="update-status">${esc(updateMessage || "只會連到 GitHub 詢問有沒有新版本")}</small></div><span class="update-actions"><button id="check-update" class="secondary" ${updateBusy ? "disabled" : ""}>檢查更新</button>${newer ? (newer.update ? `<button id="install-update" class="primary">更新並重新啟動</button>` : `<button id="open-release" class="secondary">前往下載頁</button>`) : ""}</span></div>` : ""}${desktop ? `<div class="setting-row"><div><strong>agent（MCP，選配）</strong><small id="mcp-status">${esc(mcpMessage || "複製後貼到 Claude、Codex 或其他支援本機 MCP 的程式；基本監看不需要它")}</small></div><span class="update-actions"><button id="mcp-json" class="secondary">複製 JSON 設定</button><button id="mcp-claude" class="secondary">Claude Code 指令</button><button id="mcp-codex" class="secondary">Codex 指令</button></span></div>` : ""}${desktop ? `<div class="setting-row backup-row"><div><strong>資料備份</strong><small id="backup-status">${esc(backupMessage || "把自選、提醒、設定與事件紀錄存成一個檔，換電腦時再匯入")}</small>${pendingImport ? `<small class="backup-confirm">${esc(describeBackup(pendingImport.summary))}</small>` : ""}</div><span class="update-actions">${pendingImport ? `<button id="confirm-import" class="primary">確定匯入</button><button id="cancel-import" class="secondary">取消</button>` : `<button id="export-backup" class="secondary">匯出備份</button><button id="import-backup" class="secondary">從備份匯入</button>${backupPath ? `<button id="reveal-backup" class="secondary">打開所在資料夾</button>` : ""}`}</span><input id="import-file" type="file" accept=".json,application/json" hidden></div>` : ""}<div class="note">所有外觀預設無聲。灰階通知跟隨外觀。<br>${privacyShortcutLabel} 隱藏全部視窗，從系統匣恢復。<br>${state.privacyShortcutError ? esc(state.privacyShortcutError) + "<br>" : ""}資料：TWSE MIS；來源時間與取得時間分開顯示。<br>更新檢查只向 GitHub 詢問版本，不傳送任何使用資料；要更新時由你按下按鈕才會下載安裝。<br>首次觀測只建立基準；過期或缺少成交價時不觸發。<br>${desktop ? "agent：上方按鈕複製連接設定，說明見 README。" : "瀏覽器僅顯示合成預覽；桌面版才會實際監看與提供 MCP。"}</div></div>`;
   if (tab === "rules")
     content.innerHTML = `<div class="pane"><h1>只在你在意的時候</h1><p class="intro">首次觀測建立基準，之後跨過門檻才提醒。</p><form id="rule-form"><div class="form-grid"><label>股票代號<input name="symbol" required placeholder="2330" value="${esc(editing?.symbol ?? state.watchlist.find((c) => c !== "t00") ?? "2330")}"></label><label>觀測項目<select name="metric"><option value="price">成交價（元）</option><option value="changePercent" ${editing?.metric === "changePercent" ? "selected" : ""}>漲跌幅（成交價，%）</option><option value="mid" ${editing?.metric === "mid" ? "selected" : ""}>買賣中間價（委託價，元）</option><option value="midChangePercent" ${editing?.metric === "midChangePercent" ? "selected" : ""}>漲跌幅（買賣中間價，%）</option></select></label><label>方向<select name="direction"><option value="above">由下往上跨過</option><option value="below" ${editing?.direction === "below" ? "selected" : ""}>由上往下跨過</option></select></label><label>門檻<input name="threshold" type="number" step="any" required placeholder="例如 1000" value="${editing?.threshold ?? ""}"></label><label>通知<select name="channel">${[
       ["strip", "細條"],
@@ -652,6 +660,66 @@ function bind() {
         .catch((e) => note("複製失敗：" + String(e)));
     });
   }
+  const backupNote = (text: string) => {
+    backupMessage = text;
+    const el = document.querySelector("#backup-status");
+    if (el) el.textContent = text;
+  };
+  document.querySelector("#export-backup")?.addEventListener("click", () => {
+    void invoke<string>("export_backup_file")
+      .then((path) => {
+        backupPath = path;
+        backupMessage = `已匯出到：${path}`;
+        if (tab === "settings") render();
+      })
+      .catch((e) => backupNote("匯出失敗：" + String(e)));
+  });
+  document.querySelector("#reveal-backup")?.addEventListener("click", () => {
+    void invoke("reveal_backup", { path: backupPath }).catch((e) =>
+      backupNote("無法打開資料夾：" + String(e)),
+    );
+  });
+  document.querySelector("#import-backup")?.addEventListener("click", () => {
+    (
+      document.querySelector("#import-file") as HTMLInputElement | null
+    )?.click();
+  });
+  document.querySelector("#import-file")?.addEventListener("change", (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    void file
+      .text()
+      .then((text) => {
+        pendingImport = readBackup(text);
+        backupMessage = `準備匯入：${file.name}`;
+        if (tab === "settings") render();
+      })
+      .catch((err) =>
+        backupNote(err instanceof Error ? err.message : String(err)),
+      );
+  });
+  document.querySelector("#cancel-import")?.addEventListener("click", () => {
+    pendingImport = null;
+    backupMessage = "已取消匯入，原本的設定沒有變動";
+    if (tab === "settings") render();
+  });
+  document.querySelector("#confirm-import")?.addEventListener("click", () => {
+    const pending = pendingImport;
+    if (!pending) return;
+    void request("import_backup", pending.data)
+      .then((next) => {
+        state = next;
+        pendingImport = null;
+        backupMessage = `已匯入：${pending.summary.watchlist} 檔自選、${pending.summary.rules} 條提醒`;
+        apply();
+        render();
+      })
+      .catch((err) => {
+        pendingImport = null;
+        backupMessage = "匯入失敗，原本的設定沒有變動：" + String(err);
+        if (tab === "settings") render();
+      });
+  });
   document.querySelector("#restart-app")?.addEventListener("click", () => {
     void invoke("restart_app").catch(showError);
   });
