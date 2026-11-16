@@ -2089,4 +2089,200 @@ mod tests {
         c.execute("set_settings", json!({"opacity": 70})).unwrap();
         assert_eq!(Core::load(path, true).unwrap().saved.settings.opacity, 70);
     }
+
+    /// Replays a recorded session (the SMALLSTOCKS_CAPTURE_RAW file) through the real parse,
+    /// ingest and rapid-move code, and checks every rule against a second, brute-force reading of
+    /// the same rule. Not part of the normal run:
+    ///   SMALLSTOCKS_REPLAY=<mis-raw.ndjson> cargo test --lib replay -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn replay_recorded_session_rapid_moves() {
+        let Some(file) = std::env::var_os("SMALLSTOCKS_REPLAY") else {
+            return;
+        };
+        let mut batches: Vec<(i64, Vec<Quote>)> = Vec::new();
+        for line in std::fs::read_to_string(file).unwrap().lines() {
+            let v: Value = serde_json::from_str(line).unwrap();
+            let at = v["receivedAt"].as_i64().unwrap();
+            let Ok(body) = serde_json::from_str::<Value>(v["body"].as_str().unwrap().trim()) else {
+                continue;
+            };
+            if let Ok(qs) = parse_mis(&body, at) {
+                batches.push((at, qs));
+            }
+        }
+        let hm = |t: i64| local(t).format("%H:%M:%S").to_string();
+        println!(
+            "replayed {} responses, {} to {} (Taipei)",
+            batches.len(),
+            hm(batches[0].0),
+            hm(batches.last().unwrap().0)
+        );
+        let clock = Core::load(
+            std::env::temp_dir().join("smallstocks-replay-clock.json"),
+            false,
+        )
+        .unwrap();
+
+        // Brute force, the rule restated: every distinct trade price seen so far, recomputed whole
+        // on each quote (the app keeps a pruned ring instead).
+        let expect = |sym: &str, drop: bool, threshold: f64, minutes: i64| -> Option<(i64, f64)> {
+            let mut seen: Vec<(i64, f64)> = Vec::new();
+            let mut last_quote: Option<i64> = None;
+            let mut last_eval: Option<i64> = None;
+            for (at, qs) in &batches {
+                let open = clock.market_open(*at);
+                for q in qs.iter().filter(|q| q.symbol == sym) {
+                    if last_quote.is_some_and(|t| t > q.source_at) {
+                        continue;
+                    }
+                    last_quote = Some(q.source_at);
+                    if let Some(p) = q.price {
+                        if seen.last().is_none_or(|&(t, _)| q.source_at > t) {
+                            seen.push((q.source_at, p));
+                        }
+                    }
+                    let fresh = q.source_at <= at + 5000
+                        && at - q.source_at <= FRESH_MS
+                        && q.date == local(*at).format("%Y%m%d").to_string();
+                    if !fresh || !open {
+                        continue;
+                    }
+                    let Some(price) = q.price else { continue };
+                    if last_eval.is_some_and(|t| q.source_at <= t) {
+                        continue;
+                    }
+                    last_eval = Some(q.source_at);
+                    let from = q.source_at - minutes * 60_000;
+                    let kept = |t: i64| t >= q.source_at - 61 * 60_000;
+                    if !seen.iter().any(|&(t, _)| kept(t) && t <= from + 60_000) {
+                        continue;
+                    }
+                    let window = seen
+                        .iter()
+                        .filter(|&&(t, _)| t >= from && t <= q.source_at)
+                        .map(|&(_, p)| p)
+                        .chain(std::iter::once(price));
+                    let base = if drop {
+                        window.fold(f64::MIN, f64::max)
+                    } else {
+                        window.fold(f64::MAX, f64::min)
+                    };
+                    let change = (price - base) / base * 100.;
+                    if (drop && change <= -threshold) || (!drop && change >= threshold) {
+                        return Some((q.source_at, change));
+                    }
+                }
+            }
+            None
+        };
+        // The largest move of the day per symbol and window, to set thresholds either side of it.
+        let largest = |sym: &str, drop: bool, minutes: i64| -> (f64, i64) {
+            let mut seen: Vec<(i64, f64)> = Vec::new();
+            for (_, qs) in &batches {
+                for q in qs.iter().filter(|q| q.symbol == sym) {
+                    if let Some(p) = q.price {
+                        if seen.last().is_none_or(|&(t, _)| q.source_at > t) {
+                            seen.push((q.source_at, p));
+                        }
+                    }
+                }
+            }
+            let mut best = (0., 0);
+            for &(t, p) in &seen {
+                let w = seen
+                    .iter()
+                    .filter(|&&(u, _)| u >= t - minutes * 60_000 && u <= t);
+                let base = if drop {
+                    w.map(|x| x.1).fold(f64::MIN, f64::max)
+                } else {
+                    w.map(|x| x.1).fold(f64::MAX, f64::min)
+                };
+                let m = ((p - base) / base * 100.).abs();
+                if m > best.0 {
+                    best = (m, t)
+                }
+            }
+            best
+        };
+
+        let dir = std::env::temp_dir().join(format!("smallstocks-replay-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut c = Core::load(dir.join("state.json"), false).unwrap();
+        c.execute("set_watchlist", json!({"symbols":["t00","2330","0050"]}))
+            .unwrap();
+        let mut plan = Vec::new(); // (rule index, symbol, drop, minutes, threshold, should it be possible)
+        for sym in ["t00", "2330", "0050"] {
+            for minutes in [5_i64, 10] {
+                for drop in [true, false] {
+                    let (max, at) = largest(sym, drop, minutes);
+                    println!(
+                        "{sym:>4} {minutes:>2} 分鐘內最大{}: {:.3}% （{}）",
+                        if drop { "跌幅" } else { "漲幅" },
+                        max,
+                        hm(at)
+                    );
+                    for (factor, label) in [(0.8, "低於最大值"), (1.2, "高於最大值")] {
+                        let threshold = ((max * factor * 1000.).round() / 1000.).max(0.001);
+                        c.execute(
+                            "upsert_rule",
+                            json!({"symbol":sym,"metric":"move","direction":if drop {"below"} else {"above"},
+                                "threshold":threshold,"windowMinutes":minutes,"channel":"log","repeat":"daily"}),
+                        )
+                        .unwrap();
+                        plan.push((
+                            c.saved.rules.last().unwrap().id.clone(),
+                            sym,
+                            drop,
+                            minutes,
+                            threshold,
+                            label,
+                        ));
+                    }
+                }
+            }
+        }
+        let mut fired: HashMap<String, (i64, f64)> = HashMap::new();
+        for (at, qs) in &batches {
+            for e in c.ingest(qs.clone(), *at) {
+                fired
+                    .entry(e.rule_id.clone())
+                    .or_insert((e.source_at, e.value));
+            }
+        }
+        println!(
+            "\n{:<5}{:>4} {:<4}{:>8}  {:<10} {:<22} {:<22} 一致",
+            "標的", "分鐘", "方向", "門檻%", "設定", "程式觸發", "逐筆重算"
+        );
+        let mut mismatches = 0;
+        for (id, sym, drop, minutes, threshold, label) in &plan {
+            let got = fired.get(id).copied();
+            let want = expect(sym, *drop, *threshold, *minutes);
+            let show = |v: Option<(i64, f64)>| {
+                v.map_or("未觸發".to_string(), |(t, ch)| {
+                    format!("{} ({:+.3}%)", hm(t), ch)
+                })
+            };
+            let same = got.map(|g| g.0) == want.map(|w| w.0);
+            if !same {
+                mismatches += 1;
+            }
+            println!(
+                "{:<5}{:>4} {:<4}{:>8.3}  {:<10} {:<22} {:<22} {}",
+                sym,
+                minutes,
+                if *drop { "急跌" } else { "急漲" },
+                threshold,
+                label,
+                show(got),
+                show(want),
+                if same { "是" } else { "否" }
+            );
+        }
+        println!("events recorded: {}", c.saved.events.len());
+        assert_eq!(
+            mismatches, 0,
+            "the app and the brute-force reading disagree"
+        );
+    }
 }
