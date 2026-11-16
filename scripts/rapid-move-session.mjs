@@ -17,21 +17,26 @@ const opt = (name, fallback) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : fallback;
 };
-const today = new Date();
-const stamp = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
+const start = opt("start", "08:55");
+const until = opt("until", "13:40");
+// The session to run: today if it has not ended yet, otherwise the next weekday. Holidays are not
+// known here; on one the app simply records a closed market.
+const day = new Date();
+day.setHours(0, 0, 0, 0);
+const at = (hhmm) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  const d = new Date(day);
+  d.setHours(h, m, 0, 0);
+  return d.getTime();
+};
+if (Date.now() >= at(until)) day.setDate(day.getDate() + 1);
+while ([0, 6].includes(day.getDay())) day.setDate(day.getDate() + 1);
+const stamp = `${day.getFullYear()}${String(day.getMonth() + 1).padStart(2, "0")}${String(day.getDate()).padStart(2, "0")}`;
 const exe = path.resolve(
   opt("exe", "src-tauri/target/release/smallstocks-tw.exe"),
 );
 const dir = path.resolve(opt("dir", `.local-test/move-${stamp}`));
-const start = opt("start", "08:55");
-const until = opt("until", "13:40");
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const at = (hhmm) => {
-  const [h, m] = hhmm.split(":").map(Number);
-  const d = new Date();
-  d.setHours(h, m, 0, 0);
-  return d.getTime();
-};
 const clock = () => new Date().toTimeString().slice(0, 8);
 
 await stat(exe).catch(() => {
@@ -40,7 +45,7 @@ await stat(exe).catch(() => {
 await mkdir(path.join(dir, "raw"), { recursive: true });
 if (Date.now() < at(start)) {
   console.log(
-    `${clock()} waiting until ${start} (leave this window open; the computer must stay awake)`,
+    `${clock()} waiting until ${stamp} ${start} (leave this window open; the computer must stay awake)`,
   );
   await wait(at(start) - Date.now());
 }
