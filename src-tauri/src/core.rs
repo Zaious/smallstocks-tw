@@ -2567,8 +2567,11 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("smallstocks-group-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let mut c = Core::load(dir.join("state.json"), false).unwrap();
-        c.execute("set_watchlist", json!({"symbols":["TSM","2330","AAPL","t00"]}))
-            .unwrap();
+        c.execute(
+            "set_watchlist",
+            json!({"symbols":["TSM","2330","AAPL","t00"]}),
+        )
+        .unwrap();
         assert_eq!(c.saved.watchlist, vec!["2330", "t00", "TSM", "AAPL"]);
         // A rule on a new Taiwan code adds it before the US rows, not at the end.
         c.execute(
@@ -2577,7 +2580,10 @@ mod tests {
                    "repeat":"daily","channel":"log"}),
         )
         .unwrap();
-        assert_eq!(c.saved.watchlist, vec!["2330", "t00", "0050", "TSM", "AAPL"]);
+        assert_eq!(
+            c.saved.watchlist,
+            vec!["2330", "t00", "0050", "TSM", "AAPL"]
+        );
         // A list saved mixed by an older version is grouped when loaded.
         std::fs::write(
             dir.join("state.json"),
