@@ -285,3 +285,14 @@ Terminal／文字文件視圖依 navigator.platform 的桌面平台分支呈現�
 - 首次開啟流程實測（Intel Mac、macOS 26.2）：從公開網址 `releases/latest/download/...` 下載 DMG（SHA256 與發布值相符），手動補上瀏覽器會加的隔離屬性（curl 不會加），以 `open` 交給 Finder 掛載，DMG 順利掛載、沒有警告；把 App 複製出來（同樣帶隔離屬性）後用 `open` 開啟，syspolicyd 記錄 `Prompt shown`，畫面是標準提示「『SmallStocks TW』是一個從網際網路下載的 App。確定要打開嗎？ … Apple 已進行檢查但並未偵測到惡意軟體」，只有「取消」「打開」兩個按鈕（不是需要到「隱私權與安全性」的阻擋警告）；按下「打開」後 App 開啟並顯示行情。此時 App 由 Gatekeeper 以 App Translocation 路徑執行，所以程式內更新會判定為非安裝版、只顯示下載連結；拖進「應用程式」後再開才是安裝版。
 - 未驗證：用真實瀏覽器（Safari／Chrome）下載的隔離屬性內容；Apple Silicon 實機；Windows 版仍未簽章。
 
+## 0.1.15 — 美股預覽、急漲急跌、備份與透明度
+
+- 急漲急跌（metric move）：2026-11-10 錄下的台股盤中資料重播，24 條規則與逐點暴力計算一致。2026-11-17 台股盤中實跑（Windows，08:55–13:40，加權指數、台積電、0050 各 12 條，5／10 分鐘 × 0.3／0.5／1% × 急漲／急跌）：36 條全部觸發，用同一份原始資料重播（`replay_live_session_matches_what_fired_live`）36 條逐條一致、觸發時間相同；健康紀錄 286 筆。
+- 美股（Yahoo spark，非官方）：2026-11-16 美股盤中實測 23:01–23:13，報價落後 0 到 14 秒、48 次取得中 47 次是新的，10 條美股提醒全部觸發。修正前來源快取使 37% 的報價過期、0 條觸發；每次請求改用不同網址後解決。
+- 時鐘容差：一台 Windows 電腦慢 10 秒時，更新快的報價被判為未來資料；容差改為 60 秒（`CLOCK_SLACK_MS`）。
+- 分組：自選固定台股在前、美股在後（core 的 `grouped()`），四種外觀在換市場處畫一條分隔線；瀏覽器預覽以四種外觀確認位置。
+- Mac（Intel、macOS 26.2，da037e2 本機建置）：前端與 Rust 測試全過，台股即時報價新鮮、美股正確顯示休市；終端機外觀窄視窗把「CLOSED(US)」截斷，改為「CLOSED」。Mac 的設定頁未能遠端截圖確認；視窗透明度在 Mac 不提供。
+- 資料備份：以單元測試驗證匯出後匯入到另一份設定的來回結果、壞檔不改動原設定（`backup_round_trip_and_bad_files_change_nothing`），以及 MCP 只能匯出、不能匯入（`agents_can_export_but_never_import_a_backup`）；換電腦的實機流程未測。
+- 發布：第一次 Mac 建置在公證時被 Apple 拒絕（`403 A required agreement is missing or has expired`），維護者在 Apple 開發者帳號同意新協議後只重跑 Mac 工作，通過。CI 紀錄 `notarytool` 對 DMG 回 `status: Accepted`、`stapler validate` 通過。下載草稿檢查：三個下載檔的 SHA256 與 `SHA256SUMS-0.1.15.txt` 相符；`latest.json` 為 0.1.15，Windows 與 Mac 六個平台項目的簽章與對應 `.sig` 檔一致。已公開為最新版，公開的 `latest.json` 為 0.1.15；網站已部署（FAQ 與資料來源寫明美股來自 Yahoo、投票的美股選項改為「從預覽做到完整」），GitHub API 的最新版下載連結指向 v0.1.15。
+- 未驗證：發布用 DMG 在 Mac 上的 `spctl`／下載後開啟流程（當時 Mac 睡眠、SSH 連不上）；程式內更新 0.1.14 → 0.1.15（Windows 與 Mac）；美股長時間使用、Yahoo 介面變動時的行為、Apple Silicon 實機。
+
