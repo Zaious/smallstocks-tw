@@ -162,8 +162,8 @@
         ></a
       >
       <nav aria-label="主要導覽">
-        <a href="#looks">看外觀</a><a href="#download">取得試用版</a
-        ><a href="#vote">投票</a
+        <a href="#new">新功能</a><a href="#looks">看外觀</a
+        ><a href="#download">取得試用版</a><a href="#vote">投票</a
         ><a href="https://github.com/Zaious/smallstocks-tw">原始碼 ↗</a>
       </nav>
     </header>
@@ -238,6 +238,62 @@
           的小窗、棋子感與安靜通知。
         </p>
       </div>
+
+      <section id="new" class="section new-section" aria-labelledby="new-title">
+        <div class="new-copy">
+          <p class="eyebrow"><span class="gold-dot"></span> 0.1.15 新功能</p>
+          <h2 id="new-title">美股，<br />也放進同一個小窗。</h2>
+          <p>
+            在自選輸入 AAPL、NVDA
+            這樣的代號就能加入。美股固定排在台股後面，中間一條細線，元和美元不會混在一起；開盤與否、提醒的「每天一次」都照美股自己的時間。
+          </p>
+          <dl>
+            <dt>急漲急跌</dt>
+            <dd>
+              幾分鐘內漲跌超過幾 %，就提醒你。來自 PTT
+              網友的建議，台股與美股都能用。
+            </dd>
+            <dt>資料備份</dt>
+            <dd>自選、提醒與設定存成一個檔，換電腦時匯入就回來了。</dd>
+            <dt>視窗透明度</dt>
+            <dd>Windows 可調到 40%，滑鼠移上去就恢復清楚。</dd>
+          </dl>
+          <p class="fine">
+            美股為預覽功能，報價來自 Yahoo Finance
+            的公開介面（非官方），來源可能改變。
+          </p>
+        </div>
+        <figure class="new-visual">
+          <div class="mini-window" aria-hidden="true">
+            <div class="mini-title">
+              <span class="gold-dot"></span><b>small</b> stocks / TW
+            </div>
+            <div class="mini-row up">
+              <span>加權指數</span><b>24,180.6</b><i>+0.62%</i>
+            </div>
+            <div class="mini-row up">
+              <span>台積電</span><b>1,040</b><i>+0.29%</i>
+            </div>
+            <div class="mini-row down">
+              <span>元大台灣50</span><b>62.60</b><i>-0.32%</i>
+            </div>
+            <div class="mini-divider"></div>
+            <div class="mini-row up">
+              <span>Apple</span><b>228.40</b><i>+0.85%</i>
+            </div>
+            <div class="mini-row down">
+              <span>NVIDIA</span><b>181.20</b><i>-1.12%</i>
+            </div>
+            <div class="mini-status">本機監看中 · 美股盤中</div>
+          </div>
+          <div class="mini-notice" aria-hidden="true">
+            <span class="gold-dot"></span>NVIDIA · 5 分鐘內急跌 1.10%
+          </div>
+          <figcaption>
+            示意畫面，數字為示範，不是真實行情。台股與美股之間的細線是程式實際的分組方式。
+          </figcaption>
+        </figure>
+      </section>
 
       <section
         id="looks"
