@@ -106,7 +106,7 @@
   if (voteForm) {
     const labels = {
       mobile: "手機版（iOS／Android）",
-      us: "美股版",
+      us: "美股：從預覽做到完整",
       esb: "興櫃股票",
       alerts: "更多種類的提醒",
       looks: "更多外觀與使用上的小改進",

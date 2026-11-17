@@ -18,7 +18,7 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 <p align="center"><em>The watchlist stays in the corner while you work; a short card appears when a threshold you set is crossed. Synthetic demo quotes, captured from the Windows app.</em></p>
 
-> **Status: 0.1.14 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The macOS build is signed and notarized by Apple; the Windows build is unsigned, so SmartScreen may ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
+> **Status: 0.1.15 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The macOS build is signed and notarized by Apple; the Windows build is unsigned, so SmartScreen may ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
 
 ## What it does
 
@@ -99,11 +99,11 @@ Download from the [Releases page](https://github.com/Zaious/smallstocks-tw/relea
 
 | Platform    | File                                    | Use                                         |
 | ----------- | --------------------------------------- | ------------------------------------------- |
-| Windows x64 | `SmallStocks-TW-0.1.14-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`.         |
-| Windows x64 | `SmallStocks.TW_0.1.14_x64-setup.exe`   | Installs for the current user.              |
-| macOS       | `SmallStocks.TW_0.1.14_universal.dmg`   | Drag to Applications. Signed and notarized. |
+| Windows x64 | `SmallStocks-TW-0.1.15-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`.         |
+| Windows x64 | `SmallStocks.TW_0.1.15_x64-setup.exe`   | Installs for the current user.              |
+| macOS       | `SmallStocks.TW_0.1.15_universal.dmg`   | Drag to Applications. Signed and notarized. |
 
-Every download has its SHA-256 in `SHA256SUMS-0.1.14.txt` on the release page.
+Every download has its SHA-256 in `SHA256SUMS-0.1.15.txt` on the release page.
 
 The Windows app needs Microsoft WebView2. The Windows builds are unsigned, so SmartScreen or workplace device policies may stop them; the macOS build is signed and notarized.
 
