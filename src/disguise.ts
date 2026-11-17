@@ -65,9 +65,7 @@ function values(s: Snapshot, c: string) {
           ? d.date.slice(5).replace("-", "/")
           : d.kind === "final"
             ? "CLOSED(MIS)"
-            : d.kind === "us"
-              ? "CLOSED(US)"
-              : "CLOSED"
+            : "CLOSED"
         : "WAITING"
       : stale(q, s.now)
         ? "STALE"
