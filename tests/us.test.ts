@@ -5,6 +5,8 @@ import {
   closedFor,
   isUs,
   latestCloseDate,
+  marketBreak,
+  marketBreaks,
   ruleText,
 } from "../src/model.ts";
 import type { Quote, Rule, Snapshot } from "../src/model.ts";
@@ -82,6 +84,19 @@ describe("US symbols", () => {
     // Each market's latest close is its own: a US date is not "older" than Taiwan's.
     expect(latestCloseDate(evening, "us")).toBe("2026-11-13");
     expect(latestCloseDate(evening, "tw")).toBe("2026-11-16");
+  });
+  it("get one divider, where the US rows begin after the Taiwan ones", () => {
+    const at = (watchlist: string[]) =>
+      watchlist.map((_, i) => marketBreak({ watchlist }, i));
+    expect(at(["t00", "2330", "AAPL", "TSM"])).toEqual([
+      false,
+      false,
+      true,
+      false,
+    ]);
+    // No divider when only one market is watched.
+    expect(marketBreaks({ watchlist: ["AAPL", "TSM"] })).toBe(0);
+    expect(marketBreaks({ watchlist: ["2330", "0050"] })).toBe(0);
   });
   it("say dollars in rules", () => {
     const r: Rule = {

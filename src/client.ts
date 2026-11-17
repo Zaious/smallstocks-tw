@@ -1,5 +1,6 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { Snapshot, DailyView } from "./model.ts";
+import { isUs } from "./model.ts";
 export const desktop = isTauri();
 let preview: Snapshot = {
   watchlist: ["t00", "2330", "0050"],
@@ -36,7 +37,14 @@ export async function request(
 ): Promise<Snapshot> {
   if (desktop) return invoke<Snapshot>("core_request", { tool, args });
   if (tool === "set_settings") Object.assign(preview.settings, args);
-  if (tool === "set_watchlist") preview.watchlist = args.symbols as string[];
+  if (tool === "set_watchlist") {
+    // Taiwan first, then US, as core.rs keeps it.
+    const symbols = args.symbols as string[];
+    preview.watchlist = [
+      ...symbols.filter((c) => !isUs(c)),
+      ...symbols.filter(isUs),
+    ];
+  }
   if (tool === "upsert_rule") {
     const id = (args.id as string) ?? crypto.randomUUID();
     preview.rules = preview.rules.filter((r) => r.id !== id);

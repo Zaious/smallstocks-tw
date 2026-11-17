@@ -39,6 +39,8 @@ import {
   closedFor,
   isUs,
   marketOf,
+  marketBreak,
+  marketBreaks,
 } from "./model.ts";
 import { historyBody } from "./daily-view.ts";
 import { trendCell } from "./inline-trend.ts";
@@ -255,6 +257,7 @@ async function resize() {
             100,
             76 +
               state.watchlist.length * 24 +
+              marketBreaks(state) * 5 +
               (state.demo ? 20 : 0) +
               (state.events.length ? 18 : 0),
           ),
@@ -265,7 +268,7 @@ async function resize() {
             Math.max(
               280,
               210 +
-                state.watchlist.length * 18 +
+                (state.watchlist.length + marketBreaks(state)) * 18 +
                 (state.demo ? 18 : 0) +
                 Math.min(state.events.length, 3) * 18,
             ),
@@ -274,7 +277,9 @@ async function resize() {
             480,
             Math.max(
               300,
-              210 + state.watchlist.length * 19 + (state.demo ? 19 : 0),
+              210 +
+                (state.watchlist.length + marketBreaks(state)) * 19 +
+                (state.demo ? 19 : 0),
             ),
           );
   await win.setMinSize(new LogicalSize(300, 100));
@@ -508,7 +513,7 @@ function apply() {
 function rows() {
   return (
     state.watchlist
-      .map((c) => {
+      .map((c, i) => {
         const q = state.quotes[c];
         const closed = closedFor(state, c);
         const commonDate = latestCloseDate(state, marketOf(c));
@@ -523,7 +528,7 @@ function rows() {
         const sign = (pct ?? 0) > 0 ? "up" : (pct ?? 0) < 0 ? "down" : "flat";
         const trend =
           state.settings.rowDisplay === "trend" ? trendCell(state, c) : null;
-        return `<button class="quote ${sign}${!closed && stale(q, state.now) ? " stale" : !closed && aging(q, state.now) ? " aging" : ""}" data-quote="${esc(c)}" title="${esc(name && name !== c ? `${name}（${c}）` : c)} · ${closed ? (isUs(c) ? "美股最近收盤" : "正式收盤") : "來源時間"} ${esc(stamp)} · ${!closed && live.basis === "book" ? BOOK_NOTE : "價格"} ${number(closed ? d?.close : live.price)}${trend ? " · " + esc(trend.title) : ""} · 點擊查看行情"><span class="stock-name">${state.settings.showCodes || !name ? `<span class="stock-code">${esc(c)}</span>` : ""}<strong>${esc(name)}</strong></span>${trend ? `<span class="trend-slot">${trend.html}</span>` : `<span class="price${!closed && live.basis === "book" ? " book" : ""}">${number(closed ? d?.close : live.price)}</span>`}<span class="change">${change(pct)}</span>${closed && d && d.date !== commonDate ? `<span class="as-of">${d.date.slice(5).replace("-", "/")}</span>` : ""}</button>`;
+        return `<button class="quote ${sign}${!closed && stale(q, state.now) ? " stale" : !closed && aging(q, state.now) ? " aging" : ""}${marketBreak(state, i) ? " market-start" : ""}" data-quote="${esc(c)}" title="${esc(name && name !== c ? `${name}（${c}）` : c)} · ${closed ? (isUs(c) ? "美股最近收盤" : "正式收盤") : "來源時間"} ${esc(stamp)} · ${!closed && live.basis === "book" ? BOOK_NOTE : "價格"} ${number(closed ? d?.close : live.price)}${trend ? " · " + esc(trend.title) : ""} · 點擊查看行情"><span class="stock-name">${state.settings.showCodes || !name ? `<span class="stock-code">${esc(c)}</span>` : ""}<strong>${esc(name)}</strong></span>${trend ? `<span class="trend-slot">${trend.html}</span>` : `<span class="price${!closed && live.basis === "book" ? " book" : ""}">${number(closed ? d?.close : live.price)}</span>`}<span class="change">${change(pct)}</span>${closed && d && d.date !== commonDate ? `<span class="as-of">${d.date.slice(5).replace("-", "/")}</span>` : ""}</button>`;
       })
       .join("") || '<div class="empty">加入第一檔自選，讓重要變化來找你。</div>'
   );

@@ -167,6 +167,21 @@ nav .gear {
   margin: 2px 0;
   font-variant-numeric: tabular-nums;
 }
+/* US rows follow the Taiwan rows: a thin line where the market (and the currency) changes. */
+.quote.market-start {
+  position: relative;
+  margin-top: 7px;
+}
+.quote.market-start::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: -5px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.3;
+}
 .stock-name {
   display: flex;
   flex: 1;

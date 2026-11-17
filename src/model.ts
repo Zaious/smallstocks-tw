@@ -182,6 +182,11 @@ export const BOOK_NOTE = "委託價（買賣中間價），非成交價";
 /** US tickers start with a letter; Taiwan codes start with a digit (indices are t00 / o00). */
 export const isUs = (c: string) => /^[A-Z]/.test(c);
 export const marketOf = (c: string): "tw" | "us" => (isUs(c) ? "us" : "tw");
+/** True for the row where US symbols begin after Taiwan ones: the place for the divider. */
+export const marketBreak = (s: Pick<Snapshot, "watchlist">, i: number) =>
+  i > 0 && isUs(s.watchlist[i] ?? "") && !isUs(s.watchlist[i - 1] ?? "");
+export const marketBreaks = (s: Pick<Snapshot, "watchlist">) =>
+  s.watchlist.filter((_, i) => marketBreak(s, i)).length;
 /** Whether this symbol's own market is closed now (Taiwan or US). Demo is never closed. */
 export const closedFor = (
   s: Pick<Snapshot, "marketOpen" | "demo" | "usMarketOpen">,

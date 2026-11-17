@@ -11,6 +11,8 @@ import {
   allClosed,
   closedFor,
   marketOf,
+  marketBreak,
+  marketBreaks,
 } from "./model.ts";
 import type { Snapshot } from "./model.ts";
 import { minimalMarkup, bindMinimal, updateMinimal } from "./minimal.ts";
@@ -86,6 +88,9 @@ function dateLabel(s: Snapshot) {
       ? `資料 ${time(oldestDataAt(s)!)}（取得 ${time(s.lastFetch)}）`
       : time(s.lastFetch);
 }
+/** A dashed line between the Taiwan and the US rows, as wide as the table. */
+const divider = (s: Snapshot, width: number) =>
+  "-".repeat(width + (s.settings.showCodes ? 7 : 0));
 export function notepadText(s: Snapshot): string {
   const lines = [
     "資料紀錄",
@@ -96,18 +101,19 @@ export function notepadText(s: Snapshot): string {
       pad("名稱", 14) +
       pad("數值", 12) +
       pad("變化", 10),
-    ...s.watchlist.map((c) => {
+    ...s.watchlist.flatMap((c, i) => {
       const v = values(s, c);
-      return (
+      return [
+        ...(marketBreak(s, i) ? [divider(s, 36)] : []),
         (s.settings.showCodes ? pad(v.code, 7) : "") +
-        pad(v.name || v.code, 14) +
-        ((v.book ? "~" : "") + number(v.price)).padStart(10) +
-        "  " +
-        change(v.pct).padStart(8) +
-        (v.date && v.date !== latestCloseDate(s, marketOf(c))
-          ? `  (${v.date.slice(5).replace("-", "/")})`
-          : "")
-      );
+          pad(v.name || v.code, 14) +
+          ((v.book ? "~" : "") + number(v.price)).padStart(10) +
+          "  " +
+          change(v.pct).padStart(8) +
+          (v.date && v.date !== latestCloseDate(s, marketOf(c))
+            ? `  (${v.date.slice(5).replace("-", "/")})`
+            : ""),
+      ];
     }),
     "",
     s.settings.paused
@@ -139,17 +145,18 @@ function terminalText(s: Snapshot): string {
       pad("LAST", 12) +
       pad("CHANGE", 11) +
       "STATE",
-    ...s.watchlist.map((c) => {
+    ...s.watchlist.flatMap((c, i) => {
       const v = values(s, c);
-      return (
+      return [
+        ...(marketBreak(s, i) ? [divider(s, 42)] : []),
         (s.settings.showCodes ? pad(v.code, 7) : "") +
-        pad(v.name || v.code, 14) +
-        ((v.book ? "~" : "") + number(v.price)).padStart(10) +
-        "  " +
-        change(v.pct).padStart(9) +
-        "  " +
-        v.status
-      );
+          pad(v.name || v.code, 14) +
+          ((v.book ? "~" : "") + number(v.price)).padStart(10) +
+          "  " +
+          change(v.pct).padStart(9) +
+          "  " +
+          v.status,
+      ];
     }),
   ];
   if (s.events.length)
@@ -175,9 +182,12 @@ function terminalMarkup(s: Snapshot): string {
     cell("LAST  ", "last") +
     cell("CHANGE  ", "change") +
     cell("STATE", "state");
-  const rows = s.watchlist.map((c) => {
+  const rows = s.watchlist.map((c, i) => {
     const v = values(s, c);
     return (
+      (marketBreak(s, i)
+        ? `<span class="console-divider">${divider(s, 42)}</span>\n`
+        : "") +
       (s.settings.showCodes ? cell(pad(v.code, 7), "id") : "") +
       cell(pad(v.name || v.code, 14), "name") +
       cell((v.book ? "~" : "") + number(v.price) + "  ", "last") +
@@ -190,7 +200,10 @@ function terminalMarkup(s: Snapshot): string {
     head +
     "\n" +
     rows.join("\n") +
-    esc("\n" + all.slice(index + 1 + s.watchlist.length).join("\n"))
+    esc(
+      "\n" +
+        all.slice(index + 1 + s.watchlist.length + marketBreaks(s)).join("\n"),
+    )
   );
 }
 const controls = () =>

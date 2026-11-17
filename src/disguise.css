@@ -387,6 +387,9 @@ body[data-skin="native"] #content {
   scrollbar-width: thin;
   scrollbar-color: #555 transparent;
 }
+.console-divider {
+  opacity: 0.45;
+}
 .console-field {
   display: inline-block;
   vertical-align: top;

@@ -32,6 +32,13 @@ pub fn is_us(code: &str) -> bool {
         .first()
         .is_some_and(|b| b.is_ascii_uppercase())
 }
+/// The watchlist keeps Taiwan first and US after, each in the user's own order,
+/// so prices in 元 and 美元 never interleave and the UI can draw one divider.
+pub fn grouped(codes: Vec<String>) -> Vec<String> {
+    let (us, tw): (Vec<String>, Vec<String>) = codes.into_iter().partition(|c| is_us(c));
+    tw.into_iter().chain(us).collect()
+}
+
 pub fn symbol(s: &str) -> Option<String> {
     let s = s.trim().to_uppercase();
     if matches!(s.as_str(), "大盤" | "加權" | "加權指數" | "T00") {
@@ -358,6 +365,7 @@ impl Core {
                 ..Default::default()
             }
         };
+        saved.watchlist = grouped(std::mem::take(&mut saved.watchlist));
         for r in &mut saved.rules {
             r.last_value = None;
             r.last_at = None;
@@ -727,7 +735,7 @@ impl Core {
                 }
                 let mut codes = Vec::new();
                 for s in raw {
-                    let c = s.as_str().and_then(symbol).ok_or("請使用有效台股代號")?;
+                    let c = s.as_str().and_then(symbol).ok_or("請使用有效的股票代號")?;
                     if !codes.contains(&c) {
                         codes.push(c)
                     }
@@ -740,7 +748,7 @@ impl Core {
                 {
                     return Err("請先停用或刪除該股票的規則，再移除自選".into());
                 }
-                next.saved.watchlist = codes;
+                next.saved.watchlist = grouped(codes);
                 let watched = next.saved.watchlist.clone();
                 next.saved.intraday_cache.retain(|c, _| watched.contains(c));
                 next.saved.local_intraday.retain(|c, _| watched.contains(c));
@@ -775,7 +783,7 @@ impl Core {
                         codes.push(c)
                     }
                 }
-                next.saved.watchlist = codes;
+                next.saved.watchlist = grouped(codes);
                 next.saved.rules.clear();
                 let rules = args["rules"].as_array().cloned().unwrap_or_default();
                 if rules.len() > 100 {
@@ -1277,6 +1285,7 @@ fn apply_rule(next: &mut Core, args: &Value) -> Result<(), String> {
             return Err("自選清單已滿".into());
         };
         next.saved.watchlist.push(code.clone());
+        next.saved.watchlist = grouped(std::mem::take(&mut next.saved.watchlist));
         next.last_fetch = None;
     }
     let id = supplied
@@ -2552,6 +2561,31 @@ mod tests {
         }
         assert!(is_us("AAPL") && is_us("BRK-B"));
         assert!(!is_us("2330") && !is_us("t00") && !is_us("o00"));
+    }
+    #[test]
+    fn watchlist_keeps_taiwan_first_then_us_in_the_users_order() {
+        let dir = std::env::temp_dir().join(format!("smallstocks-group-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut c = Core::load(dir.join("state.json"), false).unwrap();
+        c.execute("set_watchlist", json!({"symbols":["TSM","2330","AAPL","t00"]}))
+            .unwrap();
+        assert_eq!(c.saved.watchlist, vec!["2330", "t00", "TSM", "AAPL"]);
+        // A rule on a new Taiwan code adds it before the US rows, not at the end.
+        c.execute(
+            "upsert_rule",
+            json!({"symbol":"0050","metric":"price","direction":"above","threshold":200,
+                   "repeat":"daily","channel":"log"}),
+        )
+        .unwrap();
+        assert_eq!(c.saved.watchlist, vec!["2330", "t00", "0050", "TSM", "AAPL"]);
+        // A list saved mixed by an older version is grouped when loaded.
+        std::fs::write(
+            dir.join("state.json"),
+            serde_json::to_vec(&json!({"watchlist":["AAPL","2330"]})).unwrap(),
+        )
+        .unwrap();
+        let reloaded = Core::load(dir.join("state.json"), false).unwrap();
+        assert_eq!(reloaded.saved.watchlist, vec!["2330", "AAPL"]);
     }
     #[test]
     fn us_quotes_use_new_york_days_and_the_us_session() {
