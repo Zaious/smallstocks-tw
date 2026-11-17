@@ -241,13 +241,21 @@
 
       <section id="new" class="section new-section" aria-labelledby="new-title">
         <div class="new-copy">
-          <p class="eyebrow"><span class="gold-dot"></span> 0.1.15 新功能</p>
+          <p class="eyebrow">
+            <span class="gold-dot"></span> 最近更新 · 0.1.16
+          </p>
           <h2 id="new-title">美股，<br />也放進同一個小窗。</h2>
           <p>
             在自選輸入 AAPL、NVDA
             這樣的代號就能加入。美股固定排在台股後面，中間一條細線，元和美元不會混在一起；開盤與否、提醒的「每天一次」都照美股自己的時間。
           </p>
           <dl>
+            <dt>一次加入多檔</dt>
+            <dd>
+              貼上一串名稱或代號，連「跌破
+              1000」這類提醒一起建立，先列出來給你確認；也能請 ChatGPT
+              幫你從券商截圖整理。
+            </dd>
             <dt>急漲急跌</dt>
             <dd>
               幾分鐘內漲跌超過幾 %，就提醒你。來自 PTT
@@ -616,7 +624,7 @@
           <h2 id="download-title">留一個小角落，<br />給你的自選股。</h2>
           <p>
             Windows 與 Mac 預覽版
-            <b id="version">0.1.15</b>。免費、開源；Windows
+            <b id="version">0.1.16</b>。免費、開源；Windows
             有免安裝與安裝版，Mac 有 DMG。
           </p>
         </div>
@@ -691,6 +699,11 @@
             <label class="vote-option"
               ><input type="checkbox" name="choice" value="esb" /><span
                 >興櫃股票</span
+              ></label
+            >
+            <label class="vote-option"
+              ><input type="checkbox" name="choice" value="cost" /><span
+                >記錄成本價：看相對成本的漲跌，跌破成本時提醒</span
               ></label
             >
             <label class="vote-option"

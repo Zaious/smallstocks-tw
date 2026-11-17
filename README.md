@@ -18,12 +18,13 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 <p align="center"><em>The watchlist stays in the corner while you work; a short card appears when a threshold you set is crossed. Synthetic demo quotes, captured from the Windows app.</em></p>
 
-> **Status: 0.1.15 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The macOS build is signed and notarized by Apple; the Windows build is unsigned, so SmartScreen may ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
+> **Status: 0.1.16 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The macOS build is signed and notarized by Apple; the Windows build is unsigned, so SmartScreen may ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
 
 ## What it does
 
 - **A small watchlist.** Search by name or code, or paste several codes at once. Follow listed and OTC stocks, ETFs, the TAIEX and the OTC index. Up to 30 watchlist entries.
 - **US stocks too (preview).** Add US tickers such as AAPL, TSM or BRK.B, or search in English. Quotes come from Yahoo Finance's public endpoint (unofficial, no key or account), follow the US regular session, and show the last US close (New York date) when it is shut. Price, percentage and rapid-move alerts work for them; there is no bid/ask mid and no daily history for US tickers yet. In a live check on 2026-11-16 the quotes were 0 to 14 seconds behind and changed on every 15-second refresh; the source may change.
+- **Set up 20 stocks in one paste.** Paste names or codes (mixed, or copied from a broker app with prices in it), optionally with one alert per line such as `台積電 跌破 1000` or `0050 5分鐘內急跌 1%`. Every name is looked up and listed for you to confirm before anything is saved. A button copies instructions for a chat AI (ChatGPT and the like) to turn your list or a screenshot into that format; the app itself sends nothing to any AI.
 - **Three ways to glance.** Numbers, a single-row trend, or just direction and name. The minimal small view becomes a roughly 30 px bar, wraps when narrowed, and reveals price, change and source time on hover. Stock codes are optional.
 - **Four appearances.** Small in colour, small in greyscale, terminal and plain text. On Windows the latter two resemble Windows Terminal and Notepad; the macOS UI branch uses a zsh-style Terminal and a plain-text TextEdit window. These are appearances inside this app; they do not run a shell or edit your documents. On Mac it has been run natively only on one Intel Mac, briefly.
 - **Alerts you choose.** Trade price, percentage, or bid/ask mid price crossing a threshold, upwards or downwards; or a rapid move: up or down by X% within N minutes, measured from the window's low or high. Once or once each trading day. Turn a rule off, record it quietly, or show a strip or card in the corner. Notices do not take keyboard focus.
@@ -99,11 +100,11 @@ Download from the [Releases page](https://github.com/Zaious/smallstocks-tw/relea
 
 | Platform    | File                                    | Use                                         |
 | ----------- | --------------------------------------- | ------------------------------------------- |
-| Windows x64 | `SmallStocks-TW-0.1.15-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`.         |
-| Windows x64 | `SmallStocks.TW_0.1.15_x64-setup.exe`   | Installs for the current user.              |
-| macOS       | `SmallStocks.TW_0.1.15_universal.dmg`   | Drag to Applications. Signed and notarized. |
+| Windows x64 | `SmallStocks-TW-0.1.16-windows-x64.zip` | Unzip and run `smallstocks-tw.exe`.         |
+| Windows x64 | `SmallStocks.TW_0.1.16_x64-setup.exe`   | Installs for the current user.              |
+| macOS       | `SmallStocks.TW_0.1.16_universal.dmg`   | Drag to Applications. Signed and notarized. |
 
-Every download has its SHA-256 in `SHA256SUMS-0.1.15.txt` on the release page.
+Every download has its SHA-256 in `SHA256SUMS-0.1.16.txt` on the release page.
 
 The Windows app needs Microsoft WebView2. The Windows builds are unsigned, so SmartScreen or workplace device policies may stop them; the macOS build is signed and notarized.
 

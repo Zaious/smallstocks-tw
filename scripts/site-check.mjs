@@ -159,25 +159,25 @@ try {
       json: [
         {
           draft: false,
-          tag_name: "v0.1.15",
+          tag_name: "v0.1.16",
           assets: [
             {
-              name: "SmallStocks-TW-0.1.15-windows-x64.zip",
+              name: "SmallStocks-TW-0.1.16-windows-x64.zip",
               size: 3589319,
               browser_download_url:
-                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.15/SmallStocks-TW-0.1.15-windows-x64.zip",
+                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.16/SmallStocks-TW-0.1.16-windows-x64.zip",
             },
             {
-              name: "SmallStocks.TW_0.1.15_x64-setup.exe",
+              name: "SmallStocks.TW_0.1.16_x64-setup.exe",
               size: 2598055,
               browser_download_url:
-                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.15/SmallStocks.TW_0.1.15_x64-setup.exe",
+                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.16/SmallStocks.TW_0.1.16_x64-setup.exe",
             },
             {
-              name: "SmallStocks.TW_0.1.15_universal.dmg",
+              name: "SmallStocks.TW_0.1.16_universal.dmg",
               size: 9000000,
               browser_download_url:
-                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.15/SmallStocks.TW_0.1.15_universal.dmg",
+                "https://github.com/Zaious/smallstocks-tw/releases/download/v0.1.16/SmallStocks.TW_0.1.16_universal.dmg",
             },
           ],
         },
@@ -195,7 +195,7 @@ try {
     await releasePage.locator("#mac-download").getAttribute("href"),
     /universal\.dmg$/,
   );
-  assert.equal(await releasePage.locator("#version").innerText(), "v0.1.15");
+  assert.equal(await releasePage.locator("#version").innerText(), "v0.1.16");
   const failed = await browser.newPage();
   await failed.route("https://api.github.com/**", (route) =>
     route.fulfill({ status: 503, body: "Unavailable" }),
@@ -227,6 +227,7 @@ try {
             mobile: 10,
             us: 5,
             esb: 3,
+            cost: 2,
             alerts: 2,
             looks: 1,
             enough: 4,
@@ -237,7 +238,15 @@ try {
     return route.fulfill({
       json: {
         ballots: 25,
-        options: { mobile: 10, us: 5, esb: 3, alerts: 2, looks: 1, enough: 4 },
+        options: {
+          mobile: 10,
+          us: 5,
+          esb: 3,
+          cost: 2,
+          alerts: 2,
+          looks: 1,
+          enough: 4,
+        },
       },
     });
   });
