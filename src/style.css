@@ -491,6 +491,86 @@ textarea {
   line-height: 2;
   text-align: center;
 }
+/* Quick setup on the manage page: the pasted list, checked row by row before saving. */
+.setup-hint {
+  margin-top: 6px;
+}
+.setup-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.setup-actions .secondary {
+  margin-top: 14px;
+  padding: 8px 12px;
+}
+.setup-status {
+  display: block;
+  margin: 8px 0 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+#setup-preview {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 14px;
+}
+.setup-row {
+  background: var(--panel);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.setup-row.missing {
+  display: flex;
+  gap: 6px;
+  color: var(--muted);
+}
+.setup-pick {
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text);
+}
+.setup-pick input {
+  width: auto;
+  flex: none;
+  margin: 0;
+  padding: 0;
+}
+.setup-pick strong {
+  white-space: nowrap;
+}
+.setup-pick select {
+  width: auto;
+  min-width: 0;
+  max-width: 60%;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+.setup-pick small,
+.setup-ask {
+  color: var(--muted);
+  font-size: 11px;
+}
+.setup-mark {
+  width: 1em;
+  text-align: center;
+}
+.setup-row.check .setup-mark {
+  color: var(--accent);
+}
+.setup-rule {
+  display: block;
+  margin: 2px 0 0 38px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.setup-search {
+  margin-top: 8px;
+}
 #results {
   display: flex;
   flex-wrap: wrap;

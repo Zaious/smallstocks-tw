@@ -757,6 +757,47 @@ impl Core {
                 next.quotes.retain(|c, _| watched.contains(c));
                 next.next_poll = 0;
             }
+            // Desktop only (the quick-setup box): adds symbols and their alerts in one step, so a
+            // bad line leaves everything as it was. Re-adding the same alert does not duplicate it.
+            "add_setup" => {
+                let raw = args["symbols"].as_array().ok_or("需要 symbols 陣列")?;
+                let mut codes = next.saved.watchlist.clone();
+                for s in raw {
+                    let c = s
+                        .as_str()
+                        .and_then(symbol)
+                        .ok_or("清單裡有無效的股票代號")?;
+                    if !codes.contains(&c) {
+                        codes.push(c)
+                    }
+                }
+                if codes.len() > 30 {
+                    return Err(format!("自選最多 30 檔，加入後會有 {} 檔", codes.len()));
+                }
+                next.saved.watchlist = grouped(codes);
+                for r in args["rules"].as_array().cloned().unwrap_or_default() {
+                    let code = r["symbol"].as_str().and_then(symbol).unwrap_or_default();
+                    let same = |x: &Rule| {
+                        x.symbol == code
+                            && Some(x.metric.as_str()) == r["metric"].as_str()
+                            && Some(x.direction.as_str()) == r["direction"].as_str()
+                            && Some(x.threshold) == r["threshold"].as_f64()
+                            && (x.metric != "move"
+                                || x.window_minutes.map(u64::from)
+                                    == Some(r["windowMinutes"].as_u64().unwrap_or(5)))
+                    };
+                    if next.saved.rules.iter().any(same) {
+                        continue;
+                    }
+                    let mut r = r.clone();
+                    if let Some(o) = r.as_object_mut() {
+                        o.remove("id");
+                    }
+                    apply_rule(&mut next, &r).map_err(|e| format!("{code} 的提醒無效：{e}"))?;
+                }
+                next.last_fetch = None;
+                next.next_poll = 0;
+            }
             "set_settings" => apply_settings(&mut next, &args)?,
             "upsert_rule" => apply_rule(&mut next, &args)?,
             // Desktop only: mcp.rs refuses it, so an agent cannot replace the user's setup.
@@ -2561,6 +2602,41 @@ mod tests {
         }
         assert!(is_us("AAPL") && is_us("BRK-B"));
         assert!(!is_us("2330") && !is_us("t00") && !is_us("o00"));
+    }
+    #[test]
+    fn quick_setup_adds_symbols_and_alerts_together_or_not_at_all() {
+        let dir = std::env::temp_dir().join(format!("smallstocks-setup-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut c = Core::load(dir.join("state.json"), false).unwrap();
+        let setup = json!({
+            "symbols": ["AAPL", "2454", "0050"],
+            "rules": [
+                {"symbol":"2454","metric":"price","direction":"below","threshold":1500,"repeat":"daily","channel":"strip"},
+                {"symbol":"0050","metric":"move","direction":"below","threshold":1,"windowMinutes":5,"repeat":"daily","channel":"strip"}
+            ]
+        });
+        c.execute("add_setup", setup.clone()).unwrap();
+        assert_eq!(
+            c.saved.watchlist,
+            vec!["t00", "2330", "0050", "2454", "AAPL"]
+        );
+        assert_eq!(c.saved.rules.len(), 2);
+        // The same setup pasted twice adds nothing new.
+        c.execute("add_setup", setup).unwrap();
+        assert_eq!(c.saved.rules.len(), 2);
+        // One bad alert: nothing of that paste is kept.
+        let bad = json!({
+            "symbols": ["6488"],
+            "rules": [{"symbol":"AAPL","metric":"mid","direction":"above","threshold":1,"repeat":"daily","channel":"strip"}]
+        });
+        assert!(c.execute("add_setup", bad).is_err());
+        assert!(!c.saved.watchlist.contains(&"6488".to_string()));
+        // More than 30 in all is refused with the count.
+        let many: Vec<String> = (1101..1130).map(|n| n.to_string()).collect();
+        let err = c
+            .execute("add_setup", json!({"symbols": many}))
+            .unwrap_err();
+        assert!(err.contains("30"), "{err}");
     }
     #[test]
     fn watchlist_keeps_taiwan_first_then_us_in_the_users_order() {

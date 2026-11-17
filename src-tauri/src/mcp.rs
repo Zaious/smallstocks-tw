@@ -232,6 +232,8 @@ mod tests {
             .unwrap()
         };
         assert_eq!(call("import_backup")["error"]["code"], -32602);
+        // The quick-setup box is the user's; agents add with upsert_rule / set_watchlist.
+        assert_eq!(call("add_setup")["error"]["code"], -32602);
         assert_eq!(call("made_up_tool")["error"]["code"], -32602);
         assert_eq!(call("export_backup")["result"]["isError"], false);
         let names: Vec<Value> = tools()

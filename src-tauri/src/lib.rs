@@ -384,24 +384,36 @@ async fn search_stocks(query: String) -> Result<Value, String> {
             .build()
             .map_err(|e| e.to_string())?;
         let q = query.trim();
-        let tw: Result<Vec<Value>, String> = client
-            .get("https://mis.twse.com.tw/stock/api/getStockNames.jsp")
-            .query(&[("n", q)])
-            .send()
-            .and_then(|r| r.error_for_status())
-            .and_then(|r| r.json::<Value>())
-            .map_err(|e| e.to_string())
-            .map(|v| {
-                v["datas"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .filter_map(|r| {
-                        let c = r["c"].as_str().and_then(core::symbol)?;
-                        Some(json!({"symbol":c,"name":r["n"].as_str().unwrap_or("")}))
-                    })
-                    .collect()
-            });
+        let mis = |n: &str| -> Result<Vec<Value>, String> {
+            client
+                .get("https://mis.twse.com.tw/stock/api/getStockNames.jsp")
+                .query(&[("n", n)])
+                .send()
+                .and_then(|r| r.error_for_status())
+                .and_then(|r| r.json::<Value>())
+                .map_err(|e| e.to_string())
+                .map(|v| {
+                    v["datas"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(|r| {
+                            // Taiwan codes only: the source also lists indices (TWDP, IR0173…)
+                            // that would otherwise pass for US tickers.
+                            let c = r["c"].as_str().and_then(core::symbol)?;
+                            c.starts_with(|ch: char| ch.is_ascii_digit())
+                                .then(|| json!({"symbol":c,"name":r["n"].as_str().unwrap_or("")}))
+                        })
+                        .collect()
+                })
+        };
+        let mut tw = mis(q);
+        // The source finds nothing for names starting with some characters (元大台灣50, 兆豐金,
+        // checked 2026-11-17) but finds them from the second character on.
+        if matches!(&tw, Ok(l) if l.is_empty()) && !q.is_ascii() && q.chars().count() >= 2 {
+            let rest: String = q.chars().skip(1).collect();
+            tw = mis(&rest);
+        }
         // Latin letters: also US listings from Yahoo's public search (unofficial).
         let latin = q.is_ascii() && q.chars().any(|c| c.is_ascii_alphabetic());
         let us: Vec<Value> = if latin {

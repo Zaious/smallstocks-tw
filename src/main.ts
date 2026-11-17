@@ -19,6 +19,15 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { findNewer, installNewer } from "./updates.ts";
 import { mcpSetup } from "./mcp-setup.ts";
 import { describeBackup, readBackup } from "./backup.ts";
+import {
+  AI_PROMPT,
+  mergeResolved,
+  parseSetup,
+  resolveSetup,
+  setupPreview,
+  setupRequest,
+} from "./quick-setup.ts";
+import type { Resolved } from "./quick-setup.ts";
 import type { BackupSummary } from "./backup.ts";
 import type { McpKind } from "./mcp-setup.ts";
 import type { Newer } from "./updates.ts";
@@ -614,7 +623,7 @@ function render() {
 function manage() {
   document.body.dataset.page = "manage";
   apply();
-  content.innerHTML = `<div class="pane"><h1>你的自選清單</h1><p class="intro">貼上多檔代號，以空白、逗號或換行分隔。最多 30 檔。</p><label>搜尋名稱或代號<input id="search" placeholder="例如：台積電、0050、AAPL" autocomplete="off"></label><div id="results"></div><label>目前自選<textarea id="symbols" rows="5">${esc(state.watchlist.join(", "))}</textarea></label><button id="save-symbols" class="primary">儲存自選</button><button id="back-watch">返回</button><p class="note">有啟用中規則的標的，請先停用規則再移除。<br>加權：t00　櫃買：o00　美股：直接輸入代號，例如 AAPL、BRK.B（Yahoo Finance，非官方）</p></div>`;
+  content.innerHTML = `<div class="pane"><h1>你的自選清單</h1><label>一次加入多檔<textarea id="bulk" rows="4" placeholder="台積電 聯發科 0050 AAPL&#10;台積電 跌破 1000&#10;0050 5分鐘內急跌 1%"></textarea></label><p class="note setup-hint">名稱或代號都可以，混著貼也行（從券商或 Excel 複製來的也可以）。同一行加上「跌破 1000」「漲 5%」「5分鐘內急跌 1%」會一起建立提醒。檢查後先列出來給你確認，按下加入才會儲存。</p><div class="setup-actions"><button id="bulk-check" class="primary">檢查</button><button id="copy-ai" class="secondary" title="複製一段說明，貼到 ChatGPT 等聊天 AI，連同你的清單或券商自選股截圖，它會整理成這裡能貼的格式">複製給 AI 的說明</button></div><small id="setup-status" class="setup-status"></small><div id="setup-preview"></div><label class="setup-search">搜尋名稱或代號<input id="search" placeholder="例如：台積電、0050、AAPL" autocomplete="off"></label><div id="results"></div><label>目前自選<textarea id="symbols" rows="5">${esc(state.watchlist.join(", "))}</textarea></label><button id="save-symbols" class="primary">儲存自選</button><button id="back-watch">返回</button><p class="note">目前自選：代號以空白、逗號或換行分隔，最多 30 檔。有啟用中規則的標的，請先停用規則再移除。<br>加權：t00　櫃買：o00　美股：直接輸入代號，例如 AAPL、BRK.B（Yahoo Finance，非官方）</p></div>`;
   if (desktop) void getCurrentWindow().setSize(new LogicalSize(500, 460));
   document.querySelector("#save-symbols")!.addEventListener("click", () => {
     tab = "watch";
@@ -628,6 +637,7 @@ function manage() {
     tab = "watch";
     render();
   });
+  bindSetup();
   document.querySelector("#search")!.addEventListener("input", async (e) => {
     const version = ++searchVersion;
     const query = (e.target as HTMLInputElement).value;
@@ -655,6 +665,82 @@ function manage() {
     } catch (e) {
       showError(e);
     }
+  });
+}
+// The quick-setup box on the manage page: parse, look every name up, show the rows, then add.
+function bindSetup() {
+  const status = (text: string) => {
+    const el = document.querySelector("#setup-status");
+    if (el) el.textContent = text;
+  };
+  const preview = document.querySelector<HTMLElement>("#setup-preview")!;
+  const check = document.querySelector<HTMLButtonElement>("#bulk-check")!;
+  let found: Resolved[] = [];
+  document.querySelector("#copy-ai")!.addEventListener("click", () => {
+    // Copied inside the click: macOS's web view refuses a clipboard write after an await.
+    void copyText(AI_PROMPT)
+      .then(() =>
+        status(
+          "已複製。貼到 ChatGPT 等聊天 AI，在最後加上你的股票或券商自選股截圖；把它回的結果貼到上面。",
+        ),
+      )
+      .catch((e) => status("複製失敗：" + String(e)));
+  });
+  check.addEventListener("click", async () => {
+    const text = document.querySelector<HTMLTextAreaElement>("#bulk")!.value;
+    const parsed = parseSetup(text);
+    if (!parsed.targets.length && !parsed.unread.length) {
+      status("先貼上名稱或代號");
+      return;
+    }
+    check.disabled = true;
+    status(`查詢 ${parsed.targets.length} 檔中…`);
+    found = mergeResolved(await resolveSetup(parsed.targets, search));
+    check.disabled = false;
+    const count = (s: Resolved["status"]) =>
+      found.filter((r) => r.status === s).length;
+    const ask = count("check");
+    const missing = count("missing") + parsed.unread.length;
+    const summary = `找到 ${count("ok")} 檔${ask ? `，${ask} 檔請確認是不是你要的（打勾才會加入）` : ""}${missing ? `，${missing} 項需要修改（改好再按一次檢查）` : ""}。`;
+    status(summary);
+    preview.innerHTML =
+      setupPreview(found, parsed.unread, state.watchlist) +
+      `<button id="setup-add" class="primary"></button>`;
+    const add = document.querySelector<HTMLButtonElement>("#setup-add")!;
+    const chosen = (i: number) => ({
+      on:
+        preview.querySelector<HTMLInputElement>(`[data-setup-on="${i}"]`)
+          ?.checked ?? false,
+      symbol: preview.querySelector<HTMLSelectElement>(
+        `[data-setup-pick="${i}"]`,
+      )?.value,
+    });
+    const label = () => {
+      const req = setupRequest(found, chosen);
+      const fresh = req.symbols.filter((c) => !state.watchlist.includes(c));
+      const total = state.watchlist.length + fresh.length;
+      add.textContent = `加入 ${fresh.length} 檔${req.rules.length ? `、${req.rules.length} 條提醒` : ""}`;
+      add.disabled = !fresh.length && !req.rules.length;
+      status(
+        total > 30
+          ? `自選最多 30 檔：加入後會有 ${total} 檔，請先取消勾選一些。`
+          : summary,
+      );
+    };
+    preview.oninput = label;
+    label();
+    add.onclick = async () => {
+      add.disabled = true;
+      try {
+        state = await request("add_setup", setupRequest(found, chosen));
+        tab = "watch";
+        apply();
+        render();
+      } catch (e) {
+        add.disabled = false;
+        showError(e);
+      }
+    };
   });
 }
 function bind() {

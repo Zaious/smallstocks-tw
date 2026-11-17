@@ -54,6 +54,23 @@ export async function request(
       firedDay: null,
     } as unknown as Snapshot["rules"][number]);
   }
+  if (tool === "add_setup") {
+    // Preview only: no validation here (core.rs does it on the desktop).
+    const symbols = [...preview.watchlist];
+    for (const c of args.symbols as string[])
+      if (!symbols.includes(c)) symbols.push(c);
+    preview.watchlist = [
+      ...symbols.filter((c) => !isUs(c)),
+      ...symbols.filter(isUs),
+    ];
+    for (const r of args.rules as Record<string, unknown>[])
+      preview.rules.push({
+        id: crypto.randomUUID(),
+        enabled: true,
+        ...r,
+        firedDay: null,
+      } as unknown as Snapshot["rules"][number]);
+  }
   if (tool === "delete_rule")
     preview.rules = preview.rules.filter((r) => r.id !== args.id);
   preview.now = Date.now();
