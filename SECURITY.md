@@ -8,7 +8,7 @@ Only the latest release gets security fixes. An installed copy can update itself
 
 Use GitHub's private reporting: the **Security** tab of this repository, then **Report a vulnerability**. It needs a GitHub account. Please do not open a public issue.
 
-I am the only maintainer. I aim to acknowledge a report within 7 calendar days and do not promise a fix date. A confirmed issue is fixed in a new release and published as a GitHub security advisory.
+I am the only maintainer and do not promise a reply time or a fix date. A confirmed issue is fixed in a new release and published as a GitHub security advisory.
 
 ## In scope
 

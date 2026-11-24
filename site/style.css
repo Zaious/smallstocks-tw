@@ -1403,3 +1403,27 @@ figcaption {
 figcaption .sentence {
   display: inline-block;
 }
+/* Small phones (360-400 px): both buttons on one row and a slightly smaller headline, so the alert
+   card in the corner scene reaches the first screen at 360 x 780. */
+@media (max-width: 400px) {
+  .hero {
+    gap: 24px;
+  }
+  .hero-copy {
+    gap: 16px;
+  }
+  .hero h1 {
+    font-size: 52px;
+  }
+  .hero .ctas {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  .hero .btn {
+    font-size: 12.5px;
+    padding: 8px 12px;
+    gap: 6px;
+    white-space: nowrap;
+    min-height: 44px;
+  }
+}
