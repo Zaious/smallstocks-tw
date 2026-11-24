@@ -1,1 +1,1 @@
-Taiwan stocks, but small. A quiet desktop watchlist with custom alerts, terminal and notepad views, and optional local MCP.
+Independent desktop watchlist for Taiwan stocks on Windows and macOS, with price alerts and optional MCP. 桌面角落的台股自選小窗

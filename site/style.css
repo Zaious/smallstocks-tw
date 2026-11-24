@@ -317,7 +317,7 @@ figcaption {
 .desk-corner {
   position: absolute;
   bottom: 0;
-  right: -8px;
+  right: 0;
   width: 65%;
   display: grid;
   gap: 10px;
@@ -328,7 +328,7 @@ figcaption {
   filter: drop-shadow(0 10px 18px #0002);
 }
 .desk-corner .desk-notice {
-  width: 86%;
+  width: 83.333%;
 }
 .family-line {
   display: flex;
@@ -659,6 +659,7 @@ dd {
   display: grid;
   justify-items: center;
   gap: 16px;
+  min-width: 0;
 }
 .mini-window {
   width: min(100%, 380px);
@@ -720,6 +721,8 @@ dd {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  width: min(100%, 380px);
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1145,10 +1148,10 @@ footer a {
   }
   .desk-corner {
     width: 75%;
-    right: -4px;
+    right: 0;
   }
   .desk-corner .desk-notice {
-    width: 90%;
+    width: 83.333%;
   }
   .doc-check {
     margin-top: 15px;
@@ -1379,4 +1382,24 @@ footer a {
   .display-section .section-heading > p:last-child {
     grid-column: auto;
   }
+}
+/* No caption ends on a lone character or punctuation mark. */
+figcaption {
+  text-wrap: balance;
+}
+.mini-notice-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Below the 1100 px layout: the corner captures sit lower, at least 12 px clear of the work window's heading. */
+@media (max-width: 1099px) {
+  .desk {
+    padding-bottom: 40px;
+  }
+}
+/* A caption breaks between sentences first, so no word is split across lines. */
+figcaption .sentence {
+  display: inline-block;
 }

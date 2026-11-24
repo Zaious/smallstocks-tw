@@ -1,6 +1,7 @@
 [package]
 name = "smallstocks-tw"
 version = "0.1.16"
+rust-version = "1.97"
 description = "A quiet local Taiwan stock monitor"
 edition = "2021"
 

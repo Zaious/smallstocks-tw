@@ -9,7 +9,7 @@ npm exec vite -- site --host 127.0.0.1 --port 4175 --strictPort
 
 部署目錄為 `site/dist`，亦可將此目錄上傳靜態託管服務。
 
-來源截圖在 `media/`；數字、灰階、明細與通知為程式示範畫面，走勢為合成整日示意，Mac 圖片為 Intel Mac 原生視窗截圖（示範資料）。`site.js` 向 GitHub 查詢已發布版本，沒有可用安裝檔時顯示真實狀態；不放無效的 `/releases/latest/download` 連結。
+來源截圖在 `media/`；數字、灰階、明細與通知為程式示範畫面，走勢為合成整日示意，Mac 圖片為 Intel Mac 原生視窗截圖（示範資料）。首屏工作情境的 `desk-watchlist.png`、`desk-card.png`，提醒段的灰階細條 `notice.png`，以及分享圖 `share.png`（與 GitHub 社群預覽圖相同，只放加權指數），都由 `node scripts/readme-hero-image.mjs`（`--strip`、`--social`）從 Windows 版示範模式擷取；提醒卡的時間要在盤中，腳本會擋。`site.js` 向 GitHub 查詢已發布版本，沒有可用安裝檔時顯示真實狀態；不放無效的 `/releases/latest/download` 連結。
 
 正式網址為 https://smallstocks.chroniclecore.com ，以 Cloudflare Worker 提供靜態頁面；帳號與部署設定留在私人儲存庫，不放在這裡。
 

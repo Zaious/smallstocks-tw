@@ -88,13 +88,28 @@ jobs:
           else
             echo "::error::TAURI_SIGNING_PRIVATE_KEY is not set; run tools/updater-key.ps1 first"; exit 1
           fi
+      # The release notes are this version's section of CHANGELOG.md; without one the release stops
+      # here instead of going out with empty notes.
+      - name: Release notes from CHANGELOG.md
+        shell: bash
+        run: |
+          tag='${{ github.ref_name }}'; v="${tag#v}"
+          node scripts/changelog-section.mjs "$v" > "$RUNNER_TEMP/notes.md"
+          {
+            echo "VERSION=$v"
+            echo 'RELEASE_NOTES<<__RELEASE_NOTES__'
+            cat "$RUNNER_TEMP/notes.md"
+            echo
+            echo 'The Windows build is not code-signed, so SmartScreen may warn.'
+            echo '__RELEASE_NOTES__'
+          } >> "$GITHUB_ENV"
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: SmallStocks TW ${{ github.ref_name }}
-          releaseBody: See CHANGELOG.md. The Windows build is not code-signed, so SmartScreen may warn.
+          releaseName: SmallStocks TW ${{ env.VERSION }}
+          releaseBody: ${{ env.RELEASE_NOTES }}
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json ${{ env.UPDATER_CONFIG }}

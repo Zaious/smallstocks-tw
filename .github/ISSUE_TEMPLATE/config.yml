@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security problem / 資安問題
+    url: https://github.com/Zaious/smallstocks-tw/security/advisories/new
+    about: Report it privately, not in a public issue.

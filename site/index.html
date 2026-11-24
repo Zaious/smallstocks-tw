@@ -21,11 +21,11 @@
       property="og:image"
       content="https://smallstocks.chroniclecore.com/media/share.png"
     />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
     <meta
       property="og:image:alt"
-      content="螢幕角落的台股小視窗：名稱、價格與漲跌幅，旁邊是提醒卡片。"
+      content="SmallStocks TW（Unofficial）：桌面小視窗顯示加權指數，下方一張提醒卡寫著漲跌幅降至 -1.51%，畫面為合成示範行情。"
     />
     <meta name="twitter:card" content="summary_large_image" />
     <meta property="og:url" content="https://smallstocks.chroniclecore.com/" />
@@ -212,21 +212,24 @@
             </div>
             <div class="desk-corner">
               <img
+                src="media/desk-watchlist.png"
+                width="540"
+                height="279"
+                alt="角落裡的 SmallStocks TW（合成示範行情）：加權指數、台積電、元大台灣50 的價格與漲跌幅，底下一行是最新一則提醒。"
+              /><img
                 class="desk-notice"
-                src="media/notice.png"
+                src="media/desk-card.png"
                 width="450"
                 height="117"
-                alt="合成示範提醒：台積電成交價跨過使用者設定的門檻。"
-              /><img
-                src="media/numbers.png"
-                width="540"
-                height="252"
-                alt="角落裡的 SmallStocks TW：三檔自選、價格與漲跌幅。"
+                alt="合成示範提醒卡：2330 台積電成交價降至 994.71 元，門檻 1000.00，時間 10:15:04。"
               />
             </div>
           </div>
           <figcaption>
-            工作情境示意；程式畫面與通知使用合成示範行情。
+            <span class="sentence">工作視窗是示意圖；</span
+            ><span class="sentence"
+              >角落的自選清單與提醒卡擷取自 Windows 版的示範模式，</span
+            ><span class="sentence">行情為合成。</span>
           </figcaption>
         </figure>
       </section>
@@ -276,29 +279,44 @@
             <div class="mini-title">
               <span class="gold-dot"></span><b>small</b> stocks / TW
             </div>
-            <div class="mini-row up">
-              <span>加權指數</span><b>24,180.6</b><i>+0.62%</i>
-            </div>
-            <div class="mini-row up">
-              <span>台積電</span><b>1,040</b><i>+0.29%</i>
+            <div class="mini-row down">
+              <span>加權指數</span><b>23,636.73</b><i>-1.51%</i>
             </div>
             <div class="mini-row down">
-              <span>元大台灣50</span><b>62.60</b><i>-0.32%</i>
+              <span>台積電</span><b>994.71</b><i>-1.51%</i>
+            </div>
+            <div class="mini-row down">
+              <span>元大台灣50</span><b>59.09</b><i>-1.51%</i>
             </div>
             <div class="mini-divider"></div>
             <div class="mini-row up">
-              <span>Apple</span><b>228.40</b><i>+0.85%</i>
+              <span>Apple Inc.</span><b>228.4</b><i>+0.85%</i>
             </div>
             <div class="mini-row down">
-              <span>NVIDIA</span><b>181.20</b><i>-1.12%</i>
+              <span>NVIDIA Corporation</span><b>181.2</b><i>-1.12%</i>
             </div>
-            <div class="mini-status">本機監看中 · 美股盤中</div>
+            <div class="mini-status">
+              ○ 非一般交易時段 · 僅供查看 · 美股盤中
+            </div>
           </div>
           <div class="mini-notice" aria-hidden="true">
-            <span class="gold-dot"></span>NVIDIA · 5 分鐘內急跌 1.10%
+            <span class="gold-dot"></span
+            ><span class="mini-notice-text"
+              >NVDA NVIDIA Corporation · 5 分鐘內急跌 1.10%（183.21 →
+              181.20，依本程式看到的成交價）</span
+            >
           </div>
           <figcaption>
-            示意畫面，數字為示範，不是真實行情。台股與美股之間的細線是程式實際的分組方式。
+            <span class="sentence">示意畫面：</span
+            ><span class="sentence">版面經過簡化，</span
+            ><span class="sentence">數字為示範，</span
+            ><span class="sentence">不是真實行情；</span
+            ><span class="sentence">字樣照程式實際的寫法。</span
+            ><span class="sentence">台股與美股的盤中時段不重疊，</span
+            ><span class="sentence">美股盤中時台股列顯示收盤。</span
+            ><span class="sentence"
+              >台股與美股之間的細線是程式實際的分組方式。</span
+            >
           </figcaption>
         </figure>
       </section>
@@ -461,7 +479,7 @@
                 id="display-image"
                 src="media/numbers.png"
                 width="540"
-                height="252"
+                height="279"
                 alt="純數字模式：自選股名稱、價格與漲跌幅。"
             /></a>
             <div id="hover-example" class="hover-example" hidden>
@@ -469,7 +487,7 @@
               ><img
                 src="media/hover.png"
                 width="420"
-                height="279"
+                height="188"
                 alt="極簡模式的獨立明細浮窗：價格、漲跌幅、資料日期與來源。"
               />
             </div>
@@ -525,7 +543,7 @@
             <div class="rule-line">
               <b>台積電</b><span>成交價向下跨過</span>
             </div>
-            <p class="rule-price">1,005 <small>元</small></p>
+            <p class="rule-price">1,000 <small>元</small></p>
             <div class="rule-options">
               <span>每天一次</span><span>細條提醒</span><span>灰階外觀</span>
             </div>
@@ -535,13 +553,16 @@
             ><img
               src="media/notice.png"
               width="450"
-              height="117"
+              height="48"
               loading="lazy"
-              alt="規則觸發的實際灰階細條通知，顯示成交價與門檻。"
+              alt="規則觸發的灰階細條通知：2330 台積電成交價降至 994.71 元，門檻 1000.00；超出寬度的字由程式以刪節號收尾。"
             />
           </div>
           <figcaption>
-            規則與行情皆為示範，不代表建議買賣價位。首次觀測先建立基準，並不追補先前跨越的事件。
+            <span class="sentence">規則與行情皆為示範，</span
+            ><span class="sentence">不代表建議買賣價位。</span
+            ><span class="sentence">首次觀測先建立基準，</span
+            ><span class="sentence">並不追補先前跨越的事件。</span>
           </figcaption>
         </figure>
       </section>
@@ -861,8 +882,7 @@
           <a href="https://buymeacoffee.com/zaious">請我喝杯咖啡</a>
         </p>
         <p class="fine">
-          獨立開源專案，與證交所、櫃買中心、Yahoo
-          或券商無隸屬關係。價格可能延遲，圖線為未還原價格，不能作為下單執行依據。本頁行情與畫面皆為示範。
+          獨立專案，未獲臺灣證券交易所、證券櫃檯買賣中心、Yahoo、任何上市（櫃）公司或基金發行人，或任何券商贊助或背書。價格可能延遲，圖線為未還原價格，不能作為下單執行依據。本頁行情與畫面皆為示範。
         </p>
       </div>
     </footer>
