@@ -1,4 +1,4 @@
-<img src="src-tauri/icons/128x128.png" width="88" height="88" alt="SmallStocks TW icon">
+<img src="src-tauri/icons/128x128.png" width="88" height="88" alt="">
 
 # SmallStocks TW
 
@@ -14,9 +14,9 @@ The Taiwan-stock sibling of [Basesmall](https://github.com/Zaious/basesmall) and
 
 [繁體中文使用說明](docs/USAGE.zh-TW.md)
 
-<p align="center"><img src="docs/media/hero-desk.png" width="720" alt="A small watchlist in the corner of a work window, with an alert card above it"></p>
+<p align="center"><img src="docs/media/hero-desk.png" width="640" alt="A small watchlist over the corner of a work document, and below it an alert card: 2330 TSMC fell below the 1,000 threshold (synthetic demo data)"></p>
 
-<p align="center"><em>The watchlist stays in the corner while you work; a short card appears when a threshold you set is crossed. Synthetic demo quotes, captured from the Windows app.</em></p>
+<p align="center"><em>The watchlist stays in the corner while you work; a short card appears when a threshold you set is crossed. Composite: the work document is an illustration; the watchlist and the alert card are captured from the Windows app in demo mode, with synthetic quotes.</em></p>
 
 > **Status: 0.1.16 preview, Windows x64 and macOS (Intel + Apple Silicon).** Windows portable ZIP and per-user installer, and a macOS disk image, are on the [Releases page](https://github.com/Zaious/smallstocks-tw/releases). The macOS build is signed and notarized by Apple; the Windows build is unsigned, so SmartScreen may ask for confirmation on first run. The installed app checks GitHub once at start-up for a newer version (switch it off in settings) and installs one only when you press the button. The Mac build was tried for a few minutes with live quotes on one Intel Mac only.
 
